@@ -17,6 +17,7 @@ export interface NavigationItem {
 export const NAVIGATION_ITEMS: NavigationItem[] = [
   { name: 'Sales Analytics', href: '/', icon: BarChart3 },
   { name: 'Inventory', href: '/inventory', icon: Package },
+  { name: 'Dashboards', href: '/dashboards', icon: LayoutDashboard },
   { name: 'Suppliers', href: '/suppliers', icon: Users, disabled: true, badge: 'Скоро' },
   { name: 'Alerts', href: '/alerts', icon: Bell, disabled: true, badge: 'Скоро' },
   { name: 'Settings', href: '/settings', icon: Settings, disabled: true, badge: 'Скоро' },
