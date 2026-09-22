@@ -512,6 +512,202 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /analytics/inventory/abc-xyz/summary:
+    get:
+      operationId: getAbcXyzSummary
+      summary: Get ABC/XYZ combined matrix and summary metrics
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+        - in: query
+          name: period_days
+          required: false
+          schema:
+            type: integer
+            enum: [30, 90, 180, 365]
+            default: 90
+          description: Analysis period in days
+        - in: query
+          name: warehouse_id
+          required: false
+          schema:
+            type: string
+          description: Optional filter by warehouse ID
+        - in: query
+          name: category_id
+          required: false
+          schema:
+            type: string
+          description: Optional filter by category ID
+        - in: query
+          name: supplier_id
+          required: false
+          schema:
+            type: string
+          description: Optional filter by supplier ID
+      responses:
+        '200':
+          description: ABC/XYZ matrix and summary distribution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AbcXyzSummaryResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/inventory/abc-xyz/items:
+    get:
+      operationId: getAbcXyzItems
+      summary: Get product-level items for ABC/XYZ analysis with variation and shares
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+        - in: query
+          name: period_days
+          required: false
+          schema:
+            type: integer
+            enum: [30, 90, 180, 365]
+            default: 90
+          description: Analysis period in days
+        - in: query
+          name: warehouse_id
+          required: false
+          schema:
+            type: string
+          description: Optional filter by warehouse ID
+        - in: query
+          name: category_id
+          required: false
+          schema:
+            type: string
+          description: Optional filter by category ID
+        - in: query
+          name: supplier_id
+          required: false
+          schema:
+            type: string
+          description: Optional filter by supplier ID
+        - in: query
+          name: abc_class
+          required: false
+          schema:
+            type: string
+            enum: [A, B, C]
+          description: Optional filter by ABC class
+        - in: query
+          name: xyz_class
+          required: false
+          schema:
+            type: string
+            enum: [X, Y, Z]
+          description: Optional filter by XYZ class
+        - in: query
+          name: group
+          required: false
+          schema:
+            type: string
+            enum: [AX, AY, AZ, BX, BY, BZ, CX, CY, CZ]
+          description: Optional filter by matrix group
+        - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+          description: Search by product name or SKU
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Items per page
+        - in: query
+          name: sort_by
+          required: false
+          schema:
+            type: string
+            enum: [product_name, total_revenue, revenue_share, cumulative_revenue_share, total_units_sold, coefficient_of_variation, current_stock, inventory_value]
+            default: total_revenue
+          description: Sort column
+        - in: query
+          name: sort_direction
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort direction
+      responses:
+        '200':
+          description: Paginated product-level ABC/XYZ items
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AbcXyzItemsResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     UserIdAuth:
@@ -917,6 +1113,8 @@ components:
         - warehouses
         - statuses
         - latest_snapshot_date
+        - categories
+        - suppliers
       properties:
         warehouses:
           type: array
@@ -940,3 +1138,264 @@ components:
         latest_snapshot_date:
           type: string
           format: date
+        categories:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, name, code]
+            properties:
+              id: { type: string }
+              name: { type: string }
+              code: { type: string }
+        suppliers:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, name]
+            properties:
+              id: { type: string }
+              name: { type: string }
+    AbcXyzSummaryResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/AbcXyzSummary'
+    AbcXyzSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - total_products
+        - total_revenue
+        - total_inventory_value
+        - matrix
+        - abc_distribution
+        - xyz_distribution
+        - period_days
+        - start_date
+        - end_date
+      properties:
+        total_products:
+          type: integer
+        total_revenue:
+          type: number
+          format: float
+        total_inventory_value:
+          type: number
+          format: float
+        matrix:
+          type: array
+          items:
+            $ref: '#/components/schemas/AbcXyzMatrixCell'
+        abc_distribution:
+          type: array
+          items:
+            $ref: '#/components/schemas/AbcDistributionItem'
+        xyz_distribution:
+          type: array
+          items:
+            $ref: '#/components/schemas/XyzDistributionItem'
+        period_days:
+          type: integer
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+    AbcXyzMatrixCell:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - label
+        - description
+        - recommendation
+        - count
+        - count_share
+        - revenue
+        - revenue_share
+        - inventory_value
+        - inventory_value_share
+      properties:
+        code:
+          type: string
+          enum: [AX, AY, AZ, BX, BY, BZ, CX, CY, CZ]
+        label:
+          type: string
+        description:
+          type: string
+        recommendation:
+          type: string
+        count:
+          type: integer
+        count_share:
+          type: number
+          format: float
+        revenue:
+          type: number
+          format: float
+        revenue_share:
+          type: number
+          format: float
+        inventory_value:
+          type: number
+          format: float
+        inventory_value_share:
+          type: number
+          format: float
+    AbcDistributionItem:
+      type: object
+      additionalProperties: false
+      required:
+        - class
+        - label
+        - count
+        - count_share
+        - revenue
+        - revenue_share
+      properties:
+        class:
+          type: string
+          enum: [A, B, C]
+        label:
+          type: string
+        count:
+          type: integer
+        count_share:
+          type: number
+          format: float
+        revenue:
+          type: number
+          format: float
+        revenue_share:
+          type: number
+          format: float
+    XyzDistributionItem:
+      type: object
+      additionalProperties: false
+      required:
+        - class
+        - label
+        - count
+        - count_share
+        - revenue
+        - revenue_share
+      properties:
+        class:
+          type: string
+          enum: [X, Y, Z]
+        label:
+          type: string
+        count:
+          type: integer
+        count_share:
+          type: number
+          format: float
+        revenue:
+          type: number
+          format: float
+        revenue_share:
+          type: number
+          format: float
+    AbcXyzItemsResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AbcXyzProductItem'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+    AbcXyzProductItem:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - product_id
+        - product_name
+        - product_sku
+        - category_id
+        - category_name
+        - brand_name
+        - total_revenue
+        - total_units_sold
+        - revenue_share
+        - cumulative_revenue_share
+        - abc_class
+        - period_sales
+        - average_sales
+        - standard_deviation
+        - xyz_class
+        - abc_xyz_group
+        - current_stock
+        - inventory_value
+      properties:
+        id:
+          type: string
+        product_id:
+          type: string
+        product_name:
+          type: string
+        product_sku:
+          type: string
+        category_id:
+          type: string
+        category_name:
+          type: string
+        brand_name:
+          type: string
+        supplier_id:
+          type: string
+          nullable: true
+        supplier_name:
+          type: string
+          nullable: true
+        total_revenue:
+          type: number
+          format: float
+        total_units_sold:
+          type: integer
+        revenue_share:
+          type: number
+          format: float
+        cumulative_revenue_share:
+          type: number
+          format: float
+        abc_class:
+          type: string
+          enum: [A, B, C]
+        period_sales:
+          type: array
+          items:
+            type: number
+            format: float
+        average_sales:
+          type: number
+          format: float
+        standard_deviation:
+          type: number
+          format: float
+        coefficient_of_variation:
+          type: number
+          format: float
+          nullable: true
+        xyz_class:
+          type: string
+          enum: [X, Y, Z]
+        abc_xyz_group:
+          type: string
+          enum: [AX, AY, AZ, BX, BY, BZ, CX, CY, CZ]
+        current_stock:
+          type: integer
+        inventory_value:
+          type: number
+          format: float

@@ -1,13 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\InventoryAnalytics\Presentation\Controllers;
 
+use App\Modules\InventoryAnalytics\Application\Queries\GetAbcXyzItemsHandler;
+use App\Modules\InventoryAnalytics\Application\Queries\GetAbcXyzItemsQuery;
+use App\Modules\InventoryAnalytics\Application\Queries\GetAbcXyzSummaryHandler;
+use App\Modules\InventoryAnalytics\Application\Queries\GetAbcXyzSummaryQuery;
 use App\Modules\InventoryAnalytics\Application\Queries\GetInventoryFilterOptionsHandler;
 use App\Modules\InventoryAnalytics\Application\Queries\GetInventoryFilterOptionsQuery;
 use App\Modules\InventoryAnalytics\Application\Queries\GetInventoryItemsHandler;
 use App\Modules\InventoryAnalytics\Application\Queries\GetInventoryItemsQuery;
 use App\Modules\InventoryAnalytics\Application\Queries\GetInventorySummaryHandler;
 use App\Modules\InventoryAnalytics\Application\Queries\GetInventorySummaryQuery;
+use App\Modules\InventoryAnalytics\Presentation\Requests\GetAbcXyzItemsRequest;
+use App\Modules\InventoryAnalytics\Presentation\Requests\GetAbcXyzSummaryRequest;
 use App\Modules\InventoryAnalytics\Presentation\Requests\GetInventoryItemsRequest;
 use App\Modules\InventoryAnalytics\Presentation\Requests\GetInventorySummaryRequest;
 use App\Modules\Workspace\Application\Queries\GetCurrentWorkspaceHandler;
@@ -177,6 +185,134 @@ final class InventoryAnalyticsController
                 'warehouses' => $filters->warehouses,
                 'statuses' => $filters->statuses,
                 'latest_snapshot_date' => $filters->latestSnapshotDate,
+                'categories' => $filters->categories,
+                'suppliers' => $filters->suppliers,
+            ]);
+        } catch (UnauthorizedWorkspaceAccessException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'code' => 'FORBIDDEN',
+            ], 403);
+        } catch (WorkspaceNotFoundException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'code' => 'NOT_FOUND',
+            ], 404);
+        }
+    }
+
+    public function abcXyzSummary(
+        GetAbcXyzSummaryRequest $request,
+        GetAbcXyzSummaryHandler $handler,
+        GetCurrentWorkspaceHandler $workspaceHandler,
+    ): JsonResponse {
+        $userId = (string) $request->attributes->get('authenticated_user_id');
+        $requestedWs = $request->header('X-Workspace-Id');
+
+        try {
+            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
+            $workspaceId = $currentWorkspace->workspace->id;
+
+            $criteria = $request->toCriteria();
+            $summary = $handler->handle(new GetAbcXyzSummaryQuery($workspaceId, $criteria));
+
+            return response()->json([
+                'data' => [
+                    'total_products' => $summary->totalProducts,
+                    'total_revenue' => $summary->totalRevenue,
+                    'total_inventory_value' => $summary->totalInventoryValue,
+                    'matrix' => array_map(fn ($cell) => [
+                        'code' => $cell->code,
+                        'label' => $cell->label,
+                        'description' => $cell->description,
+                        'recommendation' => $cell->recommendation,
+                        'count' => $cell->count,
+                        'count_share' => $cell->countShare,
+                        'revenue' => $cell->revenue,
+                        'revenue_share' => $cell->revenueShare,
+                        'inventory_value' => $cell->inventoryValue,
+                        'inventory_value_share' => $cell->inventoryValueShare,
+                    ], $summary->matrix),
+                    'abc_distribution' => array_map(fn ($item) => [
+                        'class' => $item->class,
+                        'label' => $item->label,
+                        'count' => $item->count,
+                        'count_share' => $item->countShare,
+                        'revenue' => $item->revenue,
+                        'revenue_share' => $item->revenueShare,
+                    ], $summary->abcDistribution),
+                    'xyz_distribution' => array_map(fn ($item) => [
+                        'class' => $item->class,
+                        'label' => $item->label,
+                        'count' => $item->count,
+                        'count_share' => $item->countShare,
+                        'revenue' => $item->revenue,
+                        'revenue_share' => $item->revenueShare,
+                    ], $summary->xyzDistribution),
+                    'period_days' => $summary->periodDays,
+                    'start_date' => $summary->startDate,
+                    'end_date' => $summary->endDate,
+                ],
+            ]);
+        } catch (UnauthorizedWorkspaceAccessException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'code' => 'FORBIDDEN',
+            ], 403);
+        } catch (WorkspaceNotFoundException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'code' => 'NOT_FOUND',
+            ], 404);
+        }
+    }
+
+    public function abcXyzItems(
+        GetAbcXyzItemsRequest $request,
+        GetAbcXyzItemsHandler $handler,
+        GetCurrentWorkspaceHandler $workspaceHandler,
+    ): JsonResponse {
+        $userId = (string) $request->attributes->get('authenticated_user_id');
+        $requestedWs = $request->header('X-Workspace-Id');
+
+        try {
+            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
+            $workspaceId = $currentWorkspace->workspace->id;
+
+            $criteria = $request->toCriteria();
+            $result = $handler->handle(new GetAbcXyzItemsQuery($workspaceId, $criteria));
+
+            return response()->json([
+                'items' => array_map(fn ($item) => [
+                    'id' => $item->id,
+                    'product_id' => $item->productId,
+                    'product_name' => $item->productName,
+                    'product_sku' => $item->productSku,
+                    'category_id' => $item->categoryId,
+                    'category_name' => $item->categoryName,
+                    'brand_name' => $item->brandName,
+                    'supplier_id' => $item->supplierId,
+                    'supplier_name' => $item->supplierName,
+                    'total_revenue' => $item->totalRevenue,
+                    'total_units_sold' => $item->totalUnitsSold,
+                    'revenue_share' => $item->revenueShare,
+                    'cumulative_revenue_share' => $item->cumulativeRevenueShare,
+                    'abc_class' => $item->abcClass,
+                    'period_sales' => $item->periodSales,
+                    'average_sales' => $item->averageSales,
+                    'standard_deviation' => $item->standardDeviation,
+                    'coefficient_of_variation' => $item->coefficientOfVariation,
+                    'xyz_class' => $item->xyzClass,
+                    'abc_xyz_group' => $item->abcXyzGroup,
+                    'current_stock' => $item->currentStock,
+                    'inventory_value' => $item->inventoryValue,
+                ], $result->items),
+                'pagination' => [
+                    'page' => $result->page,
+                    'per_page' => $result->perPage,
+                    'total' => $result->total,
+                    'total_pages' => $result->totalPages,
+                ],
             ]);
         } catch (UnauthorizedWorkspaceAccessException $e) {
             return response()->json([

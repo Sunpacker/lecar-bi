@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\Modules\InventoryAnalytics\Infrastructure;
 
+use App\Modules\InventoryAnalytics\Application\Dtos\AbcXyzItemsCriteriaDto;
+use App\Modules\InventoryAnalytics\Application\Dtos\AbcXyzSummaryCriteriaDto;
 use App\Modules\InventoryAnalytics\Application\Dtos\InventoryItemsCriteriaDto;
 use App\Modules\InventoryAnalytics\Application\Dtos\InventorySummaryCriteriaDto;
 use App\Modules\InventoryAnalytics\Infrastructure\Persistence\InMemoryInventoryAnalyticsReadModel;
@@ -68,6 +70,42 @@ final class InventoryAnalyticsReadModelTest extends TestCase
 
         self::assertNotEmpty($filters->warehouses);
         self::assertNotEmpty($filters->statuses);
+        self::assertNotEmpty($filters->categories);
+        self::assertNotEmpty($filters->suppliers);
         self::assertSame('2025-12-31', $filters->latestSnapshotDate);
+    }
+
+    #[Test]
+    public function in_memory_read_model_returns_abc_xyz_summary(): void
+    {
+        $readModel = new InMemoryInventoryAnalyticsReadModel;
+        $criteria = new AbcXyzSummaryCriteriaDto(periodDays: 90);
+        $summary = $readModel->getAbcXyzSummary('ws-1', $criteria);
+
+        self::assertSame(5, $summary->totalProducts);
+        self::assertSame(300000.0, $summary->totalRevenue);
+        self::assertCount(9, $summary->matrix);
+        self::assertCount(3, $summary->abcDistribution);
+        self::assertCount(3, $summary->xyzDistribution);
+        self::assertSame(90, $summary->periodDays);
+    }
+
+    #[Test]
+    public function in_memory_read_model_filters_and_paginates_abc_xyz_items(): void
+    {
+        $readModel = new InMemoryInventoryAnalyticsReadModel;
+        $criteria = new AbcXyzItemsCriteriaDto(
+            periodDays: 90,
+            group: 'AX',
+            page: 1,
+            perPage: 10
+        );
+
+        $result = $readModel->getAbcXyzItems('ws-1', $criteria);
+
+        self::assertNotEmpty($result->items);
+        foreach ($result->items as $item) {
+            self::assertSame('AX', $item->abcXyzGroup);
+        }
     }
 }

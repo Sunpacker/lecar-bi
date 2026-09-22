@@ -208,6 +208,40 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/analytics/inventory/abc-xyz/summary': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get ABC/XYZ combined matrix and summary metrics */
+    get: operations['getAbcXyzSummary']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/analytics/inventory/abc-xyz/items': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get product-level items for ABC/XYZ analysis with variation and shares */
+    get: operations['getAbcXyzItems']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
 }
 export type webhooks = Record<string, never>
 export interface components {
@@ -428,6 +462,113 @@ export interface components {
       }[]
       /** Format: date */
       latest_snapshot_date: string
+      categories: {
+        id: string
+        name: string
+        code: string
+      }[]
+      suppliers: {
+        id: string
+        name: string
+      }[]
+    }
+    AbcXyzSummaryResponse: {
+      data: components['schemas']['AbcXyzSummary']
+    }
+    AbcXyzSummary: {
+      total_products: number
+      /** Format: float */
+      total_revenue: number
+      /** Format: float */
+      total_inventory_value: number
+      matrix: components['schemas']['AbcXyzMatrixCell'][]
+      abc_distribution: components['schemas']['AbcDistributionItem'][]
+      xyz_distribution: components['schemas']['XyzDistributionItem'][]
+      period_days: number
+      /** Format: date */
+      start_date: string
+      /** Format: date */
+      end_date: string
+    }
+    AbcXyzMatrixCell: {
+      /** @enum {string} */
+      code: 'AX' | 'AY' | 'AZ' | 'BX' | 'BY' | 'BZ' | 'CX' | 'CY' | 'CZ'
+      label: string
+      description: string
+      recommendation: string
+      count: number
+      /** Format: float */
+      count_share: number
+      /** Format: float */
+      revenue: number
+      /** Format: float */
+      revenue_share: number
+      /** Format: float */
+      inventory_value: number
+      /** Format: float */
+      inventory_value_share: number
+    }
+    AbcDistributionItem: {
+      /** @enum {string} */
+      class: 'A' | 'B' | 'C'
+      label: string
+      count: number
+      /** Format: float */
+      count_share: number
+      /** Format: float */
+      revenue: number
+      /** Format: float */
+      revenue_share: number
+    }
+    XyzDistributionItem: {
+      /** @enum {string} */
+      class: 'X' | 'Y' | 'Z'
+      label: string
+      count: number
+      /** Format: float */
+      count_share: number
+      /** Format: float */
+      revenue: number
+      /** Format: float */
+      revenue_share: number
+    }
+    AbcXyzItemsResponse: {
+      items: components['schemas']['AbcXyzProductItem'][]
+      pagination: components['schemas']['PaginationMetadata']
+    }
+    AbcXyzProductItem: {
+      id: string
+      product_id: string
+      product_name: string
+      product_sku: string
+      category_id: string
+      category_name: string
+      brand_name: string
+      supplier_id?: string | null
+      supplier_name?: string | null
+      /** Format: float */
+      total_revenue: number
+      total_units_sold: number
+      /** Format: float */
+      revenue_share: number
+      /** Format: float */
+      cumulative_revenue_share: number
+      /** @enum {string} */
+      abc_class: 'A' | 'B' | 'C'
+      period_sales: number[]
+      /** Format: float */
+      average_sales: number
+      /** Format: float */
+      standard_deviation: number
+      /** Format: float */
+      coefficient_of_variation?: number | null
+      /** @enum {string} */
+      xyz_class: 'X' | 'Y' | 'Z'
+      /** @enum {string} */
+      abc_xyz_group: 'AX' | 'AY' | 'AZ' | 'BX' | 'BY' | 'BZ' | 'CX' | 'CY' | 'CZ'
+      current_stock: number
+      /** Format: float */
+      inventory_value: number
     }
   }
   responses: never
@@ -989,6 +1130,166 @@ export interface operations {
       }
       /** @description Forbidden */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getAbcXyzSummary: {
+    parameters: {
+      query?: {
+        /** @description Analysis period in days */
+        period_days?: 30 | 90 | 180 | 365
+        /** @description Optional filter by warehouse ID */
+        warehouse_id?: string
+        /** @description Optional filter by category ID */
+        category_id?: string
+        /** @description Optional filter by supplier ID */
+        supplier_id?: string
+      }
+      header?: {
+        /** @description Optional requested workspace identifier */
+        'X-Workspace-Id'?: string
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description ABC/XYZ matrix and summary distribution */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AbcXyzSummaryResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Workspace not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getAbcXyzItems: {
+    parameters: {
+      query?: {
+        /** @description Analysis period in days */
+        period_days?: 30 | 90 | 180 | 365
+        /** @description Optional filter by warehouse ID */
+        warehouse_id?: string
+        /** @description Optional filter by category ID */
+        category_id?: string
+        /** @description Optional filter by supplier ID */
+        supplier_id?: string
+        /** @description Optional filter by ABC class */
+        abc_class?: 'A' | 'B' | 'C'
+        /** @description Optional filter by XYZ class */
+        xyz_class?: 'X' | 'Y' | 'Z'
+        /** @description Optional filter by matrix group */
+        group?: 'AX' | 'AY' | 'AZ' | 'BX' | 'BY' | 'BZ' | 'CX' | 'CY' | 'CZ'
+        /** @description Search by product name or SKU */
+        search?: string
+        /** @description Page number */
+        page?: number
+        /** @description Items per page */
+        per_page?: number
+        /** @description Sort column */
+        sort_by?:
+          | 'product_name'
+          | 'total_revenue'
+          | 'revenue_share'
+          | 'cumulative_revenue_share'
+          | 'total_units_sold'
+          | 'coefficient_of_variation'
+          | 'current_stock'
+          | 'inventory_value'
+        /** @description Sort direction */
+        sort_direction?: 'asc' | 'desc'
+      }
+      header?: {
+        /** @description Optional requested workspace identifier */
+        'X-Workspace-Id'?: string
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Paginated product-level ABC/XYZ items */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AbcXyzItemsResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Workspace not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Validation error */
+      422: {
         headers: {
           [name: string]: unknown
         }

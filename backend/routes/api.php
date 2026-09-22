@@ -26,5 +26,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/analytics/inventory/summary', [InventoryAnalyticsController::class, 'summary']);
         Route::get('/analytics/inventory/items', [InventoryAnalyticsController::class, 'items']);
         Route::get('/analytics/inventory/filters', [InventoryAnalyticsController::class, 'filters']);
+        Route::get('/analytics/inventory/abc-xyz/summary', [InventoryAnalyticsController::class, 'abcXyzSummary']);
+        Route::get('/analytics/inventory/abc-xyz/items', [InventoryAnalyticsController::class, 'abcXyzItems']);
     });
 });

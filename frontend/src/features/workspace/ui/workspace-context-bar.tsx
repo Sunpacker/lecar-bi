@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { LogOut, Loader2 } from 'lucide-react'
+import { LogOut, Loader2, Moon, Sun } from 'lucide-react'
+
 import type { CurrentWorkspace, Workspace } from '../api/workspace-gateway'
 import { WorkspaceSwitcher } from './workspace-switcher'
 import { Button } from '@/components/ui/button'
@@ -45,6 +46,8 @@ export function WorkspaceContextBar({
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4">
+        <ThemeToggle />
+
         <div className="hidden sm:flex items-center gap-2.5 text-left">
           <div className="size-7 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 text-xs font-semibold select-none">
             {context.user.name ? context.user.name.charAt(0).toUpperCase() : 'U'}
@@ -60,7 +63,7 @@ export function WorkspaceContextBar({
         </div>
 
         <Button
-          variant="ghost"
+          variant="destructive"
           size="sm"
           onClick={handleLogout}
           disabled={loggingOut}
@@ -72,9 +75,35 @@ export function WorkspaceContextBar({
           ) : (
             <LogOut className="size-3.5" />
           )}
+
           <span className="hidden sm:inline">Выйти</span>
         </Button>
       </div>
     </div>
+  )
+}
+
+const THEME_STORAGE_KEY = 'autobi-theme'
+function ThemeToggle() {
+  function toggleTheme() {
+    const root = document.documentElement
+    const nextTheme = root.classList.contains('dark') ? 'light' : 'dark'
+
+    root.classList.toggle('dark', nextTheme === 'dark')
+    root.style.colorScheme = nextTheme
+    window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme)
+  }
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      aria-label="Переключить цветовую тему"
+      title="Переключить цветовую тему"
+      onClick={toggleTheme}
+    >
+      <Moon aria-hidden="true" className="dark:hidden" />
+      <Sun aria-hidden="true" className="dark:block" />
+    </Button>
   )
 }

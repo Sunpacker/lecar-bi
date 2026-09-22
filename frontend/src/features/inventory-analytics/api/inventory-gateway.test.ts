@@ -104,6 +104,8 @@ describe('inventoryGateway', () => {
       warehouses: [],
       statuses: [],
       latest_snapshot_date: '2025-12-31',
+      categories: [],
+      suppliers: [],
     }
 
     vi.mocked(analyticsClient.GET).mockResolvedValueOnce({
@@ -123,5 +125,96 @@ describe('inventoryGateway', () => {
       }),
     )
     expect(result).toEqual(mockFilters)
+  })
+
+  it('fetches ABC/XYZ summary with filters', async () => {
+    const mockSummary = {
+      data: {
+        total_products: 10,
+        total_revenue: 500000,
+        total_inventory_value: 300000,
+        matrix: [],
+        abc_distribution: [],
+        xyz_distribution: [],
+        period_days: 90,
+        start_date: '2025-10-01',
+        end_date: '2025-12-31',
+      },
+    }
+
+    vi.mocked(analyticsClient.GET).mockResolvedValueOnce({
+      data: mockSummary,
+      error: undefined,
+    } as any)
+
+    const result = await inventoryGateway.getAbcXyzSummary('user-1', 'ws-1', {
+      periodDays: 90,
+      categoryId: 'cat-1',
+    })
+
+    expect(analyticsClient.GET).toHaveBeenCalledWith(
+      '/analytics/inventory/abc-xyz/summary',
+      expect.objectContaining({
+        headers: {
+          'X-User-Id': 'user-1',
+          'X-Workspace-Id': 'ws-1',
+        },
+        params: {
+          query: {
+            period_days: 90,
+            category_id: 'cat-1',
+            warehouse_id: undefined,
+            supplier_id: undefined,
+          },
+        },
+      }),
+    )
+    expect(result).toEqual(mockSummary)
+  })
+
+  it('fetches ABC/XYZ product items with pagination, search, and group filter', async () => {
+    const mockItems = {
+      items: [],
+      pagination: { page: 1, per_page: 20, total: 0, total_pages: 0 },
+    }
+
+    vi.mocked(analyticsClient.GET).mockResolvedValueOnce({
+      data: mockItems,
+      error: undefined,
+    } as any)
+
+    const result = await inventoryGateway.getAbcXyzItems('user-1', 'ws-1', {
+      group: 'AX',
+      search: 'brake',
+      page: 1,
+      perPage: 20,
+    })
+
+    expect(analyticsClient.GET).toHaveBeenCalledWith(
+      '/analytics/inventory/abc-xyz/items',
+      expect.objectContaining({
+        headers: {
+          'X-User-Id': 'user-1',
+          'X-Workspace-Id': 'ws-1',
+        },
+        params: {
+          query: {
+            period_days: undefined,
+            warehouse_id: undefined,
+            category_id: undefined,
+            supplier_id: undefined,
+            abc_class: undefined,
+            xyz_class: undefined,
+            group: 'AX',
+            search: 'brake',
+            page: 1,
+            per_page: 20,
+            sort_by: undefined,
+            sort_direction: undefined,
+          },
+        },
+      }),
+    )
+    expect(result).toEqual(mockItems)
   })
 })

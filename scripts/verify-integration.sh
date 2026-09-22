@@ -173,6 +173,31 @@ fi
 inventory_page="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/inventory")"
 printf '%s' "$inventory_page" | grep --quiet 'Управление запасами'
 
-echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records, and inventory intelligence are verified."
+# 18. Inventory ABC/XYZ summary endpoint returns 3x3 matrix and distributions
+abc_xyz_summary="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/abc-xyz/summary?period_days=90")"
+printf '%s' "$abc_xyz_summary" | grep --quiet '"matrix":\['
+printf '%s' "$abc_xyz_summary" | grep --quiet '"abc_distribution":\['
+printf '%s' "$abc_xyz_summary" | grep --quiet '"xyz_distribution":\['
+
+# 19. Inventory ABC/XYZ items endpoint returns classified catalog
+abc_xyz_items="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/abc-xyz/items?period_days=90&page=1&per_page=10")"
+printf '%s' "$abc_xyz_items" | grep --quiet '"items":\['
+printf '%s' "$abc_xyz_items" | grep --quiet '"abc_class":'
+printf '%s' "$abc_xyz_items" | grep --quiet '"xyz_class":'
+printf '%s' "$abc_xyz_items" | grep --quiet '"abc_xyz_group":'
+
+# 20. Cross-workspace ABC/XYZ isolation: user-1 accessing ws-2 returns 403
+abc_xyz_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/analytics/inventory/abc-xyz/summary")"
+if [ "$abc_xyz_cross_status" != "403" ]; then
+    echo "Expected 403 for cross-workspace ABC/XYZ summary access, got $abc_xyz_cross_status" >&2
+    exit 1
+fi
+
+# 21. Frontend UI renders ABC/XYZ view tab
+abc_xyz_page="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/inventory?tab=abc-xyz")"
+printf '%s' "$abc_xyz_page" | grep --quiet 'ABC / XYZ Анализ'
+
+echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records, inventory intelligence, and ABC/XYZ matrix analysis are verified."
+
 
 

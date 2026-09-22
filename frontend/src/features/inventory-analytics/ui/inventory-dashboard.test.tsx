@@ -25,6 +25,8 @@ describe('InventoryDashboard', () => {
     vi.mocked(inventoryGateway.getFilters).mockResolvedValueOnce({
       warehouses: [{ id: 'wh-1', name: 'Москва', code: 'WH-01' }],
       statuses: [{ value: 'critical', label: 'Критический' }],
+      categories: [{ id: 'c1', name: 'Тормоза', code: 'BR' }],
+      suppliers: [{ id: 's1', name: 'Brembo' }],
       latest_snapshot_date: '2025-12-31',
     })
 

@@ -75,6 +75,23 @@ final class ApiContractTest extends TestCase
         self::assertArrayHasKey('InventoryFilterOptionsResponse', $schemas);
     }
 
+    public function test_contract_contains_abc_xyz_analysis_endpoints(): void
+    {
+        $contract = $this->openApiContract();
+
+        self::assertArrayHasKey('/analytics/inventory/abc-xyz/summary', $contract['paths']);
+        self::assertArrayHasKey('/analytics/inventory/abc-xyz/items', $contract['paths']);
+
+        $schemas = $contract['components']['schemas'];
+        self::assertArrayHasKey('AbcXyzSummaryResponse', $schemas);
+        self::assertArrayHasKey('AbcXyzSummary', $schemas);
+        self::assertArrayHasKey('AbcXyzMatrixCell', $schemas);
+        self::assertArrayHasKey('AbcDistributionItem', $schemas);
+        self::assertArrayHasKey('XyzDistributionItem', $schemas);
+        self::assertArrayHasKey('AbcXyzItemsResponse', $schemas);
+        self::assertArrayHasKey('AbcXyzProductItem', $schemas);
+    }
+
     /** @return array<string, mixed> */
     private function openApiContract(): array
     {

@@ -1,8 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\InventoryAnalytics\Infrastructure\Persistence;
 
 use App\Modules\InventoryAnalytics\Application\Contracts\InventoryAnalyticsReadModelInterface;
+use App\Modules\InventoryAnalytics\Application\Dtos\AbcDistributionDto;
+use App\Modules\InventoryAnalytics\Application\Dtos\AbcXyzItemsCriteriaDto;
+use App\Modules\InventoryAnalytics\Application\Dtos\AbcXyzMatrixCellDto;
+use App\Modules\InventoryAnalytics\Application\Dtos\AbcXyzProductItemDto;
+use App\Modules\InventoryAnalytics\Application\Dtos\AbcXyzProductItemsPaginatedDto;
+use App\Modules\InventoryAnalytics\Application\Dtos\AbcXyzSummaryCriteriaDto;
+use App\Modules\InventoryAnalytics\Application\Dtos\AbcXyzSummaryDto;
 use App\Modules\InventoryAnalytics\Application\Dtos\InventoryFilterOptionsDto;
 use App\Modules\InventoryAnalytics\Application\Dtos\InventoryItemDto;
 use App\Modules\InventoryAnalytics\Application\Dtos\InventoryItemsCriteriaDto;
@@ -11,6 +20,9 @@ use App\Modules\InventoryAnalytics\Application\Dtos\InventorySummaryCriteriaDto;
 use App\Modules\InventoryAnalytics\Application\Dtos\InventorySummaryDto;
 use App\Modules\InventoryAnalytics\Application\Dtos\StockHealthBreakdownDto;
 use App\Modules\InventoryAnalytics\Application\Dtos\WarehouseStockDto;
+use App\Modules\InventoryAnalytics\Application\Dtos\XyzDistributionDto;
+use App\Modules\InventoryAnalytics\Domain\AbcXyzCalculator;
+use Carbon\Carbon;
 
 final class InMemoryInventoryAnalyticsReadModel implements InventoryAnalyticsReadModelInterface
 {
@@ -19,9 +31,15 @@ final class InMemoryInventoryAnalyticsReadModel implements InventoryAnalyticsRea
      */
     private array $items = [];
 
+    /**
+     * @var list<array<string, mixed>>
+     */
+    private array $abcXyzRawProducts = [];
+
     public function __construct()
     {
         $this->seedDefaultItems();
+        $this->seedDefaultAbcXyzProducts();
     }
 
     /**
@@ -30,6 +48,14 @@ final class InMemoryInventoryAnalyticsReadModel implements InventoryAnalyticsRea
     public function seedItems(array $items): void
     {
         $this->items = $items;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rawProducts
+     */
+    public function seedAbcXyzProducts(array $rawProducts): void
+    {
+        $this->abcXyzRawProducts = $rawProducts;
     }
 
     public function getInventorySummary(string $workspaceId, InventorySummaryCriteriaDto $criteria): InventorySummaryDto
@@ -115,44 +141,44 @@ final class InMemoryInventoryAnalyticsReadModel implements InventoryAnalyticsRea
 
         $warehouses = [
             new WarehouseStockDto(
-                warehouseId: 'wh-msk-central',
-                warehouseName: 'Центральный склад Москва',
-                warehouseCode: 'WH-MSK-01',
-                totalQuantity: 450,
-                totalValue: 1250000.0,
-                itemsCount: 15,
-                criticalCount: 2,
-                overstockCount: 1
+                'wh-msk-central',
+                'Центральный склад Москва',
+                'WH-MSK-01',
+                6,
+                22400.0,
+                2,
+                1,
+                0
             ),
             new WarehouseStockDto(
-                warehouseId: 'wh-spb-north',
-                warehouseName: 'Логистический хаб СПб',
-                warehouseCode: 'WH-SPB-01',
-                totalQuantity: 320,
-                totalValue: 850000.0,
-                itemsCount: 12,
-                criticalCount: 1,
-                overstockCount: 2
+                'wh-spb-north',
+                'Логистический хаб СПб',
+                'WH-SPB-01',
+                60,
+                221000.0,
+                1,
+                0,
+                0
             ),
             new WarehouseStockDto(
-                warehouseId: 'wh-sam-volga',
-                warehouseName: 'Региональный склад Самара',
-                warehouseCode: 'WH-SAM-01',
-                totalQuantity: 180,
-                totalValue: 420000.0,
-                itemsCount: 10,
-                criticalCount: 1,
-                overstockCount: 0
+                'wh-sam-volga',
+                'Региональный склад Самара',
+                'WH-SAM-01',
+                40,
+                29250.0,
+                1,
+                0,
+                0
             ),
             new WarehouseStockDto(
-                warehouseId: 'wh-ekb-ural',
-                warehouseName: 'Уральский распредцентр',
-                warehouseCode: 'WH-EKB-01',
-                totalQuantity: 250,
-                totalValue: 680000.0,
-                itemsCount: 11,
-                criticalCount: 0,
-                overstockCount: 3
+                'wh-ekb-ural',
+                'Уральский распредцентр',
+                'WH-EKB-01',
+                170,
+                1476000.0,
+                1,
+                0,
+                1
             ),
         ];
 
@@ -166,10 +192,10 @@ final class InMemoryInventoryAnalyticsReadModel implements InventoryAnalyticsRea
             overstockCount: $overstockCount,
             outOfStockCount: $outOfStockCount,
             optimalCount: $optimalCount,
-            averageDaysOfStock: 28.4,
+            averageDaysOfStock: 68.5,
             healthBreakdown: $healthBreakdown,
             warehouses: $warehouses,
-            asOfDate: $criteria->asOfDate ?? '2025-12-31',
+            asOfDate: '2025-12-31'
         );
     }
 
@@ -179,16 +205,14 @@ final class InMemoryInventoryAnalyticsReadModel implements InventoryAnalyticsRea
             if ($criteria->warehouseId !== null && $item->warehouseId !== $criteria->warehouseId) {
                 return false;
             }
-
             if ($criteria->stockHealth !== null && $item->stockHealth !== $criteria->stockHealth) {
                 return false;
             }
-
             if ($criteria->search !== null && $criteria->search !== '') {
-                $search = mb_strtolower($criteria->search);
-                $nameMatch = str_contains(mb_strtolower($item->productName), $search);
-                $skuMatch = str_contains(mb_strtolower($item->productSku), $search);
-                if (! $nameMatch && ! $skuMatch) {
+                $searchLower = mb_strtolower($criteria->search);
+                $nameLower = mb_strtolower($item->productName);
+                $skuLower = mb_strtolower($item->productSku);
+                if (! str_contains($nameLower, $searchLower) && ! str_contains($skuLower, $searchLower)) {
                     return false;
                 }
             }
@@ -225,6 +249,142 @@ final class InMemoryInventoryAnalyticsReadModel implements InventoryAnalyticsRea
         );
     }
 
+    public function getAbcXyzSummary(string $workspaceId, AbcXyzSummaryCriteriaDto $criteria): AbcXyzSummaryDto
+    {
+        $filtered = $this->filterRawProducts($this->abcXyzRawProducts, $criteria->warehouseId, $criteria->categoryId, $criteria->supplierId);
+        $analysis = AbcXyzCalculator::analyze($filtered);
+
+        $matrixDtos = array_map(fn (array $cell) => new AbcXyzMatrixCellDto(
+            code: $cell['code'],
+            label: $cell['label'],
+            description: $cell['description'],
+            recommendation: $cell['recommendation'],
+            count: $cell['count'],
+            countShare: $cell['count_share'],
+            revenue: $cell['revenue'],
+            revenueShare: $cell['revenue_share'],
+            inventoryValue: $cell['inventory_value'],
+            inventoryValueShare: $cell['inventory_value_share'],
+        ), $analysis['matrix']);
+
+        $abcDtos = array_map(fn (array $item) => new AbcDistributionDto(
+            class: $item['class'],
+            label: $item['label'],
+            count: $item['count'],
+            countShare: $item['count_share'],
+            revenue: $item['revenue'],
+            revenueShare: $item['revenue_share'],
+        ), $analysis['abc_distribution']);
+
+        $xyzDtos = array_map(fn (array $item) => new XyzDistributionDto(
+            class: $item['class'],
+            label: $item['label'],
+            count: $item['count'],
+            countShare: $item['count_share'],
+            revenue: $item['revenue'],
+            revenueShare: $item['revenue_share'],
+        ), $analysis['xyz_distribution']);
+
+        $endDate = '2025-12-31';
+        $startDate = Carbon::parse($endDate)->subDays($criteria->periodDays)->toDateString();
+
+        return new AbcXyzSummaryDto(
+            totalProducts: $analysis['total_products'],
+            totalRevenue: $analysis['total_revenue'],
+            totalInventoryValue: $analysis['total_inventory_value'],
+            matrix: $matrixDtos,
+            abcDistribution: $abcDtos,
+            xyzDistribution: $xyzDtos,
+            periodDays: $criteria->periodDays,
+            startDate: $startDate,
+            endDate: $endDate,
+        );
+    }
+
+    public function getAbcXyzItems(string $workspaceId, AbcXyzItemsCriteriaDto $criteria): AbcXyzProductItemsPaginatedDto
+    {
+        $filtered = $this->filterRawProducts($this->abcXyzRawProducts, $criteria->warehouseId, $criteria->categoryId, $criteria->supplierId);
+        $analysis = AbcXyzCalculator::analyze($filtered);
+
+        $items = $analysis['items'];
+
+        if ($criteria->abcClass !== null && $criteria->abcClass !== '') {
+            $items = array_values(array_filter($items, fn ($i) => $i['abc_class'] === $criteria->abcClass));
+        }
+
+        if ($criteria->xyzClass !== null && $criteria->xyzClass !== '') {
+            $items = array_values(array_filter($items, fn ($i) => $i['xyz_class'] === $criteria->xyzClass));
+        }
+
+        if ($criteria->group !== null && $criteria->group !== '') {
+            $items = array_values(array_filter($items, fn ($i) => $i['abc_xyz_group'] === $criteria->group));
+        }
+
+        if ($criteria->search !== null && $criteria->search !== '') {
+            $searchLower = mb_strtolower(trim($criteria->search));
+            $items = array_values(array_filter($items, function ($i) use ($searchLower) {
+                return str_contains(mb_strtolower($i['product_name']), $searchLower)
+                    || str_contains(mb_strtolower($i['product_sku']), $searchLower);
+            }));
+        }
+
+        // Sorting
+        usort($items, function (array $a, array $b) use ($criteria) {
+            $direction = $criteria->sortDirection === 'desc' ? -1 : 1;
+
+            return match ($criteria->sortBy) {
+                'product_name' => strcmp($a['product_name'], $b['product_name']) * $direction,
+                'total_units_sold' => ($a['total_units_sold'] <=> $b['total_units_sold']) * $direction,
+                'revenue_share' => ($a['revenue_share'] <=> $b['revenue_share']) * $direction,
+                'cumulative_revenue_share' => ($a['cumulative_revenue_share'] <=> $b['cumulative_revenue_share']) * $direction,
+                'coefficient_of_variation' => (($a['coefficient_of_variation'] ?? 999999) <=> ($b['coefficient_of_variation'] ?? 999999)) * $direction,
+                'current_stock' => ($a['current_stock'] <=> $b['current_stock']) * $direction,
+                'inventory_value' => ($a['inventory_value'] <=> $b['inventory_value']) * $direction,
+                default => ($a['total_revenue'] <=> $b['total_revenue']) * $direction,
+            };
+        });
+
+        $total = count($items);
+        $perPage = max(1, $criteria->perPage);
+        $page = max(1, $criteria->page);
+        $totalPages = (int) ceil($total / $perPage);
+        $offset = ($page - 1) * $perPage;
+        $sliced = array_slice($items, $offset, $perPage);
+
+        $itemDtos = array_map(fn (array $i) => new AbcXyzProductItemDto(
+            id: $i['id'],
+            productId: $i['product_id'],
+            productName: $i['product_name'],
+            productSku: $i['product_sku'],
+            categoryId: $i['category_id'],
+            categoryName: $i['category_name'],
+            brandName: $i['brand_name'],
+            supplierId: $i['supplier_id'],
+            supplierName: $i['supplier_name'],
+            totalRevenue: $i['total_revenue'],
+            totalUnitsSold: $i['total_units_sold'],
+            revenueShare: $i['revenue_share'],
+            cumulativeRevenueShare: $i['cumulative_revenue_share'],
+            abcClass: $i['abc_class'],
+            periodSales: $i['period_sales'],
+            averageSales: $i['average_sales'],
+            standardDeviation: $i['standard_deviation'],
+            coefficientOfVariation: $i['coefficient_of_variation'],
+            xyzClass: $i['xyz_class'],
+            abcXyzGroup: $i['abc_xyz_group'],
+            currentStock: $i['current_stock'],
+            inventoryValue: $i['inventory_value'],
+        ), $sliced);
+
+        return new AbcXyzProductItemsPaginatedDto(
+            items: $itemDtos,
+            total: $total,
+            page: $page,
+            perPage: $perPage,
+            totalPages: $totalPages,
+        );
+    }
+
     public function getFilterOptions(string $workspaceId): InventoryFilterOptionsDto
     {
         return new InventoryFilterOptionsDto(
@@ -241,7 +401,39 @@ final class InMemoryInventoryAnalyticsReadModel implements InventoryAnalyticsRea
                 ['value' => 'out_of_stock', 'label' => 'Дефицит'],
             ],
             latestSnapshotDate: '2025-12-31',
+            categories: [
+                ['id' => 'cat-tires-wheels', 'name' => 'Шины и диски', 'code' => 'TIRES'],
+                ['id' => 'cat-brakes', 'name' => 'Тормозная система', 'code' => 'BRAKES'],
+                ['id' => 'cat-oils-fluids', 'name' => 'Масла и автохимия', 'code' => 'FLUIDS'],
+                ['id' => 'cat-filters', 'name' => 'Фильтры', 'code' => 'FILTERS'],
+            ],
+            suppliers: [
+                ['id' => 'sup-eurotech', 'name' => 'EuroTech Components Ltd'],
+                ['id' => 'sup-vostok', 'name' => 'Восток Авто Дистрибьюшн'],
+                ['id' => 'sup-rusauto', 'name' => 'РусАвто Импорт'],
+            ],
         );
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $raw
+     * @return list<array<string, mixed>>
+     */
+    private function filterRawProducts(array $raw, ?string $warehouseId, ?string $categoryId, ?string $supplierId): array
+    {
+        return array_values(array_filter($raw, function ($item) use ($warehouseId, $categoryId, $supplierId) {
+            if ($warehouseId !== null && isset($item['warehouse_id']) && $item['warehouse_id'] !== $warehouseId) {
+                return false;
+            }
+            if ($categoryId !== null && isset($item['category_id']) && $item['category_id'] !== $categoryId) {
+                return false;
+            }
+            if ($supplierId !== null && isset($item['supplier_id']) && $item['supplier_id'] !== $supplierId) {
+                return false;
+            }
+
+            return true;
+        }));
     }
 
     private function seedDefaultItems(): void
@@ -357,6 +549,97 @@ final class InMemoryInventoryAnalyticsReadModel implements InventoryAnalyticsRea
                 safetyStock: 15,
                 reorderPoint: 30
             ),
+        ];
+    }
+
+    private function seedDefaultAbcXyzProducts(): void
+    {
+        $this->abcXyzRawProducts = [
+            [
+                'id' => 'item-1',
+                'product_id' => 'prod-conti-wint-16',
+                'product_name' => 'Шина зимняя Continental WinterContact TS 870 205/55 R16',
+                'product_sku' => 'TIRE-CONTI-WINT-16',
+                'category_id' => 'cat-tires-wheels',
+                'category_name' => 'Шины и диски',
+                'brand_name' => 'Continental',
+                'supplier_id' => 'sup-eurotech',
+                'supplier_name' => 'EuroTech Components Ltd',
+                'warehouse_id' => 'wh-msk-central',
+                'revenue' => 150000.0,
+                'units_sold' => 20,
+                'period_sales' => [7.0, 6.0, 7.0],
+                'current_stock' => 0,
+                'inventory_value' => 0.0,
+            ],
+            [
+                'id' => 'item-2',
+                'product_id' => 'prod-michelin-primacy-17',
+                'product_name' => 'Шина летняя Michelin Primacy 4 225/50 R17',
+                'product_sku' => 'TIRE-MICH-PRIM-17',
+                'category_id' => 'cat-tires-wheels',
+                'category_name' => 'Шины и диски',
+                'brand_name' => 'Michelin',
+                'supplier_id' => 'sup-eurotech',
+                'supplier_name' => 'EuroTech Components Ltd',
+                'warehouse_id' => 'wh-ekb-ural',
+                'revenue' => 100000.0,
+                'units_sold' => 10,
+                'period_sales' => [3.0, 4.0, 3.0],
+                'current_stock' => 170,
+                'inventory_value' => 1476000.0,
+            ],
+            [
+                'id' => 'item-3',
+                'product_id' => 'prod-castrol-edge-5w30',
+                'product_name' => 'Масло моторное Castrol EDGE 5W-30 LL 4л',
+                'product_sku' => 'OIL-CAST-EDGE-5W30-4L',
+                'category_id' => 'cat-oils-fluids',
+                'category_name' => 'Масла и автохимия',
+                'brand_name' => 'Castrol',
+                'supplier_id' => 'sup-vostok',
+                'supplier_name' => 'Восток Авто Дистрибьюшн',
+                'warehouse_id' => 'wh-spb-north',
+                'revenue' => 35000.0,
+                'units_sold' => 10,
+                'period_sales' => [3.0, 3.0, 4.0],
+                'current_stock' => 60,
+                'inventory_value' => 221000.0,
+            ],
+            [
+                'id' => 'item-4',
+                'product_id' => 'prod-brembo-pad-front',
+                'product_name' => 'Колодки тормозные передние Brembo P 85 020',
+                'product_sku' => 'BRAKE-BREMBO-PAD-F',
+                'category_id' => 'cat-brakes',
+                'category_name' => 'Тормозная система',
+                'brand_name' => 'Brembo',
+                'supplier_id' => 'sup-eurotech',
+                'supplier_name' => 'EuroTech Components Ltd',
+                'warehouse_id' => 'wh-msk-central',
+                'revenue' => 10000.0,
+                'units_sold' => 4,
+                'period_sales' => [1.0, 2.0, 1.0],
+                'current_stock' => 6,
+                'inventory_value' => 22400.0,
+            ],
+            [
+                'id' => 'item-5',
+                'product_id' => 'prod-mann-filter-w712',
+                'product_name' => 'Фильтр масляный Mann-Filter W 712/94',
+                'product_sku' => 'FILT-MANN-W712',
+                'category_id' => 'cat-filters',
+                'category_name' => 'Фильтры',
+                'brand_name' => 'Mann-Filter',
+                'supplier_id' => 'sup-rusauto',
+                'supplier_name' => 'РусАвто Импорт',
+                'warehouse_id' => 'wh-sam-volga',
+                'revenue' => 5000.0,
+                'units_sold' => 8,
+                'period_sales' => [2.0, 4.0, 2.0],
+                'current_stock' => 40,
+                'inventory_value' => 29250.0,
+            ],
         ];
     }
 }
