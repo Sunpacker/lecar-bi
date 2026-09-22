@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Modules\Dashboard\Domain\Repositories\DashboardRepositoryInterface;
+use App\Modules\Dashboard\Infrastructure\Persistence\Eloquent\Repositories\EloquentDashboardRepository;
+use App\Modules\Dashboard\Infrastructure\Persistence\InMemory\InMemoryDashboardRepository;
 use App\Modules\InventoryAnalytics\Application\Contracts\InventoryAnalyticsReadModelInterface;
 use App\Modules\InventoryAnalytics\Infrastructure\Persistence\InMemoryInventoryAnalyticsReadModel;
 use App\Modules\InventoryAnalytics\Infrastructure\Persistence\PostgresInventoryAnalyticsReadModel;
@@ -50,6 +53,14 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return new PostgresInventoryAnalyticsReadModel;
+        });
+
+        $this->app->singleton(DashboardRepositoryInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new InMemoryDashboardRepository;
+            }
+
+            return new EloquentDashboardRepository;
         });
     }
 

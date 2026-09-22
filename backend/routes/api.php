@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Dashboard\Presentation\Controllers\DashboardController;
 use App\Modules\InventoryAnalytics\Presentation\Controllers\InventoryAnalyticsController;
 use App\Modules\SalesAnalytics\Presentation\Controllers\SalesAnalyticsController;
 use App\Modules\Workspace\Presentation\Controllers\AuthController;
@@ -18,6 +19,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/workspaces', [WorkspaceController::class, 'index']);
         Route::get('/workspaces/current', [CurrentWorkspaceController::class, 'show']);
         Route::get('/workspaces/{id}', [WorkspaceController::class, 'show']);
+
+        Route::get('/dashboards', [DashboardController::class, 'index']);
+        Route::post('/dashboards', [DashboardController::class, 'store']);
+        Route::get('/dashboards/{id}', [DashboardController::class, 'show']);
+        Route::put('/dashboards/{id}', [DashboardController::class, 'update']);
+        Route::delete('/dashboards/{id}', [DashboardController::class, 'destroy']);
 
         Route::get('/analytics/sales/overview', [SalesAnalyticsController::class, 'overview']);
         Route::get('/analytics/sales/filters', [SalesAnalyticsController::class, 'filters']);
