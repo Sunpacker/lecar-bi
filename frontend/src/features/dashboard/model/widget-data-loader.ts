@@ -197,10 +197,10 @@ export async function loadWidgetData(
             val = summaryRes.summary.total_inventory_value
             break
           case 'out_of_stock_count':
-            val = summaryRes.summary.out_of_stock_items
+            val = summaryRes.summary.out_of_stock_count
             break
           case 'overstock_count':
-            val = summaryRes.summary.overstock_items
+            val = summaryRes.summary.overstock_count
             break
           default:
             val = summaryRes.summary.total_quantity_on_hand
@@ -231,7 +231,9 @@ export async function loadWidgetData(
         if (dimension === 'abc_class' || dimension === 'xyz_class') {
           const abcSummary = await inventoryGateway.getAbcXyzSummary(userId, workspaceId)
           const dist =
-            dimension === 'abc_class' ? abcSummary.abc_distribution : abcSummary.xyz_distribution
+            dimension === 'abc_class'
+              ? abcSummary.data.abc_distribution
+              : abcSummary.data.xyz_distribution
           const chartData: WidgetChartPoint[] = dist.map((d) => ({
             name: `Класс ${d.class}`,
             value: d.revenue,

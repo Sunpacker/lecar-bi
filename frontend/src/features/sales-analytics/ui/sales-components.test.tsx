@@ -183,18 +183,18 @@ describe('Sales Analytics UI Components', () => {
     render(
       <SalesTrendChart
         trend={[
-          { date: '2025-01-01', revenue: 100000, order_count: 10 },
+          { date: '2025-03-05', revenue: 100000, order_count: 10 },
           { date: '2025-03-25', revenue: 140000, order_count: 11 },
           { date: '2025-03-31', revenue: 180000, order_count: 12 },
         ]}
       />,
     )
 
-    expect(screen.getByRole('button', { name: /2025-01-01/ })).toBeDefined()
+    expect(screen.getByRole('button', { name: /2025-03-05/ })).toBeDefined()
 
     fireEvent.click(screen.getByRole('button', { name: 'Показать 7 дней' }))
 
-    expect(screen.queryByRole('button', { name: /2025-01-01/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /2025-03-05/ })).toBeNull()
     expect(screen.getByRole('button', { name: /2025-03-25/ })).toBeDefined()
     expect(screen.getByRole('button', { name: /2025-03-31/ })).toBeDefined()
     expect(screen.getByText(/Пик:/)).toHaveTextContent('180 000')

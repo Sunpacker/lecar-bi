@@ -119,15 +119,18 @@ describe('widgetDataLoader', () => {
       summary: {
         total_items: 120,
         total_quantity_on_hand: 5400,
+        total_quantity_reserved: 0,
+        total_quantity_available: 5400,
         total_inventory_value: 14500000,
-        out_of_stock_items: 5,
-        critical_stock_items: 8,
-        optimal_stock_items: 90,
-        overstock_items: 17,
+        out_of_stock_count: 5,
+        critical_count: 8,
+        optimal_count: 90,
+        overstock_count: 17,
         average_days_of_stock: 42,
       },
-      stock_health: [],
+      health_breakdown: [],
       warehouses: [],
+      as_of_date: '2026-09-22',
     })
 
     const result = await loadWidgetData(widget, 'user-1', 'ws-1')
@@ -154,23 +157,29 @@ describe('widgetDataLoader', () => {
       summary: {
         total_items: 120,
         total_quantity_on_hand: 5400,
+        total_quantity_reserved: 0,
+        total_quantity_available: 5400,
         total_inventory_value: 14500000,
-        out_of_stock_items: 5,
-        critical_stock_items: 8,
-        optimal_stock_items: 90,
-        overstock_items: 17,
+        out_of_stock_count: 5,
+        critical_count: 8,
+        optimal_count: 90,
+        overstock_count: 17,
         average_days_of_stock: 42,
       },
-      stock_health: [],
+      health_breakdown: [],
       warehouses: [
         {
           warehouse_id: 'wh-1',
           warehouse_name: 'Склад Тольятти',
+          warehouse_code: 'WH-01',
           total_quantity: 3200,
           total_value: 8000000,
-          item_count: 85,
+          items_count: 85,
+          critical_count: 2,
+          overstock_count: 5,
         },
       ],
+      as_of_date: '2026-09-22',
     })
 
     const result = await loadWidgetData(widget, 'user-1', 'ws-1')

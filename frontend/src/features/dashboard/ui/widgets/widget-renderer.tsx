@@ -23,7 +23,6 @@ export function WidgetRenderer({ widget, userId, workspaceId }: WidgetRendererPr
 
   useEffect(() => {
     let isCancelled = false
-    setDataResult({ loading: true })
 
     loadWidgetData(widget, userId, workspaceId).then((res) => {
       if (!isCancelled) {
