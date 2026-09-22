@@ -64,17 +64,23 @@ Dashboard собирается и восстанавливается, ownership 
    - Создан сидер `DashboardDatabaseSeeder` со стартовыми дашбордами для `ws-1` и `ws-2`, содержащими семантические виджеты выручки, заказов, динамики продаж и остатков. Зарегистрирован в `DatabaseSeeder`.
    - Расширен скрипт `scripts/verify-integration.sh` проверками дашбордов и изоляции рабочих пространств.
 
+8. **Frontend Dashboard Management & Viewer (View Mode):**
+   - Реализован типизированный API шлюз `dashboardGateway` (`list`, `getById`, `create`, `update`, `delete`) со строгой изоляцией по `workspace_id` и обработкой ошибок.
+   - Разработан адаптер данных виджетов `widgetDataLoader` (`loadWidgetData`, `formatMetricValue`), связывающий семантическую конфигурацию (`dataset`, `metric`, `dimension`, `date_range`) с аналитическими эндпоинтами продаж и складского учёта.
+   - Разработано семейство компонентов семантических виджетов: `WidgetKpiCard`, `WidgetLineChart`, `WidgetBarChart`, `WidgetDonutChart`, `WidgetTable` и диспетчер `WidgetRenderer` с поддержкой скелетонов загрузки и состояний ошибок.
+   - Реализована адаптивная 12-колоночная сетка `DashboardGrid` с позиционированием по координатам `x, y, w, h`.
+   - Создана страница списка дашбордов `/dashboards` (`DashboardListView`) с карточками, модальной панелью (Sheet) создания дашборда и удалением.
+   - Создана страница детального просмотра `/dashboards/[id]` (`DashboardViewer`) с кнопкой обновления, возвратом и навигацией.
+   - Добавлен пункт `Dashboards` в боковую навигацию (`Sidebar`).
+   - Покрыто изолированными юнит- и компонентными тестами (все 23 тестовых сьюта и 82 теста фронтенда успешно проходят, typecheck и lint чистые).
+
 ### Что осталось в текущей фазе
 
-1. **Frontend Dashboard Management & Viewer (View Mode):**
-   - API шлюз `dashboardGateway`;
-   - Страница `/dashboards` и навигация/селектор дашбордов;
-   - Рендеринг семантических виджетов (KPI, линейные графики, столбчатые/круговые диаграммы, таблицы) с получением данных из аналитических эндпоинтов.
-2. **Frontend Dashboard Builder UI & Grid Editor (Edit Mode):**
+1. **Frontend Dashboard Builder UI & Grid Editor (Edit Mode):**
    - Интерактивная 12-колоночная сетка с drag-and-drop и изменением размеров виджетов;
    - Модальное окно добавления/редактирования семантического виджета (выбор dataset, metric, dimension, date_range, параметров);
    - Сохранение и перезагрузка конфигурации дашборда.
-3. **E2E тестирование и финальный Integration Checkpoint:**
+2. **E2E тестирование и финальный Integration Checkpoint:**
    - Покрытие builder flows сквозными тестами;
    - Подтверждение всех exit criteria Phase 8.
 
@@ -82,4 +88,4 @@ Dashboard собирается и восстанавливается, ownership 
 - Отсутствуют.
 
 ### Следующий шаг
-- Реализация задачи 2: Frontend Dashboard Management & Viewer (шлюз API, страница списка дашбордов, рендеринг виджетов в режиме просмотра).
+- Реализация задачи: Frontend Dashboard Builder UI & Grid Editor (Edit Mode — интерактивный drag-and-drop, изменение размеров и модалка настройки виджетов).
