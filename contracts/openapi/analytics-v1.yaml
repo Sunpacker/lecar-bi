@@ -128,6 +128,98 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /analytics/sales/overview:
+    get:
+      operationId: getSalesOverview
+      summary: Get aggregated sales summary, trends, and breakdowns
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+        - in: query
+          name: date_from
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Start of date filter range (YYYY-MM-DD)
+        - in: query
+          name: date_to
+          required: false
+          schema:
+            type: string
+            format: date
+          description: End of date filter range (YYYY-MM-DD)
+        - in: query
+          name: category_id
+          required: false
+          schema:
+            type: string
+          description: Filter by specific category ID
+        - in: query
+          name: region_id
+          required: false
+          schema:
+            type: string
+          description: Filter by specific region ID
+      responses:
+        '200':
+          description: Aggregated sales overview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesOverviewResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/sales/filters:
+    get:
+      operationId: getSalesFilterOptions
+      summary: Get available categories, regions, and date boundaries for sales filters
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+      responses:
+        '200':
+          description: Filter options
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesFilterOptionsResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     UserIdAuth:
@@ -186,3 +278,87 @@ components:
       properties:
         message: { type: string }
         code: { type: string }
+    SalesOverviewResponse:
+      type: object
+      additionalProperties: false
+      required: [summary, trend, categories, regions]
+      properties:
+        summary:
+          $ref: '#/components/schemas/SalesSummary'
+        trend:
+          type: array
+          items:
+            $ref: '#/components/schemas/SalesTrendPoint'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/SalesCategoryBreakdown'
+        regions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SalesRegionBreakdown'
+    SalesSummary:
+      type: object
+      additionalProperties: false
+      required: [total_revenue, order_count, average_order_value, gross_profit, margin_rate]
+      properties:
+        total_revenue: { type: number, format: float }
+        order_count: { type: integer }
+        average_order_value: { type: number, format: float }
+        gross_profit: { type: number, format: float }
+        margin_rate: { type: number, format: float }
+    SalesTrendPoint:
+      type: object
+      additionalProperties: false
+      required: [date, revenue, order_count]
+      properties:
+        date: { type: string, format: date }
+        revenue: { type: number, format: float }
+        order_count: { type: integer }
+    SalesCategoryBreakdown:
+      type: object
+      additionalProperties: false
+      required: [category_id, category_name, revenue, order_count, revenue_share]
+      properties:
+        category_id: { type: string }
+        category_name: { type: string }
+        revenue: { type: number, format: float }
+        order_count: { type: integer }
+        revenue_share: { type: number, format: float }
+    SalesRegionBreakdown:
+      type: object
+      additionalProperties: false
+      required: [region_id, region_name, region_code, revenue, order_count, revenue_share]
+      properties:
+        region_id: { type: string }
+        region_name: { type: string }
+        region_code: { type: string }
+        revenue: { type: number, format: float }
+        order_count: { type: integer }
+        revenue_share: { type: number, format: float }
+    SalesFilterOptionsResponse:
+      type: object
+      additionalProperties: false
+      required: [categories, regions, min_date, max_date]
+      properties:
+        categories:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, name]
+            properties:
+              id: { type: string }
+              name: { type: string }
+        regions:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, name, code]
+            properties:
+              id: { type: string }
+              name: { type: string }
+              code: { type: string }
+        min_date: { type: string, format: date }
+        max_date: { type: string, format: date }

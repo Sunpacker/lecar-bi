@@ -38,6 +38,22 @@ final class ApiContractTest extends TestCase
         self::assertArrayHasKey('ErrorResponse', $schemas);
     }
 
+    public function test_contract_contains_sales_analytics_endpoints(): void
+    {
+        $contract = $this->openApiContract();
+
+        self::assertArrayHasKey('/analytics/sales/overview', $contract['paths']);
+        self::assertArrayHasKey('/analytics/sales/filters', $contract['paths']);
+
+        $schemas = $contract['components']['schemas'];
+        self::assertArrayHasKey('SalesOverviewResponse', $schemas);
+        self::assertArrayHasKey('SalesSummary', $schemas);
+        self::assertArrayHasKey('SalesTrendPoint', $schemas);
+        self::assertArrayHasKey('SalesCategoryBreakdown', $schemas);
+        self::assertArrayHasKey('SalesRegionBreakdown', $schemas);
+        self::assertArrayHasKey('SalesFilterOptionsResponse', $schemas);
+    }
+
     /** @return array<string, mixed> */
     private function openApiContract(): array
     {

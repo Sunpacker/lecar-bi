@@ -89,6 +89,40 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/analytics/sales/overview': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get aggregated sales summary, trends, and breakdowns */
+    get: operations['getSalesOverview']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/analytics/sales/filters': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get available categories, regions, and date boundaries for sales filters */
+    get: operations['getSalesFilterOptions']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
 }
 export type webhooks = Record<string, never>
 export interface components {
@@ -124,6 +158,64 @@ export interface components {
     ErrorResponse: {
       message: string
       code: string
+    }
+    SalesOverviewResponse: {
+      summary: components['schemas']['SalesSummary']
+      trend: components['schemas']['SalesTrendPoint'][]
+      categories: components['schemas']['SalesCategoryBreakdown'][]
+      regions: components['schemas']['SalesRegionBreakdown'][]
+    }
+    SalesSummary: {
+      /** Format: float */
+      total_revenue: number
+      order_count: number
+      /** Format: float */
+      average_order_value: number
+      /** Format: float */
+      gross_profit: number
+      /** Format: float */
+      margin_rate: number
+    }
+    SalesTrendPoint: {
+      /** Format: date */
+      date: string
+      /** Format: float */
+      revenue: number
+      order_count: number
+    }
+    SalesCategoryBreakdown: {
+      category_id: string
+      category_name: string
+      /** Format: float */
+      revenue: number
+      order_count: number
+      /** Format: float */
+      revenue_share: number
+    }
+    SalesRegionBreakdown: {
+      region_id: string
+      region_name: string
+      region_code: string
+      /** Format: float */
+      revenue: number
+      order_count: number
+      /** Format: float */
+      revenue_share: number
+    }
+    SalesFilterOptionsResponse: {
+      categories: {
+        id: string
+        name: string
+      }[]
+      regions: {
+        id: string
+        name: string
+        code: string
+      }[]
+      /** Format: date */
+      min_date: string
+      /** Format: date */
+      max_date: string
     }
   }
   responses: never
@@ -303,6 +395,106 @@ export interface operations {
       }
       /** @description Workspace not found */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getSalesOverview: {
+    parameters: {
+      query?: {
+        /** @description Start of date filter range (YYYY-MM-DD) */
+        date_from?: string
+        /** @description End of date filter range (YYYY-MM-DD) */
+        date_to?: string
+        /** @description Filter by specific category ID */
+        category_id?: string
+        /** @description Filter by specific region ID */
+        region_id?: string
+      }
+      header?: {
+        /** @description Optional requested workspace identifier */
+        'X-Workspace-Id'?: string
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Aggregated sales overview */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SalesOverviewResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getSalesFilterOptions: {
+    parameters: {
+      query?: never
+      header?: {
+        /** @description Optional requested workspace identifier */
+        'X-Workspace-Id'?: string
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Filter options */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SalesFilterOptionsResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
         headers: {
           [name: string]: unknown
         }
