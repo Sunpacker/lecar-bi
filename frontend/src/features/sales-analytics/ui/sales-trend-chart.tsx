@@ -32,6 +32,23 @@ interface SalesTrendDotProps extends DotItemDotProps {
   onSelectDate?: (date?: string) => void
 }
 
+type TrendPeriod = 7 | 30 | 90 | 'all'
+
+interface TrendPeriodOption {
+  value: TrendPeriod
+  label: string
+  accessibleLabel: string
+}
+
+const TREND_PERIOD_OPTIONS: TrendPeriodOption[] = [
+  { value: 7, label: '7 дн.', accessibleLabel: '7 дней' },
+  { value: 30, label: '30 дн.', accessibleLabel: '30 дней' },
+  { value: 90, label: '90 дн.', accessibleLabel: '90 дней' },
+  { value: 'all', label: 'Всё', accessibleLabel: 'Весь период' },
+]
+
+const MILLISECONDS_PER_DAY = 86_400_000
+
 const CURRENCY_FORMATTER = new Intl.NumberFormat('ru-RU', {
   style: 'currency',
   currency: 'RUB',
@@ -60,9 +77,12 @@ export function SalesTrendChart({
   selectedDate,
   onSelectDate,
 }: SalesTrendChartProps) {
+  const [period, setPeriod] = React.useState<TrendPeriod>(30)
+
   if (trend.length === 0) return <EmptySalesTrendChart />
 
-  const maxRevenue = Math.max(...trend.map((point) => point.revenue))
+  const visibleTrend = filterTrendByPeriod(trend, period)
+  const maxRevenue = Math.max(...visibleTrend.map((point) => point.revenue))
 
   function renderDot(dotProps: DotItemDotProps) {
     return (
@@ -77,11 +97,12 @@ export function SalesTrendChart({
 
   return (
     <Card className="border-border bg-card shadow-xs" data-testid="sales-trend-chart">
-      <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
+      <CardHeader className="flex flex-col gap-3 pb-2 sm:flex-row sm:items-center sm:justify-between">
         <CardTitle className="text-base font-semibold text-foreground">
           Динамика продаж во времени
         </CardTitle>
-        <div className="flex shrink-0 items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <TrendPeriodSelector period={period} onPeriodChange={setPeriod} />
           {selectedDate && (
             <Button
               type="button"
@@ -95,7 +116,7 @@ export function SalesTrendChart({
               Сбросить дату ({selectedDate})
             </Button>
           )}
-          <span className="text-xs font-medium text-emerald-400">
+          <span className="whitespace-nowrap text-xs font-medium text-emerald-400">
             Пик: {CURRENCY_FORMATTER.format(maxRevenue)}
           </span>
         </div>
@@ -108,8 +129,8 @@ export function SalesTrendChart({
         >
           <LineChart
             accessibilityLayer
-            data={trend}
-            margin={{ top: 12, right: 12, left: 0, bottom: 0 }}
+            data={visibleTrend}
+            margin={{ top: 12, right: 12, left: 8, bottom: 0 }}
           >
             <CartesianGrid vertical={false} strokeDasharray="3 3" />
             <XAxis
@@ -124,7 +145,7 @@ export function SalesTrendChart({
               axisLine={false}
               tickLine={false}
               tickMargin={8}
-              width={58}
+              width={82}
               tickFormatter={formatCompactRevenue}
             />
             <ChartTooltip
@@ -149,6 +170,41 @@ export function SalesTrendChart({
         </ChartContainer>
       </CardContent>
     </Card>
+  )
+}
+
+function TrendPeriodSelector({
+  period,
+  onPeriodChange,
+}: {
+  period: TrendPeriod
+  onPeriodChange: (period: TrendPeriod) => void
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Период графика"
+      className="flex items-center rounded-lg border border-border bg-muted/40 p-0.5"
+    >
+      {TREND_PERIOD_OPTIONS.map((option) => {
+        const isSelected = period === option.value
+
+        return (
+          <Button
+            key={option.value}
+            type="button"
+            variant={isSelected ? 'secondary' : 'ghost'}
+            size="xs"
+            aria-label={`Показать ${option.accessibleLabel.toLowerCase()}`}
+            aria-pressed={isSelected}
+            className="h-6 rounded-md px-2 text-[11px] shadow-none"
+            onClick={() => onPeriodChange(option.value)}
+          >
+            {option.label}
+          </Button>
+        )
+      })}
+    </div>
   )
 }
 
@@ -212,6 +268,19 @@ function formatChartDate(date: string) {
   if (Number.isNaN(parsedDate.getTime())) return date
 
   return DATE_FORMATTER.format(parsedDate)
+}
+
+function filterTrendByPeriod(trend: SalesTrendPoint[], period: TrendPeriod) {
+  if (period === 'all') return trend
+
+  const latestTimestamp = Math.max(...trend.map((point) => parseTrendDate(point.date)))
+  const cutoffTimestamp = latestTimestamp - (period - 1) * MILLISECONDS_PER_DAY
+
+  return trend.filter((point) => parseTrendDate(point.date) >= cutoffTimestamp)
+}
+
+function parseTrendDate(date: string) {
+  return new Date(`${date}T00:00:00Z`).getTime()
 }
 
 function formatCompactRevenue(value: number) {
