@@ -112,10 +112,19 @@ final class PostgresInventoryAnalyticsReadModel implements InventoryAnalyticsRea
             );
         }
 
+        $warehouseInventoryQuery = $this->baseSnapshotQuery($workspaceId, $asOfDate)
+            ->selectRaw('
+                inv.id as inventory_id,
+                inv.warehouse_id,
+                inv.quantity_available,
+                inv.inventory_value,
+                inv.health_status
+            ');
+
         // Warehouse breakdown query
         $warehouseRows = DB::table('dim_warehouses as w')
             ->leftJoinSub(
-                $this->baseSnapshotQuery($workspaceId, $asOfDate),
+                $warehouseInventoryQuery,
                 'inv',
                 fn ($join) => $join->on('inv.warehouse_id', '=', 'w.id')
             )
@@ -126,7 +135,7 @@ final class PostgresInventoryAnalyticsReadModel implements InventoryAnalyticsRea
                 w.code as warehouse_code,
                 COALESCE(SUM(inv.quantity_available), 0) as total_quantity,
                 COALESCE(SUM(inv.inventory_value), 0) as total_value,
-                COUNT(inv.id) as items_count,
+                COUNT(inv.inventory_id) as items_count,
                 COUNT(CASE WHEN inv.health_status = \'critical\' THEN 1 END) as critical_count,
                 COUNT(CASE WHEN inv.health_status = \'overstock\' THEN 1 END) as overstock_count
             ')
