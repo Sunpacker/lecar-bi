@@ -29,6 +29,38 @@ describe('LoginForm', () => {
     expect(screen.getByText('Dmitry Smirnov')).toBeInTheDocument()
   })
 
+  it('validates required fields with Zod schema on empty submission', async () => {
+    render(<LoginForm />)
+
+    fireEvent.click(screen.getByTestId('login-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Email обязателен для заполнения')).toBeInTheDocument()
+      expect(screen.getByText('Пароль обязателен для заполнения')).toBeInTheDocument()
+    })
+
+    expect(global.fetch).not.toHaveBeenCalled()
+  })
+
+  it('validates email format with Zod schema', async () => {
+    render(<LoginForm />)
+
+    fireEvent.change(screen.getByLabelText(/рабочий email/i), {
+      target: { value: 'invalid-email-format' },
+    })
+    fireEvent.change(screen.getByLabelText(/пароль/i), {
+      target: { value: 'password123' },
+    })
+
+    fireEvent.click(screen.getByTestId('login-submit'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Некорректный формат email')).toBeInTheDocument()
+    })
+
+    expect(global.fetch).not.toHaveBeenCalled()
+  })
+
   it('submits form with user credentials and redirects on success', async () => {
     vi.mocked(global.fetch).mockResolvedValueOnce({
       ok: true,
@@ -56,6 +88,32 @@ describe('LoginForm', () => {
       })
       expect(mockPush).toHaveBeenCalledWith('/')
       expect(mockRefresh).toHaveBeenCalled()
+    })
+  })
+
+  it('triggers onSuccess callback if provided', async () => {
+    const onSuccess = vi.fn()
+    vi.mocked(global.fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        user: { id: 'user-1', email: 'elena@autobi.internal', name: 'Elena' },
+      }),
+    } as Response)
+
+    render(<LoginForm onSuccess={onSuccess} />)
+
+    fireEvent.change(screen.getByLabelText(/рабочий email/i), {
+      target: { value: 'elena@autobi.internal' },
+    })
+    fireEvent.change(screen.getByLabelText(/пароль/i), {
+      target: { value: 'password123' },
+    })
+
+    fireEvent.click(screen.getByTestId('login-submit'))
+
+    await waitFor(() => {
+      expect(onSuccess).toHaveBeenCalled()
+      expect(mockPush).not.toHaveBeenCalled()
     })
   })
 

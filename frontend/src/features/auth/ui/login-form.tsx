@@ -2,10 +2,30 @@
 
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import * as z from 'zod'
 import { Lock, Mail, AlertCircle, Loader2, ArrowRight, UserCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+
+export const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'Email обязателен для заполнения')
+    .email('Некорректный формат email'),
+  password: z.string().min(1, 'Пароль обязателен для заполнения'),
+})
+
+export type LoginFormValues = z.infer<typeof loginSchema>
 
 interface LoginFormProps {
   onSuccess?: () => void
@@ -13,29 +33,26 @@ interface LoginFormProps {
 
 export function LoginForm({ onSuccess }: LoginFormProps) {
   const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = async (
-    e?: React.FormEvent,
-    customCredentials?: { email: string; pass: string },
-  ) => {
-    if (e) {
-      e.preventDefault()
-    }
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  })
+
+  const onSubmit = async (values: LoginFormValues) => {
     setError(null)
     setLoading(true)
-
-    const targetEmail = customCredentials?.email ?? email
-    const targetPassword = customCredentials?.pass ?? password
 
     try {
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: targetEmail, password: targetPassword }),
+        body: JSON.stringify({ email: values.email, password: values.password }),
       })
 
       const data = await response.json()
@@ -58,83 +75,105 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
   }
 
   const handleQuickLogin = (demoEmail: string) => {
-    setEmail(demoEmail)
-    setPassword('password123')
-    handleSubmit(undefined, { email: demoEmail, pass: 'password123' })
+    form.setValue('email', demoEmail, { shouldValidate: true })
+    form.setValue('password', 'password123', { shouldValidate: true })
+    onSubmit({ email: demoEmail, password: 'password123' })
   }
 
   return (
     <div className="space-y-6">
-      <form onSubmit={(e) => handleSubmit(e)} className="space-y-4">
-        {error && (
-          <div
-            role="alert"
-            className="flex items-start gap-3 p-3 rounded-lg bg-destructive/15 border border-destructive/30 text-destructive text-sm"
-          >
-            <AlertCircle className="size-4 shrink-0 mt-0.5" />
-            <div className="leading-snug">{error}</div>
-          </div>
-        )}
-
-        <div className="space-y-2">
-          <Label htmlFor="login-email" className="text-xs font-medium text-foreground">
-            Рабочий Email
-          </Label>
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-            <Input
-              id="login-email"
-              type="email"
-              required
-              placeholder="name@autobi.internal"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="pl-9 h-10 bg-background/50 border-input"
-              disabled={loading}
-              autoComplete="username"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="login-password" className="text-xs font-medium text-foreground">
-            Пароль
-          </Label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
-            <Input
-              id="login-password"
-              type="password"
-              required
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="pl-9 h-10 bg-background/50 border-input"
-              disabled={loading}
-              autoComplete="current-password"
-            />
-          </div>
-        </div>
-
-        <Button
-          type="submit"
-          className="w-full h-10 text-sm font-semibold tracking-wide bg-primary text-primary-foreground hover:bg-primary/90 transition-all cursor-pointer"
-          disabled={loading}
-          data-testid="login-submit"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="size-4 animate-spin mr-2" />
-              Вход в систему...
-            </>
-          ) : (
-            <>
-              Войти в AutoBI
-              <ArrowRight className="size-4 ml-2" />
-            </>
+      <Form {...form}>
+        <form noValidate onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {error && (
+            <div
+              role="alert"
+              className="flex items-start gap-3 p-3 rounded-lg bg-destructive/15 border border-destructive/30 text-destructive text-sm"
+            >
+              <AlertCircle className="size-4 shrink-0 mt-0.5" />
+              <div className="leading-snug">{error}</div>
+            </div>
           )}
-        </Button>
-      </form>
+
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem className="space-y-2">
+                <FormLabel
+                  htmlFor="login-email"
+                  className="text-xs font-medium text-foreground"
+                >
+                  Рабочий Email
+                </FormLabel>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                  <FormControl>
+                    <Input
+                      id="login-email"
+                      type="email"
+                      placeholder="name@autobi.internal"
+                      className="pl-9 h-10 bg-background/50 border-input"
+                      disabled={loading}
+                      autoComplete="username"
+                      {...field}
+                    />
+                  </FormControl>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem className="space-y-2">
+                <FormLabel
+                  htmlFor="login-password"
+                  className="text-xs font-medium text-foreground"
+                >
+                  Пароль
+                </FormLabel>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground pointer-events-none" />
+                  <FormControl>
+                    <Input
+                      id="login-password"
+                      type="password"
+                      placeholder="••••••••"
+                      className="pl-9 h-10 bg-background/50 border-input"
+                      disabled={loading}
+                      autoComplete="current-password"
+                      {...field}
+                    />
+                  </FormControl>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button
+            type="submit"
+            className="w-full h-10 text-sm font-semibold tracking-wide bg-primary text-primary-foreground hover:bg-primary/90 transition-all cursor-pointer"
+            disabled={loading}
+            data-testid="login-submit"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="size-4 animate-spin mr-2" />
+                Вход в систему...
+              </>
+            ) : (
+              <>
+                Войти в AutoBI
+                <ArrowRight className="size-4 ml-2" />
+              </>
+            )}
+          </Button>
+        </form>
+      </Form>
 
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
