@@ -8,6 +8,7 @@ import {
   type Workspace,
 } from '../src/features/workspace/api/workspace-gateway'
 import { SalesDashboard } from '../src/features/sales-analytics/ui/sales-dashboard'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,17 +28,21 @@ export default async function HomePage() {
   }
 
   return (
-    <main className="shell">
+    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-16">
       {workspaceContext && (
         <WorkspaceContextBar
           context={workspaceContext}
           accessibleWorkspaces={accessibleWorkspaces}
         />
       )}
-      <div className="workspace-hero">
-        <span className="eyebrow">AUTOBI / SALES ANALYTICS</span>
-        <h1>Analytics workspace</h1>
-        <p>
+      <div className="my-8 space-y-2">
+        <span className="text-xs font-semibold text-emerald-400 tracking-wider uppercase">
+          AUTOBI / SALES ANALYTICS
+        </span>
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight text-foreground">
+          Analytics workspace
+        </h1>
+        <p className="text-sm sm:text-base text-muted-foreground max-w-2xl leading-relaxed">
           Сквозная BI-аналитика продаж: выручка, динамика заказов, средний чек и
           регионально-категорийные срезы на реальных данных PostgreSQL.
         </p>
@@ -45,15 +50,15 @@ export default async function HomePage() {
 
       <Suspense
         fallback={
-          <div className="dashboard-loading-skeleton">
-            <div className="skeleton-line" style={{ width: '40%' }} />
-            <div className="skeleton-grid">
-              <div className="skeleton-card" />
-              <div className="skeleton-card" />
-              <div className="skeleton-card" />
-              <div className="skeleton-card" />
+          <div className="space-y-4 py-4">
+            <Skeleton className="h-6 w-48 rounded-md" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Skeleton className="h-28 rounded-xl" />
+              <Skeleton className="h-28 rounded-xl" />
+              <Skeleton className="h-28 rounded-xl" />
+              <Skeleton className="h-28 rounded-xl" />
             </div>
-            <div className="skeleton-card skeleton-card--large" />
+            <Skeleton className="h-56 rounded-xl w-full" />
           </div>
         }
       >
@@ -67,7 +72,7 @@ export default async function HomePage() {
         )}
       </Suspense>
 
-      <footer className="page-footer">
+      <footer className="mt-12 pt-6 border-t border-border flex justify-between items-center">
         <HealthStatus status={healthStatus} />
       </footer>
     </main>

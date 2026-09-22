@@ -1,21 +1,23 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import { Geist } from "next/font/google";
-import { cn } from "@/lib/utils";
+import { Geist } from 'next/font/google'
+import { cn } from '@/lib/utils'
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+const geist = Geist({ subsets: ['latin'], variable: '--font-sans' })
 
 export const metadata: Metadata = {
   title: 'AutoBI',
-  description: 'Analytics workspace skeleton',
+  description: 'Analytics workspace',
 }
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ru" className={cn("font-sans", geist.variable)}>
-      <body>{children}</body>
+    <html lang="ru" className={cn('dark font-sans', geist.variable)}>
+      <body className="min-h-screen bg-background text-foreground antialiased">
+        {children}
+      </body>
     </html>
   )
 }

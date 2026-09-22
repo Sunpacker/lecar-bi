@@ -5,6 +5,7 @@ import { SalesKpiCards } from './sales-kpi-cards'
 import { SalesCategoryBreakdownView } from './sales-category-breakdown'
 import { SalesRegionalBreakdownView } from './sales-regional-breakdown'
 import { SalesFiltersBar } from './sales-filters-bar'
+import { SalesTrendChart } from './sales-trend-chart'
 
 describe('Sales Analytics UI Components', () => {
   it('renders KPI cards with correct metric values', () => {
@@ -155,5 +156,32 @@ describe('Sales Analytics UI Components', () => {
     const item = screen.getByRole('button', { name: /Москва/i })
     fireEvent.click(item)
     expect(onSelectRegion).toHaveBeenCalledWith('reg-1')
+  })
+
+  it('renders the sales line chart and selects a date from a data point', () => {
+    const onSelectDate = vi.fn()
+
+    render(
+      <SalesTrendChart
+        trend={[
+          { date: '2025-01-01', revenue: 100000, order_count: 10 },
+          { date: '2025-01-02', revenue: 150000, order_count: 12 },
+        ]}
+        onSelectDate={onSelectDate}
+      />,
+    )
+
+    expect(screen.getByText('Динамика продаж во времени')).toBeDefined()
+    expect(screen.getByText(/Пик:/)).toHaveTextContent('150 000')
+
+    fireEvent.click(screen.getByRole('button', { name: /2025-01-01/ }))
+
+    expect(onSelectDate).toHaveBeenCalledWith('2025-01-01')
+  })
+
+  it('renders an empty state when the sales trend has no points', () => {
+    render(<SalesTrendChart trend={[]} />)
+
+    expect(screen.getByText('Нет данных за указанный период')).toBeDefined()
   })
 })

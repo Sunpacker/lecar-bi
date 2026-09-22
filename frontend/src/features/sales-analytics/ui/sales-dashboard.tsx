@@ -3,6 +3,15 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
+import {
   salesGateway,
   type SalesFilterOptions,
   type SalesFilterParams,
@@ -160,11 +169,15 @@ export function SalesDashboard({ userId, workspaceId }: SalesDashboardProps) {
       : undefined
 
   return (
-    <section className="sales-dashboard-section" data-testid="sales-dashboard">
-      <div className="dashboard-header">
+    <section className="space-y-6" data-testid="sales-dashboard">
+      <div className="flex justify-between items-end">
         <div>
-          <span className="eyebrow">ОБЗОР / ПРОДАЖИ</span>
-          <h2 className="dashboard-title">Аналитика продаж</h2>
+          <span className="text-xs font-semibold text-emerald-400 tracking-wider uppercase">
+            ОБЗОР / ПРОДАЖИ
+          </span>
+          <h2 className="text-2xl font-bold tracking-tight text-foreground mt-1">
+            Аналитика продаж
+          </h2>
         </div>
       </div>
 
@@ -177,38 +190,67 @@ export function SalesDashboard({ userId, workspaceId }: SalesDashboardProps) {
       )}
 
       {loading && (
-        <div className="dashboard-loading-skeleton" data-testid="sales-dashboard-loading">
-          <div className="skeleton-line" style={{ width: '40%' }} />
-          <div className="skeleton-grid">
-            <div className="skeleton-card" />
-            <div className="skeleton-card" />
-            <div className="skeleton-card" />
-            <div className="skeleton-card" />
+        <div className="space-y-4 py-2" data-testid="sales-dashboard-loading">
+          <Skeleton className="h-5 w-44 rounded-md" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Skeleton className="h-28 rounded-xl" />
+            <Skeleton className="h-28 rounded-xl" />
+            <Skeleton className="h-28 rounded-xl" />
+            <Skeleton className="h-28 rounded-xl" />
           </div>
-          <div className="skeleton-card skeleton-card--large" />
+          <Skeleton className="h-56 rounded-xl w-full" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Skeleton className="h-64 rounded-xl" />
+            <Skeleton className="h-64 rounded-xl" />
+          </div>
         </div>
       )}
 
       {error && !loading && (
-        <div className="dashboard-error-card" data-testid="dashboard-error">
-          <p className="error-text">{error}</p>
-          <button type="button" className="btn-retry" onClick={loadData}>
-            Повторить попытку
-          </button>
-        </div>
+        <Card
+          className="border-destructive/40 bg-destructive/5 text-center p-8 shadow-xs"
+          data-testid="dashboard-error"
+        >
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base text-destructive font-semibold">
+              Ошибка загрузки данных
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-destructive/90">{error}</p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="border-destructive/40 text-destructive hover:bg-destructive/10"
+              onClick={loadData}
+            >
+              Повторить попытку
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       {!loading && !error && overview && (
         <>
           {overview.summary.order_count === 0 ? (
-            <div className="dashboard-empty-card" data-testid="dashboard-empty">
-              <p className="empty-title">Нет данных о продажах за выбранный период</p>
-              <p className="empty-subtitle">
-                Попробуйте изменить период или сбросить установленные фильтры.
-              </p>
-            </div>
+            <Card
+              className="border-dashed border-border bg-card/50 text-center p-12 shadow-xs"
+              data-testid="dashboard-empty"
+            >
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg font-semibold text-foreground">
+                  Нет данных о продажах за выбранный период
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="text-sm text-muted-foreground">
+                  Попробуйте изменить период или сбросить установленные фильтры.
+                </CardDescription>
+              </CardContent>
+            </Card>
           ) : (
-            <div className="dashboard-content space-y-6">
+            <div className="space-y-6">
               <SalesKpiCards summary={overview.summary} />
 
               <SalesTrendChart
@@ -217,7 +259,7 @@ export function SalesDashboard({ userId, workspaceId }: SalesDashboardProps) {
                 onSelectDate={handleSelectDate}
               />
 
-              <div className="breakdowns-grid">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <SalesCategoryBreakdownView
                   categories={overview.categories}
                   selectedCategoryId={activeFilters.categoryId}

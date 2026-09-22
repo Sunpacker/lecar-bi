@@ -1,6 +1,30 @@
 'use client'
 
 import React from 'react'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  ArrowDownIcon,
+  ArrowUpDownIcon,
+  ArrowUpIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+} from 'lucide-react'
 import type { PaginationMetadata, SalesRecordItem } from '../api/sales-gateway'
 
 export interface SalesDetailTableProps {
@@ -13,13 +37,13 @@ export interface SalesDetailTableProps {
   onPageChange: (page: number) => void
 }
 
-const SORTABLE_COLUMNS: { key: string; label: string }[] = [
+const SORTABLE_COLUMNS: { key: string; label: string; alignRight?: boolean }[] = [
   { key: 'order_date', label: 'Дата' },
   { key: 'order_number', label: '№ Заказа' },
   { key: 'product_name', label: 'Товар' },
-  { key: 'quantity', label: 'Кол-во' },
-  { key: 'total_price', label: 'Сумма' },
-  { key: 'gross_profit', label: 'Прибыль' },
+  { key: 'quantity', label: 'Кол-во', alignRight: true },
+  { key: 'total_price', label: 'Сумма', alignRight: true },
+  { key: 'gross_profit', label: 'Прибыль', alignRight: true },
 ]
 
 export function SalesDetailTable({
@@ -49,25 +73,64 @@ export function SalesDetailTable({
   const startRecord = total === 0 ? 0 : (page - 1) * per_page + 1
   const endRecord = Math.min(page * per_page, total)
 
-  return (
-    <div className="analytics-card detail-table-card" data-testid="sales-detail-table">
-      <div className="analytics-card__header">
-        <div>
-          <h3 className="analytics-card__title">Детализация продаж</h3>
-          <p className="detail-table-subtitle">
-            Транзакционные записи по выбранным фильтрам ({total} позиций)
-          </p>
-        </div>
-      </div>
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+      case 'delivered':
+        return (
+          <Badge
+            variant="outline"
+            className="border-emerald-800/40 bg-emerald-950/20 text-emerald-400 capitalize text-[11px]"
+          >
+            {status}
+          </Badge>
+        )
+      case 'pending':
+      case 'processing':
+        return (
+          <Badge
+            variant="outline"
+            className="border-amber-800/40 bg-amber-950/20 text-amber-400 capitalize text-[11px]"
+          >
+            {status}
+          </Badge>
+        )
+      case 'cancelled':
+        return (
+          <Badge variant="destructive" className="capitalize text-[11px]">
+            {status}
+          </Badge>
+        )
+      default:
+        return (
+          <Badge variant="secondary" className="capitalize text-[11px]">
+            {status}
+          </Badge>
+        )
+    }
+  }
 
-      <div className="table-responsive">
-        <table className="detail-table">
-          <thead>
-            <tr>
+  return (
+    <Card className="border-border bg-card shadow-xs" data-testid="sales-detail-table">
+      <CardHeader className="pb-3">
+        <div>
+          <CardTitle className="text-base font-semibold text-foreground">
+            Детализация продаж
+          </CardTitle>
+          <CardDescription className="text-xs text-muted-foreground mt-1">
+            Транзакционные записи по выбранным фильтрам ({total} позиций)
+          </CardDescription>
+        </div>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        <Table>
+          <TableHeader>
+            <TableRow className="border-border hover:bg-transparent">
               {SORTABLE_COLUMNS.slice(0, 3).map((col) => {
                 const isActive = sortBy === col.key
                 return (
-                  <th
+                  <TableHead
                     key={col.key}
                     aria-sort={
                       isActive
@@ -76,28 +139,42 @@ export function SalesDetailTable({
                           : 'descending'
                         : 'none'
                     }
+                    className="h-9 px-2"
                   >
-                    <button
+                    <Button
                       type="button"
-                      className={`th-sort-button ${isActive ? 'th-sort-button--active' : ''}`}
+                      variant="ghost"
+                      size="xs"
                       onClick={() => handleHeaderClick(col.key)}
+                      className={`h-7 px-1.5 gap-1 text-xs font-semibold uppercase tracking-wider ${
+                        isActive ? 'text-emerald-400' : 'text-muted-foreground'
+                      }`}
                     >
                       <span>{col.label}</span>
-                      <span className="sort-icon">
-                        {isActive ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅'}
-                      </span>
-                    </button>
-                  </th>
+                      {isActive ? (
+                        sortDirection === 'asc' ? (
+                          <ArrowUpIcon className="size-3 text-emerald-400" />
+                        ) : (
+                          <ArrowDownIcon className="size-3 text-emerald-400" />
+                        )
+                      ) : (
+                        <ArrowUpDownIcon className="size-3 opacity-50" />
+                      )}
+                    </Button>
+                  </TableHead>
                 )
               })}
-              <th>Категория</th>
-              <th>Регион</th>
+              <TableHead className="h-9 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Категория
+              </TableHead>
+              <TableHead className="h-9 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Регион
+              </TableHead>
               {SORTABLE_COLUMNS.slice(3).map((col) => {
                 const isActive = sortBy === col.key
                 return (
-                  <th
+                  <TableHead
                     key={col.key}
-                    className="text-right"
                     aria-sort={
                       isActive
                         ? sortDirection === 'asc'
@@ -105,94 +182,129 @@ export function SalesDetailTable({
                           : 'descending'
                         : 'none'
                     }
+                    className="h-9 px-2 text-right"
                   >
-                    <button
-                      type="button"
-                      className={`th-sort-button th-sort-button--right ${isActive ? 'th-sort-button--active' : ''}`}
-                      onClick={() => handleHeaderClick(col.key)}
-                    >
-                      <span>{col.label}</span>
-                      <span className="sort-icon">
-                        {isActive ? (sortDirection === 'asc' ? '▲' : '▼') : '⇅'}
-                      </span>
-                    </button>
-                  </th>
+                    <div className="flex justify-end">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="xs"
+                        onClick={() => handleHeaderClick(col.key)}
+                        className={`h-7 px-1.5 gap-1 text-xs font-semibold uppercase tracking-wider ${
+                          isActive ? 'text-emerald-400' : 'text-muted-foreground'
+                        }`}
+                      >
+                        <span>{col.label}</span>
+                        {isActive ? (
+                          sortDirection === 'asc' ? (
+                            <ArrowUpIcon className="size-3 text-emerald-400" />
+                          ) : (
+                            <ArrowDownIcon className="size-3 text-emerald-400" />
+                          )
+                        ) : (
+                          <ArrowUpDownIcon className="size-3 opacity-50" />
+                        )}
+                      </Button>
+                    </div>
+                  </TableHead>
                 )
               })}
-              <th>Статус</th>
-            </tr>
-          </thead>
-          <tbody>
+              <TableHead className="h-9 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                Статус
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {items.length === 0 ? (
-              <tr>
-                <td colSpan={9} className="table-empty-cell">
+              <TableRow>
+                <TableCell
+                  colSpan={9}
+                  className="text-center py-8 text-muted-foreground italic"
+                >
                   Нет записей по текущим фильтрам
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ) : (
               items.map((item) => (
-                <tr key={item.id} className="detail-table-row">
-                  <td className="text-nowrap">{item.order_date}</td>
-                  <td className="font-mono text-sm">{item.order_number}</td>
-                  <td>
-                    <div className="product-cell">
-                      <span className="product-name">{item.product_name}</span>
-                      <span className="product-sku">
+                <TableRow
+                  key={item.id}
+                  className="border-border hover:bg-muted/40 text-xs"
+                >
+                  <TableCell className="text-nowrap py-2.5 font-medium">
+                    {item.order_date}
+                  </TableCell>
+                  <TableCell className="font-mono text-xs py-2.5">
+                    {item.order_number}
+                  </TableCell>
+                  <TableCell className="py-2.5">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-medium text-foreground">
+                        {item.product_name}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
                         {item.brand_name} · {item.product_sku}
                       </span>
                     </div>
-                  </td>
-                  <td>
-                    <span className="category-tag">{item.category_name}</span>
-                  </td>
-                  <td>
-                    <span className="region-tag">{item.region_name}</span>
-                  </td>
-                  <td className="text-right font-medium">{item.quantity}</td>
-                  <td className="text-right font-medium">
+                  </TableCell>
+                  <TableCell className="py-2.5">
+                    <Badge variant="secondary" className="text-[11px] font-normal">
+                      {item.category_name}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="py-2.5">
+                    <Badge variant="outline" className="text-[11px] font-normal">
+                      {item.region_name}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right font-medium py-2.5">
+                    {item.quantity}
+                  </TableCell>
+                  <TableCell className="text-right font-medium py-2.5">
                     {currencyFormatter.format(item.total_price)}
-                  </td>
-                  <td className="text-right text-profit font-medium">
+                  </TableCell>
+                  <TableCell className="text-right font-medium text-emerald-400 py-2.5">
                     {currencyFormatter.format(item.gross_profit)}
-                  </td>
-                  <td>
-                    <span className={`status-badge status-badge--${item.status}`}>
-                      {item.status}
-                    </span>
-                  </td>
-                </tr>
+                  </TableCell>
+                  <TableCell className="py-2.5">{getStatusBadge(item.status)}</TableCell>
+                </TableRow>
               ))
             )}
-          </tbody>
-        </table>
-      </div>
+          </TableBody>
+        </Table>
 
-      <div className="pagination-toolbar">
-        <span className="pagination-info">
-          Записи {startRecord} - {endRecord} из {total}
-        </span>
-        <div className="pagination-actions">
-          <button
-            type="button"
-            className="btn-pagination"
-            disabled={page <= 1 || loading}
-            onClick={() => onPageChange(page - 1)}
-          >
-            ← Назад
-          </button>
-          <span className="pagination-current">
-            {page} / {total_pages}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-border text-xs text-muted-foreground">
+          <span>
+            Записи {startRecord} - {endRecord} из {total}
           </span>
-          <button
-            type="button"
-            className="btn-pagination"
-            disabled={page >= total_pages || loading}
-            onClick={() => onPageChange(page + 1)}
-          >
-            Вперед →
-          </button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs gap-1"
+              disabled={page <= 1 || loading}
+              onClick={() => onPageChange(page - 1)}
+            >
+              <ChevronLeftIcon className="size-3.5" />
+              Назад
+            </Button>
+            <span className="font-medium text-foreground px-2">
+              {page} / {total_pages}
+            </span>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="h-7 text-xs gap-1"
+              disabled={page >= total_pages || loading}
+              onClick={() => onPageChange(page + 1)}
+            >
+              Вперед
+              <ChevronRightIcon className="size-3.5" />
+            </Button>
+          </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }

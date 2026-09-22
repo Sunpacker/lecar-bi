@@ -17,15 +17,18 @@ export function WorkspaceContextBar({
 
   return (
     <header
-      className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50"
+      className="flex flex-wrap items-center justify-between gap-4 p-4 border border-border bg-card/60 rounded-xl mb-6 backdrop-blur shadow-xs"
       data-testid="workspace-context-bar"
     >
       <div>
-        <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
           Authenticated as
         </div>
-        <div className="text-sm font-medium text-slate-800">
-          {context.user.name} ({context.user.email})
+        <div className="text-sm font-medium text-foreground">
+          {context.user.name}{' '}
+          <span className="text-muted-foreground font-normal">
+            ({context.user.email})
+          </span>
         </div>
       </div>
       <div>

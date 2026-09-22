@@ -1,0 +1,19 @@
+{
+    "mcpServers": {
+        "shadcn": {
+            "command": "npx",
+            "args": [
+                "shadcn@latest",
+                "mcp"
+            ],
+            "cwd": "/home/sunpacker/Dev/lecar-bi/frontend"
+        },
+        "context7": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@upstash/context7-mcp"
+            ]
+        }
+    }
+}

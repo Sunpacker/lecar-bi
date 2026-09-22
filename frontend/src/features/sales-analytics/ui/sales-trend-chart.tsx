@@ -1,6 +1,23 @@
 'use client'
 
 import React from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from '@/components/ui/chart'
+import { XIcon } from 'lucide-react'
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  XAxis,
+  YAxis,
+  type DotItemDotProps,
+} from 'recharts'
 import type { SalesTrendPoint } from '../api/sales-gateway'
 
 interface SalesTrendChartProps {
@@ -9,121 +26,241 @@ interface SalesTrendChartProps {
   onSelectDate?: (date?: string) => void
 }
 
+interface SalesTrendDotProps extends DotItemDotProps {
+  payload: SalesTrendPoint
+  selectedDate?: string
+  onSelectDate?: (date?: string) => void
+}
+
+const CURRENCY_FORMATTER = new Intl.NumberFormat('ru-RU', {
+  style: 'currency',
+  currency: 'RUB',
+  maximumFractionDigits: 0,
+})
+
+const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat('ru-RU', {
+  notation: 'compact',
+  maximumFractionDigits: 1,
+})
+
+const DATE_FORMATTER = new Intl.DateTimeFormat('ru-RU', {
+  day: '2-digit',
+  month: 'short',
+})
+
+const CHART_CONFIG = {
+  revenue: {
+    label: 'Выручка',
+    color: 'var(--color-emerald-400)',
+  },
+} satisfies ChartConfig
+
 export function SalesTrendChart({
   trend,
   selectedDate,
   onSelectDate,
 }: SalesTrendChartProps) {
-  const currencyFormatter = new Intl.NumberFormat('ru-RU', {
-    style: 'currency',
-    currency: 'RUB',
-    maximumFractionDigits: 0,
-  })
+  if (trend.length === 0) return <EmptySalesTrendChart />
 
-  if (trend.length === 0) {
+  const maxRevenue = Math.max(...trend.map((point) => point.revenue))
+
+  function renderDot(dotProps: DotItemDotProps) {
     return (
-      <div className="analytics-card" data-testid="sales-trend-chart">
-        <h3 className="analytics-card__title">Динамика продаж</h3>
-        <p className="empty-text">Нет данных за указанный период</p>
-      </div>
+      <SalesTrendDot
+        {...dotProps}
+        payload={dotProps.payload as SalesTrendPoint}
+        selectedDate={selectedDate}
+        onSelectDate={onSelectDate}
+      />
     )
   }
 
-  // Downsample or slice points if there are too many for rendering bars/points
-  const maxRevenue = Math.max(...trend.map((p) => p.revenue), 1)
-  const chartHeight = 160
-  const chartWidth = 600
-
-  // Generate SVG polyline points
-  const points = trend.map((point, index) => {
-    const x = (index / Math.max(trend.length - 1, 1)) * chartWidth
-    const y = chartHeight - (point.revenue / maxRevenue) * (chartHeight - 20)
-    return { x, y, ...point }
-  })
-
-  const pointsString = points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
-  const areaString = `${pointsString} ${chartWidth},${chartHeight} 0,${chartHeight}`
-
-  const startDate = trend[0]?.date ?? ''
-  const endDate = trend[trend.length - 1]?.date ?? ''
-
   return (
-    <div className="analytics-card" data-testid="sales-trend-chart">
-      <div className="analytics-card__header">
-        <h3 className="analytics-card__title">Динамика продаж во времени</h3>
-        <div className="flex items-center gap-3">
+    <Card className="border-border bg-card shadow-xs" data-testid="sales-trend-chart">
+      <CardHeader className="flex flex-row items-center justify-between gap-4 pb-2">
+        <CardTitle className="text-base font-semibold text-foreground">
+          Динамика продаж во времени
+        </CardTitle>
+        <div className="flex shrink-0 items-center gap-3">
           {selectedDate && (
-            <button
+            <Button
               type="button"
-              className="filter-pill-clear"
+              variant="outline"
+              size="xs"
               onClick={() => onSelectDate?.(undefined)}
               title="Сбросить выбор даты"
+              className="gap-1 rounded-full border-emerald-700/40 bg-emerald-950/20 text-xs text-emerald-400 hover:bg-emerald-900/40 hover:text-emerald-300"
             >
+              <XIcon className="size-3" />
               Сбросить дату ({selectedDate})
-            </button>
+            </Button>
           )}
-          <span className="trend-max-label">
-            Пик: {currencyFormatter.format(maxRevenue)}
+          <span className="text-xs font-medium text-emerald-400">
+            Пик: {CURRENCY_FORMATTER.format(maxRevenue)}
           </span>
         </div>
-      </div>
+      </CardHeader>
 
-      <div className="svg-chart-container">
-        <svg
-          viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-          className="trend-svg"
-          preserveAspectRatio="none"
+      <CardContent>
+        <ChartContainer
+          config={CHART_CONFIG}
+          className="h-[260px] w-full min-w-0 aspect-auto"
         >
-          <defs>
-            <linearGradient id="trendGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#71d6bd" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#71d6bd" stopOpacity="0.0" />
-            </linearGradient>
-          </defs>
+          <LineChart
+            accessibilityLayer
+            data={trend}
+            margin={{ top: 12, right: 12, left: 0, bottom: 0 }}
+          >
+            <CartesianGrid vertical={false} strokeDasharray="3 3" />
+            <XAxis
+              dataKey="date"
+              axisLine={false}
+              tickLine={false}
+              tickMargin={10}
+              minTickGap={28}
+              tickFormatter={formatChartDate}
+            />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              tickMargin={8}
+              width={58}
+              tickFormatter={formatCompactRevenue}
+            />
+            <ChartTooltip
+              cursor={{ stroke: 'var(--border)', strokeDasharray: '4 4' }}
+              content={
+                <ChartTooltipContent
+                  indicator="line"
+                  labelFormatter={formatTooltipDate}
+                  formatter={formatTooltipValue}
+                />
+              }
+            />
+            <Line
+              dataKey="revenue"
+              type="monotone"
+              stroke="var(--color-revenue)"
+              strokeWidth={2.5}
+              dot={renderDot}
+              activeDot={{ r: 6, fill: 'var(--color-revenue)', strokeWidth: 0 }}
+            />
+          </LineChart>
+        </ChartContainer>
+      </CardContent>
+    </Card>
+  )
+}
 
-          {/* Area fill */}
-          <polygon points={areaString} fill="url(#trendGradient)" />
+function EmptySalesTrendChart() {
+  return (
+    <Card className="border-border bg-card" data-testid="sales-trend-chart">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base font-semibold text-foreground">
+          Динамика продаж
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground">Нет данных за указанный период</p>
+      </CardContent>
+    </Card>
+  )
+}
 
-          {/* Line */}
-          <polyline
-            fill="none"
-            stroke="#71d6bd"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            points={pointsString}
-          />
+function SalesTrendDot({
+  cx = 0,
+  cy = 0,
+  payload,
+  selectedDate,
+  onSelectDate,
+}: SalesTrendDotProps) {
+  const isSelected = selectedDate === payload.date
+  const radius = isSelected ? 6 : 4
 
-          {/* Interactive points */}
-          {points.map((p) => {
-            const isSelected = selectedDate === p.date
-            return (
-              <circle
-                key={p.date}
-                cx={p.x}
-                cy={p.y}
-                r={isSelected ? 6 : 3.5}
-                fill={isSelected ? '#f0f6fc' : '#71d6bd'}
-                stroke={isSelected ? '#2ea043' : '#0d1117'}
-                strokeWidth={isSelected ? 2.5 : 1}
-                className="trend-point"
-                style={{ cursor: 'pointer' }}
-                onClick={() => onSelectDate?.(isSelected ? undefined : p.date)}
-              >
-                <title>
-                  {p.date}: {currencyFormatter.format(p.revenue)} ({p.order_count}{' '}
-                  заказов)
-                </title>
-              </circle>
-            )
-          })}
-        </svg>
-      </div>
+  function selectDate() {
+    onSelectDate?.(isSelected ? undefined : payload.date)
+  }
 
-      <div className="chart-dates-axis">
-        <span>{startDate}</span>
-        <span>{endDate}</span>
-      </div>
+  function handleKeyDown(event: React.KeyboardEvent<SVGCircleElement>) {
+    if (event.key !== 'Enter' && event.key !== ' ') return
+
+    event.preventDefault()
+    selectDate()
+  }
+
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={radius}
+      role="button"
+      tabIndex={0}
+      aria-label={`${payload.date}: ${CURRENCY_FORMATTER.format(payload.revenue)}, ${payload.order_count} заказов`}
+      aria-pressed={isSelected}
+      fill={isSelected ? 'var(--background)' : 'var(--color-revenue)'}
+      stroke="var(--color-revenue)"
+      strokeWidth={isSelected ? 3 : 1.5}
+      className="cursor-pointer transition-[r] focus:outline-hidden focus-visible:stroke-[3]"
+      onClick={selectDate}
+      onKeyDown={handleKeyDown}
+    />
+  )
+}
+
+function formatChartDate(date: string) {
+  const parsedDate = new Date(`${date}T00:00:00`)
+  if (Number.isNaN(parsedDate.getTime())) return date
+
+  return DATE_FORMATTER.format(parsedDate)
+}
+
+function formatCompactRevenue(value: number) {
+  return `${COMPACT_NUMBER_FORMATTER.format(value)} ₽`
+}
+
+function formatTooltipDate(_: React.ReactNode, payload: readonly unknown[]) {
+  const point = getTooltipPoint(payload)
+  return point ? formatChartDate(point.date) : ''
+}
+
+function formatTooltipValue(value: unknown, _name: unknown, item: { payload?: unknown }) {
+  const point = isSalesTrendPoint(item.payload) ? item.payload : undefined
+  const revenue = typeof value === 'number' ? value : Number(value)
+
+  return (
+    <div className="grid min-w-40 grid-cols-[1fr_auto] gap-x-4 gap-y-1">
+      <span className="text-muted-foreground">Выручка</span>
+      <span className="font-mono font-medium tabular-nums text-foreground">
+        {CURRENCY_FORMATTER.format(revenue)}
+      </span>
+      {point && (
+        <>
+          <span className="text-muted-foreground">Заказы</span>
+          <span className="font-mono font-medium tabular-nums text-foreground">
+            {point.order_count}
+          </span>
+        </>
+      )}
     </div>
+  )
+}
+
+function getTooltipPoint(payload: readonly unknown[]) {
+  const [item] = payload
+  if (!item || typeof item !== 'object' || !('payload' in item)) return undefined
+
+  return isSalesTrendPoint(item.payload) ? item.payload : undefined
+}
+
+function isSalesTrendPoint(value: unknown): value is SalesTrendPoint {
+  if (!value || typeof value !== 'object') return false
+
+  return (
+    'date' in value &&
+    typeof value.date === 'string' &&
+    'revenue' in value &&
+    typeof value.revenue === 'number' &&
+    'order_count' in value &&
+    typeof value.order_count === 'number'
   )
 }
