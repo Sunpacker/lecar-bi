@@ -17,6 +17,7 @@ final class UserModel extends Model
         'id',
         'email',
         'name',
+        'password',
     ];
 
     /** @return HasMany<WorkspaceMemberModel, $this> */

@@ -56,8 +56,30 @@ if [ "$cross_access_status" != "403" ]; then
     exit 1
 fi
 
-# 5. Frontend UI renders
-frontend_response="$(curl --fail --silent --show-error "$FRONTEND_URL/")"
+# 4b. Backend auth login endpoint verification
+login_response="$(curl --fail --silent --show-error -H "Content-Type: application/json" -d '{"email":"elena@autobi.internal","password":"password123"}' "$BACKEND_URL/api/v1/auth/login")"
+printf '%s' "$login_response" | grep --quiet '"id":"user-1"'
+
+# 5. Frontend Auth & UI: unauthenticated request redirects to /login
+COOKIE_JAR="$(mktemp)"
+trap 'rm -f "$COOKIE_JAR"' EXIT
+
+unauth_frontend_status="$(curl --silent -o /dev/null -w "%{http_code}" "$FRONTEND_URL/")"
+if [ "$unauth_frontend_status" != "307" ] && [ "$unauth_frontend_status" != "302" ]; then
+    echo "Expected 307 or 302 redirect for unauthenticated request to /, got $unauth_frontend_status" >&2
+    exit 1
+fi
+
+login_page_response="$(curl --fail --silent --show-error "$FRONTEND_URL/login")"
+printf '%s' "$login_page_response" | grep --quiet 'Вход в систему'
+
+# Authenticate via Next.js BFF and save session cookie
+curl --fail --silent --show-error -c "$COOKIE_JAR" -H "Content-Type: application/json" \
+    -d '{"email":"elena@autobi.internal","password":"password123"}' \
+    "$FRONTEND_URL/api/auth/login" >/dev/null
+
+# Authenticated frontend request renders workspace
+frontend_response="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/")"
 printf '%s' "$frontend_response" | grep --quiet 'Analytics workspace'
 
 # 6. Verify analytics demo dataset generation in PostgreSQL
@@ -120,7 +142,7 @@ if [ "$sales_records_cross_status" != "403" ]; then
 fi
 
 # 12. Frontend UI renders Sales Analytics Dashboard and Detail Table
-frontend_dashboard="$(curl --fail --silent --show-error "$FRONTEND_URL/")"
+frontend_dashboard="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/")"
 printf '%s' "$frontend_dashboard" | grep --quiet 'Аналитика продаж'
 
 echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records and cross-filtering are verified."

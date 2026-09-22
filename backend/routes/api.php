@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\SalesAnalytics\Presentation\Controllers\SalesAnalyticsController;
+use App\Modules\Workspace\Presentation\Controllers\AuthController;
 use App\Modules\Workspace\Presentation\Controllers\CurrentWorkspaceController;
 use App\Modules\Workspace\Presentation\Controllers\ProfileController;
 use App\Modules\Workspace\Presentation\Controllers\WorkspaceController;
@@ -9,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
     Route::get('/health', fn () => response()->json(['status' => 'ok', 'service' => 'analytics', 'version' => 'v1']));
+    Route::post('/auth/login', [AuthController::class, 'login']);
 
     Route::middleware(AuthenticateUserIdMiddleware::class)->group(function () {
         Route::get('/me', [ProfileController::class, 'me']);

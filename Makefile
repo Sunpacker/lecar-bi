@@ -2,7 +2,7 @@ INFRA_ENV_FILE ?= $(if $(wildcard infra/.env),infra/.env,infra/.env.example)
 COMPOSE = docker compose --env-file $(INFRA_ENV_FILE) -f infra/docker-compose.yml
 DEV_COMPOSE = $(COMPOSE) -f infra/docker-compose.dev.yml
 
-.PHONY: install install-frontend install-backend dev dev-down dev-frontend infra-up infra-down build check check-frontend check-backend check-contracts test integration
+.PHONY: install install-frontend install-backend dev dev-down dev-frontend infra-up infra-down build check check-frontend check-backend check-contracts test integration migrate migrate-seed migrate-fresh seed artisan
 install: install-frontend install-backend
 
 install-frontend:
@@ -54,3 +54,18 @@ test:
 
 integration:
 	scripts/verify-integration.sh
+
+migrate:
+	$(COMPOSE) exec backend php artisan migrate
+
+migrate-seed:
+	$(COMPOSE) exec backend php artisan migrate --seed
+
+migrate-fresh:
+	$(COMPOSE) exec backend php artisan migrate:fresh --seed
+
+seed:
+	$(COMPOSE) exec backend php artisan db:seed
+
+artisan:
+	$(COMPOSE) exec backend php artisan $(cmd)

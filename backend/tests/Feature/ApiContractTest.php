@@ -25,12 +25,15 @@ final class ApiContractTest extends TestCase
     {
         $contract = $this->openApiContract();
 
+        self::assertArrayHasKey('/auth/login', $contract['paths']);
         self::assertArrayHasKey('/me', $contract['paths']);
         self::assertArrayHasKey('/workspaces', $contract['paths']);
         self::assertArrayHasKey('/workspaces/{id}', $contract['paths']);
         self::assertArrayHasKey('/workspaces/current', $contract['paths']);
 
         $schemas = $contract['components']['schemas'];
+        self::assertArrayHasKey('LoginRequest', $schemas);
+        self::assertArrayHasKey('LoginResponse', $schemas);
         self::assertArrayHasKey('UserResponse', $schemas);
         self::assertArrayHasKey('WorkspaceResponse', $schemas);
         self::assertArrayHasKey('WorkspaceListResponse', $schemas);

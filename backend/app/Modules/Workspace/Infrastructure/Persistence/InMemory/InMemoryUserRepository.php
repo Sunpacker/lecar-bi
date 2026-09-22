@@ -16,6 +16,19 @@ final class InMemoryUserRepository implements UserRepositoryInterface
         return $this->users[$id->value()] ?? null;
     }
 
+    public function findByEmail(string $email): ?User
+    {
+        $normalized = strtolower(trim($email));
+
+        foreach ($this->users as $user) {
+            if (strtolower($user->email()) === $normalized) {
+                return $user;
+            }
+        }
+
+        return null;
+    }
+
     public function save(User $user): void
     {
         $this->users[$user->id()->value()] = $user;

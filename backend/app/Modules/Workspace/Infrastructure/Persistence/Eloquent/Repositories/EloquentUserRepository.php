@@ -22,6 +22,24 @@ final class EloquentUserRepository implements UserRepositoryInterface
             id: new UserId((string) $record->id),
             email: (string) $record->email,
             name: (string) $record->name,
+            passwordHash: (string) ($record->password ?? ''),
+        );
+    }
+
+    public function findByEmail(string $email): ?User
+    {
+        /** @var UserModel|null $record */
+        $record = UserModel::query()->where('email', strtolower(trim($email)))->first();
+
+        if ($record === null) {
+            return null;
+        }
+
+        return new User(
+            id: new UserId((string) $record->id),
+            email: (string) $record->email,
+            name: (string) $record->name,
+            passwordHash: (string) ($record->password ?? ''),
         );
     }
 
@@ -32,6 +50,7 @@ final class EloquentUserRepository implements UserRepositoryInterface
             [
                 'email' => $user->email(),
                 'name' => $user->name(),
+                'password' => $user->passwordHash(),
             ],
         );
     }

@@ -73,6 +73,18 @@ final class WorkspaceApplicationTest extends TestCase
                 return $this->items[$id->value()] ?? null;
             }
 
+            public function findByEmail(string $email): ?User
+            {
+                $normalized = strtolower(trim($email));
+                foreach ($this->items as $user) {
+                    if (strtolower($user->email()) === $normalized) {
+                        return $user;
+                    }
+                }
+
+                return null;
+            }
+
             public function save(User $user): void
             {
                 $this->items[$user->id()->value()] = $user;

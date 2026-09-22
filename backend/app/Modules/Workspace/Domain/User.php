@@ -8,6 +8,7 @@ final class User
         private readonly UserId $id,
         private string $email,
         private string $name,
+        private string $passwordHash = '$2y$10$buTvr4lk7X6FIR53.u5J4u6V5mZ9ybiGa83pzR316cMEA7NoB9q0K',
     ) {}
 
     public function id(): UserId
@@ -23,5 +24,19 @@ final class User
     public function name(): string
     {
         return $this->name;
+    }
+
+    public function passwordHash(): string
+    {
+        return $this->passwordHash;
+    }
+
+    public function verifyPassword(string $plainPassword): bool
+    {
+        if ($this->passwordHash === '') {
+            return false;
+        }
+
+        return password_verify($plainPassword, $this->passwordHash);
     }
 }

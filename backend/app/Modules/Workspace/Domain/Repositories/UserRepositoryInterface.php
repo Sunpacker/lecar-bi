@@ -9,5 +9,7 @@ interface UserRepositoryInterface
 {
     public function findById(UserId $id): ?User;
 
+    public function findByEmail(string $email): ?User;
+
     public function save(User $user): void;
 }

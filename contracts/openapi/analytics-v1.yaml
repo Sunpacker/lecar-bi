@@ -22,6 +22,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
+  /auth/login:
+    post:
+      operationId: login
+      summary: Authenticate user with credentials
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: User authenticated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid email or password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /me:
     get:
       operationId: getCurrentUser
@@ -323,6 +353,23 @@ components:
       name: X-User-Id
       description: Authenticated user identifier
   schemas:
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    LoginResponse:
+      type: object
+      additionalProperties: false
+      required: [user]
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
     HealthResponse:
       type: object
       additionalProperties: false
