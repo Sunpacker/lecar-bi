@@ -60,6 +60,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker compose --env-file infra/.env.example -f infra/docker-compose.yml up --build --detach
-      - run: scripts/verify-integration.sh
+      - run: ./scripts/verify-integration.sh
       - if: always()
         run: docker compose --env-file infra/.env.example -f infra/docker-compose.yml down --volumes
