@@ -145,5 +145,34 @@ fi
 frontend_dashboard="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/")"
 printf '%s' "$frontend_dashboard" | grep --quiet 'Аналитика продаж'
 
-echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records and cross-filtering are verified."
+# 13. Inventory filters endpoint
+inventory_filters="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/filters")"
+printf '%s' "$inventory_filters" | grep --quiet '"warehouses":\['
+printf '%s' "$inventory_filters" | grep --quiet '"statuses":\['
+
+# 14. Inventory summary endpoint returns aggregated metrics
+inventory_summary="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/summary")"
+printf '%s' "$inventory_summary" | grep --quiet '"total_items":'
+printf '%s' "$inventory_summary" | grep --quiet '"health_breakdown":\['
+printf '%s' "$inventory_summary" | grep --quiet '"warehouses":\['
+
+# 15. Inventory items endpoint returns paginated items with health status
+inventory_items="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/items?page=1&per_page=10")"
+printf '%s' "$inventory_items" | grep --quiet '"items":\['
+printf '%s' "$inventory_items" | grep --quiet '"pagination":{'
+printf '%s' "$inventory_items" | grep --quiet '"stock_health":'
+
+# 16. Cross-workspace inventory isolation: user-1 accessing ws-2 returns 403
+inventory_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/analytics/inventory/summary")"
+if [ "$inventory_cross_status" != "403" ]; then
+    echo "Expected 403 for cross-workspace inventory summary access, got $inventory_cross_status" >&2
+    exit 1
+fi
+
+# 17. Frontend UI renders Inventory Dashboard
+inventory_page="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/inventory")"
+printf '%s' "$inventory_page" | grep --quiet 'Управление запасами'
+
+echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records, and inventory intelligence are verified."
+
 

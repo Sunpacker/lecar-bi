@@ -44,8 +44,9 @@ export default async function HomePage() {
               Аналитическое пространство продаж
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-xl">
-              Сквозная BI-аналитика розничной сети: выручка, динамика заказов, средний чек и
-              регионально-категорийные срезы на основе реальных данных торговых точек LECAR.
+              Сквозная BI-аналитика розничной сети: выручка, динамика заказов, средний чек
+              и регионально-категорийные срезы на основе реальных данных торговых точек
+              LECAR.
             </p>
             <div className="flex flex-wrap items-center gap-2.5 pt-1 text-xs text-muted-foreground">
               <div className="inline-flex items-center gap-1.5 rounded-md bg-muted/40 border border-border/60 px-2.5 py-1">

@@ -22,7 +22,7 @@
 - [x] [Phase 3 — Demo Data Model](03-demo-data-model.md)
 - [x] [Phase 4 — Sales Analytics Vertical Slice](04-sales-analytics.md)
 - [x] [Phase 5 — Sales Drill-Down and BI Interaction Model](05-sales-drill-down.md)
-- [ ] [Phase 6 — Inventory Intelligence](06-inventory-intelligence.md)
+- [x] [Phase 6 — Inventory Intelligence](06-inventory-intelligence.md)
 - [ ] [Phase 7 — ABC/XYZ Analysis](07-abc-xyz-analysis.md)
 - [ ] [Phase 8 — Dashboard Builder](08-dashboard-builder.md)
 - [ ] [Phase 9 — Shared Filters and Saved Views](09-shared-filters-saved-views.md)
