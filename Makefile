@@ -30,6 +30,10 @@ build:
 	npm --prefix frontend run build
 	docker compose --env-file $(INFRA_ENV_FILE) -f infra/docker-compose.yml build backend
 
+build-vps:
+	npm --prefix frontend run build
+	docker compose --env-file $(INFRA_ENV_FILE) -f infra/docker-compose.vps.yml build backend
+
 check: check-contracts check-frontend check-backend
 
 check-contracts:
