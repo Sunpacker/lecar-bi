@@ -22,4 +22,4 @@ Inventory dashboard, critical stock, overstock, product details, warehouse/statu
 
 ## Integration Checkpoint
 
-Перед завершением этапа пройти [интеграционную проверку](README.md#integration-checkpoints).
+Перед завершением этапа пройти [интеграционную проверку](ROADMAP.md#integration-checkpoints).

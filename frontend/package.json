@@ -1,0 +1,46 @@
+{
+  "name": "@autobi/frontend",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "contracts:validate": "redocly lint ../contracts/openapi/analytics-v1.yaml",
+    "api:generate": "openapi-typescript ../contracts/openapi/analytics-v1.yaml -o src/shared/api/generated/schema.ts && prettier --write src/shared/api/generated/schema.ts"
+  },
+  "dependencies": {
+    "next": "^15.5.24",
+    "openapi-fetch": "^0.17.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.3.7",
+    "@redocly/cli": "^2.53.3",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^22.20.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^15.5.24",
+    "eslint-config-prettier": "^10.1.8",
+    "jsdom": "^30.1.1",
+    "openapi-typescript": "^7.13.0",
+    "postcss": "8.5.28",
+    "prettier": "^3.9.8",
+    "typescript": "5.7.2",
+    "vitest": "^5.0.1"
+  },
+  "overrides": {
+    "postcss": "8.5.28"
+  }
+}

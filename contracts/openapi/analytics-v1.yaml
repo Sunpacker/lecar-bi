@@ -1,0 +1,32 @@
+openapi: 3.0.3
+info:
+  title: AutoBI Analytics API
+  version: 1.0.0
+  description: Public API boundary. Functional endpoints will be added with features.
+  license:
+    name: Proprietary
+servers:
+  - url: /api/v1
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Technical health check
+      security: []
+      responses:
+        '200':
+          description: Service is available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status, service, version]
+      properties:
+        status: { type: string, enum: [ok] }
+        service: { type: string, enum: [analytics] }
+        version: { type: string, enum: [v1] }

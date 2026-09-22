@@ -44,4 +44,28 @@ Frontend и Laravel foundation можно делать параллельно. O
 
 ## Integration Checkpoint
 
-Перед завершением этапа пройти [интеграционную проверку](README.md#integration-checkpoints).
+Перед завершением этапа пройти [интеграционную проверку](ROADMAP.md#integration-checkpoints).
+
+## Прогресс
+
+- Frontend обновлён до Next.js 15 и React 19; настроены ESLint, Prettier, TypeScript, Vitest и production build.
+- Health vertical slice использует server-side fetching и типизированную границу generated OpenAPI schema.
+- Laravel foundation содержит регистрацию семи bounded contexts, contract tests, PHPStan, Pint и архитектурные тесты для module и Shared Domain.
+- OpenAPI валидируется Redocly и генерирует воспроизводимую TypeScript schema; CI проверяет отсутствие drift.
+- Docker dev и production targets запускают frontend, backend, PostgreSQL и Redis; сервисы имеют healthchecks и работают от непривилегированных пользователей.
+- CI независимо проверяет contracts/frontend, backend и container builds, затем выполняет интеграционный checkpoint.
+- Незавершённых критериев и блокеров Phase 1 нет.
+
+## Проверка завершения
+
+Дата: 2026-09-22.
+
+Exit criteria подтверждены: локальная среда запускается, frontend получает backend health, frontend и backend собираются независимо, команды CI проходят локально, OpenAPI validation и client generation воспроизводимы, Domain защищён архитектурными тестами. Реализация сверена с `02-monorepo-and-services.md`, `03-frontend-nextjs.md` и `04-backend-laravel-ddd.md`.
+
+- `make check` — OpenAPI validation/generation, frontend lint/format/typecheck, 5 frontend tests, Next.js production build, Composer validation, Pint, PHPStan и 5 backend tests (23 assertions) прошли.
+- `npm audit --audit-level=high` — найдено 0 уязвимостей.
+- `docker compose ... build frontend` и `docker compose ... build backend` — независимые production-образы собраны.
+- `docker compose ... config --quiet` — конфигурация валидна.
+- `scripts/verify-integration.sh` на чистом production-like stack — frontend и analytics health доступны, связь `web → analytics` подтверждена.
+- Backend container запускается как `uid=1001(app)` и имеет необходимые права на runtime-каталоги Laravel.
+- `git diff --check` — ошибок форматирования diff нет.

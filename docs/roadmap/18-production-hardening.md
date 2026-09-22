@@ -16,4 +16,4 @@ Security review, API compatibility, migration review, backup/restore docs, failu
 
 ## Integration Checkpoint
 
-Перед завершением этапа пройти [интеграционную проверку](README.md#integration-checkpoints).
+Перед завершением этапа пройти [интеграционную проверку](ROADMAP.md#integration-checkpoints).

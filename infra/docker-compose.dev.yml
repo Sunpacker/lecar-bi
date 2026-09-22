@@ -1,0 +1,16 @@
+services:
+  frontend:
+    image: ${FRONTEND_DEV_IMAGE:-autobi/frontend:dev}
+    build:
+      target: development
+    environment:
+      NODE_ENV: development
+      WATCHPACK_POLLING: "true"
+    volumes:
+      - ../frontend:/app
+      - frontend-node-modules:/app/node_modules
+      - frontend-next-cache:/app/.next
+
+volumes:
+  frontend-node-modules:
+  frontend-next-cache:

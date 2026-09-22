@@ -24,4 +24,4 @@ Dashboard работает на backend data, filters синхронны, calcul
 
 ## Integration Checkpoint
 
-Перед завершением этапа пройти [интеграционную проверку](README.md#integration-checkpoints).
+Перед завершением этапа пройти [интеграционную проверку](ROADMAP.md#integration-checkpoints).

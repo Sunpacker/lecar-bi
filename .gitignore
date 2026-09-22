@@ -1,0 +1,19 @@
+# host machine
+.DS_Store
+
+# environment
+.env
+.env.*
+!.env.example
+
+# backend
+vendor
+coverage
+.phpunit.result.cache
+storage/*.key
+storage/logs/*
+
+# frontend
+node_modules
+.next
+*.tsbuildinfo
