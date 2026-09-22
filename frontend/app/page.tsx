@@ -1,3 +1,4 @@
+import React, { Suspense } from 'react'
 import { loadHealthStatus } from '../src/features/system-health/model/load-health-status'
 import { HealthStatus } from '../src/features/system-health/ui/health-status'
 import { WorkspaceContextBar } from '../src/features/workspace/ui/workspace-context-bar'
@@ -42,11 +43,29 @@ export default async function HomePage() {
         </p>
       </div>
 
-      {workspaceContext ? (
-        <SalesDashboard userId={demoUserId} workspaceId={workspaceContext.workspace.id} />
-      ) : (
-        <SalesDashboard userId={demoUserId} workspaceId="ws-1" />
-      )}
+      <Suspense
+        fallback={
+          <div className="dashboard-loading-skeleton">
+            <div className="skeleton-line" style={{ width: '40%' }} />
+            <div className="skeleton-grid">
+              <div className="skeleton-card" />
+              <div className="skeleton-card" />
+              <div className="skeleton-card" />
+              <div className="skeleton-card" />
+            </div>
+            <div className="skeleton-card skeleton-card--large" />
+          </div>
+        }
+      >
+        {workspaceContext ? (
+          <SalesDashboard
+            userId={demoUserId}
+            workspaceId={workspaceContext.workspace.id}
+          />
+        ) : (
+          <SalesDashboard userId={demoUserId} workspaceId="ws-1" />
+        )}
+      </Suspense>
 
       <footer className="page-footer">
         <HealthStatus status={healthStatus} />
