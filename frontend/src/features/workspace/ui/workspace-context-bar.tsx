@@ -1,4 +1,6 @@
-import React from 'react'
+'use client'
+
+import React, { useState } from 'react'
 import type { CurrentWorkspace, Workspace } from '../api/workspace-gateway'
 import { WorkspaceSwitcher } from './workspace-switcher'
 
@@ -11,6 +13,8 @@ export function WorkspaceContextBar({
   context,
   accessibleWorkspaces,
 }: WorkspaceContextBarProps) {
+  const [currentId, setCurrentId] = useState(context.workspace.id)
+
   return (
     <header
       className="flex items-center justify-between p-4 border-b border-slate-200 bg-slate-50"
@@ -26,9 +30,9 @@ export function WorkspaceContextBar({
       </div>
       <div>
         <WorkspaceSwitcher
-          currentWorkspaceId={context.workspace.id}
+          currentWorkspaceId={currentId}
           workspaces={accessibleWorkspaces}
-          onSelectWorkspace={() => {}}
+          onSelectWorkspace={setCurrentId}
         />
       </div>
     </header>
