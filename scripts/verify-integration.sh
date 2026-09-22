@@ -60,4 +60,30 @@ fi
 frontend_response="$(curl --fail --silent --show-error "$FRONTEND_URL/")"
 printf '%s' "$frontend_response" | grep --quiet 'Analytics workspace'
 
-echo "Integration check passed: web -> analytics health, identity, and workspace access boundaries are verified."
+# 6. Verify analytics demo dataset generation in PostgreSQL
+if command -v docker >/dev/null 2>&1; then
+    echo "Verifying PostgreSQL demo dataset..."
+    ws1_orders_count="$(docker compose --env-file "$INFRA_ENV_FILE" -f infra/docker-compose.yml exec -T backend php -r 'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap(); echo \Illuminate\Support\Facades\DB::table("fact_orders")->where("workspace_id", "ws-1")->count();' 2>/dev/null | tr -d '\r\n')"
+    if [ -z "$ws1_orders_count" ] || [ "$ws1_orders_count" -lt 1000 ]; then
+        echo "Expected at least 1000 orders for ws-1, got: $ws1_orders_count" >&2
+        exit 1
+    fi
+
+    # Verify inventory snapshots and stockouts exist
+    stockout_count="$(docker compose --env-file "$INFRA_ENV_FILE" -f infra/docker-compose.yml exec -T backend php -r 'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap(); echo \Illuminate\Support\Facades\DB::table("fact_inventory_daily")->where("workspace_id", "ws-1")->where("quantity_available", "<=", 0)->count();' 2>/dev/null | tr -d '\r\n')"
+    if [ -z "$stockout_count" ] || [ "$stockout_count" -lt 1 ]; then
+        echo "Expected at least one stockout in inventory snapshots, got: $stockout_count" >&2
+        exit 1
+    fi
+
+    # Verify workspace 2 is also populated and isolated
+    ws2_orders_count="$(docker compose --env-file "$INFRA_ENV_FILE" -f infra/docker-compose.yml exec -T backend php -r 'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap(); echo \Illuminate\Support\Facades\DB::table("fact_orders")->where("workspace_id", "ws-2")->count();' 2>/dev/null | tr -d '\r\n')"
+    if [ -z "$ws2_orders_count" ] || [ "$ws2_orders_count" -lt 1000 ]; then
+        echo "Expected at least 1000 orders for ws-2, got: $ws2_orders_count" >&2
+        exit 1
+    fi
+
+    echo "Demo dataset verified: ws-1 ($ws1_orders_count orders), ws-2 ($ws2_orders_count orders), stockouts ($stockout_count days) present in PostgreSQL."
+fi
+
+echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, and demo dataset are verified."
