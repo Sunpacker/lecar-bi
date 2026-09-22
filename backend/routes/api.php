@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\SalesAnalytics\Presentation\Controllers\SalesAnalyticsController;
 use App\Modules\Workspace\Presentation\Controllers\CurrentWorkspaceController;
 use App\Modules\Workspace\Presentation\Controllers\ProfileController;
 use App\Modules\Workspace\Presentation\Controllers\WorkspaceController;
@@ -14,5 +15,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/workspaces', [WorkspaceController::class, 'index']);
         Route::get('/workspaces/current', [CurrentWorkspaceController::class, 'show']);
         Route::get('/workspaces/{id}', [WorkspaceController::class, 'show']);
+
+        Route::get('/analytics/sales/overview', [SalesAnalyticsController::class, 'overview']);
+        Route::get('/analytics/sales/filters', [SalesAnalyticsController::class, 'filters']);
     });
 });
