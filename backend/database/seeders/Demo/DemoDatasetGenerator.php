@@ -29,7 +29,8 @@ final class DemoDatasetGenerator
 
     /**
      * @template T
-     * @param list<T> $array
+     *
+     * @param  list<T>  $array
      * @return T
      */
     private function randomChoice(array $array): mixed
@@ -76,47 +77,68 @@ final class DemoDatasetGenerator
     {
         $now = '2026-09-22 00:00:00';
 
-        $categories = array_map(fn ($c) => array_merge($c, [
+        $categories = array_map(fn ($c) => [
+            'id' => "{$c['id']}-{$workspaceId}",
             'workspace_id' => $workspaceId,
+            'name' => $c['name'],
+            'slug' => $c['slug'],
+            'code' => $c['code'],
             'created_at' => $now,
             'updated_at' => $now,
-        ]), DemoDataCatalog::categories());
+        ], DemoDataCatalog::categories());
 
-        $brands = array_map(fn ($b) => array_merge($b, [
+        $brands = array_map(fn ($b) => [
+            'id' => "{$b['id']}-{$workspaceId}",
             'workspace_id' => $workspaceId,
+            'name' => $b['name'],
+            'country' => $b['country'],
             'created_at' => $now,
             'updated_at' => $now,
-        ]), DemoDataCatalog::brands());
+        ], DemoDataCatalog::brands());
 
-        $regions = array_map(fn ($r) => array_merge($r, [
+        $regions = array_map(fn ($r) => [
+            'id' => "{$r['id']}-{$workspaceId}",
             'workspace_id' => $workspaceId,
+            'name' => $r['name'],
+            'code' => $r['code'],
             'created_at' => $now,
             'updated_at' => $now,
-        ]), DemoDataCatalog::regions());
+        ], DemoDataCatalog::regions());
 
-        $warehouses = array_map(fn ($w) => array_merge($w, [
+        $warehouses = array_map(fn ($w) => [
+            'id' => "{$w['id']}-{$workspaceId}",
             'workspace_id' => $workspaceId,
+            'region_id' => "{$w['region_id']}-{$workspaceId}",
+            'name' => $w['name'],
+            'code' => $w['code'],
             'created_at' => $now,
             'updated_at' => $now,
-        ]), DemoDataCatalog::warehouses());
+        ], DemoDataCatalog::warehouses());
 
-        $channels = array_map(fn ($ch) => array_merge($ch, [
+        $channels = array_map(fn ($ch) => [
+            'id' => "{$ch['id']}-{$workspaceId}",
             'workspace_id' => $workspaceId,
+            'name' => $ch['name'],
+            'code' => $ch['code'],
             'created_at' => $now,
             'updated_at' => $now,
-        ]), DemoDataCatalog::salesChannels());
+        ], DemoDataCatalog::salesChannels());
 
-        $suppliers = array_map(fn ($s) => array_merge($s, [
+        $suppliers = array_map(fn ($s) => [
+            'id' => "{$s['id']}-{$workspaceId}",
             'workspace_id' => $workspaceId,
+            'name' => $s['name'],
+            'lead_time_days' => $s['lead_time_days'],
+            'reliability_score' => $s['reliability_score'],
             'created_at' => $now,
             'updated_at' => $now,
-        ]), DemoDataCatalog::suppliers());
+        ], DemoDataCatalog::suppliers());
 
         $products = array_map(fn ($p) => [
-            'id' => $p['id'],
+            'id' => "{$p['id']}-{$workspaceId}",
             'workspace_id' => $workspaceId,
-            'category_id' => $p['category_id'],
-            'brand_id' => $p['brand_id'],
+            'category_id' => "{$p['category_id']}-{$workspaceId}",
+            'brand_id' => "{$p['brand_id']}-{$workspaceId}",
             'sku' => $p['sku'],
             'name' => $p['name'],
             'cost_price' => $p['cost_price'],
@@ -199,12 +221,12 @@ final class DemoDatasetGenerator
                         'id' => sprintf('item-%s-%07d', $workspaceId, $itemSeq++),
                         'workspace_id' => $workspaceId,
                         'order_id' => $orderId,
-                        'product_id' => $product['id'],
-                        'warehouse_id' => $warehouse['id'],
-                        'category_id' => $product['category_id'],
-                        'brand_id' => $product['brand_id'],
-                        'region_id' => $region['id'],
-                        'channel_id' => $channel['id'],
+                        'product_id' => "{$product['id']}-{$workspaceId}",
+                        'warehouse_id' => "{$warehouse['id']}-{$workspaceId}",
+                        'category_id' => "{$product['category_id']}-{$workspaceId}",
+                        'brand_id' => "{$product['brand_id']}-{$workspaceId}",
+                        'region_id' => "{$region['id']}-{$workspaceId}",
+                        'channel_id' => "{$channel['id']}-{$workspaceId}",
                         'order_date' => $dateStr,
                         'quantity' => $qty,
                         'unit_price' => $unitPrice,
@@ -221,8 +243,8 @@ final class DemoDatasetGenerator
                     'id' => $orderId,
                     'workspace_id' => $workspaceId,
                     'order_number' => $orderNumber,
-                    'channel_id' => $channel['id'],
-                    'region_id' => $region['id'],
+                    'channel_id' => "{$channel['id']}-{$workspaceId}",
+                    'region_id' => "{$region['id']}-{$workspaceId}",
                     'status' => $status,
                     'ordered_at' => $dateStr.' 12:00:00',
                     'order_date' => $dateStr,
@@ -238,7 +260,7 @@ final class DemoDatasetGenerator
     }
 
     /**
-     * @param list<array{id: string, category_id: string, brand_id: string, sku: string, name: string, cost_price: float, unit_price: float, seasonal_type: string, abc_class: string}> $products
+     * @param  list<array{id: string, category_id: string, brand_id: string, sku: string, name: string, cost_price: float, unit_price: float, seasonal_type: string, abc_class: string}>  $products
      * @return array{id: string, category_id: string, brand_id: string, sku: string, name: string, cost_price: float, unit_price: float, seasonal_type: string, abc_class: string}
      */
     private function selectProductBySeasonality(array $products, int $month, string $regionCode): array
@@ -289,7 +311,7 @@ final class DemoDatasetGenerator
     }
 
     /**
-     * @param list<array<string, mixed>> $items
+     * @param  list<array<string, mixed>>  $items
      * @return list<array<string, mixed>>
      */
     public function generateInventoryDaily(string $workspaceId, string $startDate, string $endDate, array $items): array
@@ -308,7 +330,10 @@ final class DemoDatasetGenerator
         }
 
         foreach ($products as $prod) {
+            $prodId = "{$prod['id']}-{$workspaceId}";
             foreach ($warehouses as $wh) {
+                $whId = "{$wh['id']}-{$workspaceId}";
+
                 // Determine base stock profile: stockout candidate, overstock candidate, or normal
                 $isStockoutCandidate = ($prod['id'] === 'prod-conti-wint-16' && $wh['code'] === 'WH-MSK-01');
                 $isOverstockCandidate = ($prod['seasonal_type'] === 'summer_seasonal' && $wh['code'] === 'WH-EKB-01');
@@ -329,7 +354,7 @@ final class DemoDatasetGenerator
                     $dateStr = $dt->format('Y-m-d');
                     $month = $dt->month;
 
-                    $key = sprintf('%s_%s_%s', $dateStr, $prod['id'], $wh['id']);
+                    $key = sprintf('%s_%s_%s', $dateStr, $prodId, $whId);
                     $consumed = $consumption[$key] ?? 0;
 
                     // In peak November, simulate stockout for the candidate product
@@ -351,8 +376,8 @@ final class DemoDatasetGenerator
                         'id' => sprintf('inv-%s-%07d', $workspaceId, $seq++),
                         'workspace_id' => $workspaceId,
                         'snapshot_date' => $dateStr,
-                        'product_id' => $prod['id'],
-                        'warehouse_id' => $wh['id'],
+                        'product_id' => $prodId,
+                        'warehouse_id' => $whId,
                         'quantity_on_hand' => $currentStock,
                         'quantity_reserved' => $reserved,
                         'quantity_available' => $available,
@@ -413,9 +438,9 @@ final class DemoDatasetGenerator
             $deliveries[] = [
                 'id' => sprintf('del-%s-%06d', $workspaceId, $seq++),
                 'workspace_id' => $workspaceId,
-                'supplier_id' => $supplier['id'],
-                'product_id' => $product['id'],
-                'warehouse_id' => $warehouse['id'],
+                'supplier_id' => "{$supplier['id']}-{$workspaceId}",
+                'product_id' => "{$product['id']}-{$workspaceId}",
+                'warehouse_id' => "{$warehouse['id']}-{$workspaceId}",
                 'order_date' => $dateStr,
                 'expected_delivery_date' => $expectedDate,
                 'actual_delivery_date' => $actualDate,

@@ -41,7 +41,7 @@ final class DemoDatasetGeneratorTest extends TestCase
             );
 
             $month = (int) substr((string) $item['order_date'], 5, 2);
-            if ($item['product_id'] === 'prod-conti-wint-16') {
+            if ($item['product_id'] === 'prod-conti-wint-16-ws-1') {
                 if ($month >= 10 && $month <= 12) {
                     $winterQ4Quantity += (int) $item['quantity'];
                 } elseif ($month >= 4 && $month <= 6) {

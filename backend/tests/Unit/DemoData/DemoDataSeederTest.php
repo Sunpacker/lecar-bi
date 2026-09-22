@@ -2,7 +2,6 @@
 
 namespace Tests\Unit\DemoData;
 
-use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\DemoDataSeeder;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
