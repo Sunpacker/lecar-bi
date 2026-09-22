@@ -13,7 +13,7 @@ wait_for_service() {
     attempt=1
 
     while [ "$attempt" -le "$MAX_ATTEMPTS" ]; do
-        if curl --fail --silent --show-error "$service_url" >/dev/null; then
+        if curl --fail --silent "$service_url" >/dev/null 2>&1; then
             return 0
         fi
 
@@ -25,18 +25,29 @@ wait_for_service() {
     return 1
 }
 
+assert_response_contains() {
+    response="$1"
+    expected="$2"
+    check_name="$3"
+
+    if printf '%s' "$response" | grep --fixed-strings --quiet "$expected"; then return 0; fi
+
+    echo "$check_name response did not contain expected value: $expected" >&2
+    return 1
+}
+
 wait_for_service "analytics" "$BACKEND_URL/api/v1/health"
 wait_for_service "web" "$FRONTEND_URL/api/health"
 
 # Apply migrations and seed data if docker compose environment is active
 if command -v docker >/dev/null 2>&1; then
-    docker compose --env-file "$INFRA_ENV_FILE" -f infra/docker-compose.yml exec -T backend php artisan migrate --force --seed >/dev/null 2>&1 || true
+    docker compose --env-file "$INFRA_ENV_FILE" -f infra/docker-compose.yml exec -T backend php artisan migrate --force --seed --no-interaction >/dev/null
 fi
 
 # 1. Technical health check
 backend_response="$(curl --fail --silent --show-error "$BACKEND_URL/api/v1/health")"
-printf '%s' "$backend_response" | grep --quiet '"status":"ok"'
-printf '%s' "$backend_response" | grep --quiet '"service":"analytics"'
+assert_response_contains "$backend_response" '"status":"ok"' "Analytics health"
+assert_response_contains "$backend_response" '"service":"analytics"' "Analytics health"
 
 # 2. Access boundary: unauthenticated request returns 401
 unauth_status="$(curl --silent -o /dev/null -w "%{http_code}" "$BACKEND_URL/api/v1/workspaces")"
@@ -47,7 +58,7 @@ fi
 
 # 3. Access boundary: user-1 can only list accessible workspaces
 user1_workspaces="$(curl --fail --silent --show-error -H "X-User-Id: user-1" "$BACKEND_URL/api/v1/workspaces")"
-printf '%s' "$user1_workspaces" | grep --quiet '"id":"ws-1"'
+assert_response_contains "$user1_workspaces" '"id":"ws-1"' "Accessible workspaces"
 
 # 4. Cross-workspace isolation: user-1 attempting to access user-2's workspace returns 403 Forbidden
 cross_access_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" "$BACKEND_URL/api/v1/workspaces/ws-2")"
@@ -58,7 +69,7 @@ fi
 
 # 4b. Backend auth login endpoint verification
 login_response="$(curl --fail --silent --show-error -H "Content-Type: application/json" -d '{"email":"elena@autobi.internal","password":"password123"}' "$BACKEND_URL/api/v1/auth/login")"
-printf '%s' "$login_response" | grep --quiet '"id":"user-1"'
+assert_response_contains "$login_response" '"id":"user-1"' "Backend login"
 
 # 5. Frontend Auth & UI: unauthenticated request redirects to /login
 COOKIE_JAR="$(mktemp)"
@@ -71,7 +82,7 @@ if [ "$unauth_frontend_status" != "307" ] && [ "$unauth_frontend_status" != "302
 fi
 
 login_page_response="$(curl --fail --silent --show-error "$FRONTEND_URL/login")"
-printf '%s' "$login_page_response" | grep --quiet 'Вход в систему'
+assert_response_contains "$login_page_response" 'Вход в систему' "Login page"
 
 # Authenticate via Next.js BFF and save session cookie
 curl --fail --silent --show-error -c "$COOKIE_JAR" -H "Content-Type: application/json" \
@@ -80,7 +91,7 @@ curl --fail --silent --show-error -c "$COOKIE_JAR" -H "Content-Type: application
 
 # Authenticated frontend request renders workspace
 frontend_response="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/")"
-printf '%s' "$frontend_response" | grep --quiet 'Analytics workspace'
+assert_response_contains "$frontend_response" 'Analytics workspace' "Authenticated home page"
 
 # 6. Verify analytics demo dataset generation in PostgreSQL
 if command -v docker >/dev/null 2>&1; then
@@ -110,16 +121,16 @@ fi
 
 # 7. Sales filters endpoint
 sales_filters="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/filters")"
-printf '%s' "$sales_filters" | grep --quiet '"categories":\['
-printf '%s' "$sales_filters" | grep --quiet '"regions":\['
+assert_response_contains "$sales_filters" '"categories":[' "Sales filters"
+assert_response_contains "$sales_filters" '"regions":[' "Sales filters"
 
 # 8. Sales overview endpoint returns aggregated summary from PostgreSQL
 sales_overview="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/overview")"
-printf '%s' "$sales_overview" | grep --quiet '"total_revenue":'
-printf '%s' "$sales_overview" | grep --quiet '"order_count":'
-printf '%s' "$sales_overview" | grep --quiet '"trend":\['
-printf '%s' "$sales_overview" | grep --quiet '"categories":\['
-printf '%s' "$sales_overview" | grep --quiet '"regions":\['
+assert_response_contains "$sales_overview" '"total_revenue":' "Sales overview"
+assert_response_contains "$sales_overview" '"order_count":' "Sales overview"
+assert_response_contains "$sales_overview" '"trend":[' "Sales overview"
+assert_response_contains "$sales_overview" '"categories":[' "Sales overview"
+assert_response_contains "$sales_overview" '"regions":[' "Sales overview"
 
 # 9. Cross-workspace sales analytics isolation: user-1 accessing ws-2 returns 403
 sales_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/analytics/sales/overview")"
@@ -130,9 +141,9 @@ fi
 
 # 10. Sales detail records endpoint returns paginated items from PostgreSQL
 sales_records="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/records?page=1&per_page=10&sort_by=total_price&sort_direction=desc")"
-printf '%s' "$sales_records" | grep --quiet '"items":\['
-printf '%s' "$sales_records" | grep --quiet '"pagination":{'
-printf '%s' "$sales_records" | grep --quiet '"total":'
+assert_response_contains "$sales_records" '"items":[' "Sales records"
+assert_response_contains "$sales_records" '"pagination":{' "Sales records"
+assert_response_contains "$sales_records" '"total":' "Sales records"
 
 # 11. Cross-workspace sales records isolation: user-1 accessing ws-2 records returns 403
 sales_records_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/analytics/sales/records")"
@@ -143,24 +154,24 @@ fi
 
 # 12. Frontend UI renders Sales Analytics Dashboard and Detail Table
 frontend_dashboard="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/")"
-printf '%s' "$frontend_dashboard" | grep --quiet 'Аналитика продаж'
+assert_response_contains "$frontend_dashboard" 'Аналитика продаж' "Sales dashboard page"
 
 # 13. Inventory filters endpoint
 inventory_filters="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/filters")"
-printf '%s' "$inventory_filters" | grep --quiet '"warehouses":\['
-printf '%s' "$inventory_filters" | grep --quiet '"statuses":\['
+assert_response_contains "$inventory_filters" '"warehouses":[' "Inventory filters"
+assert_response_contains "$inventory_filters" '"statuses":[' "Inventory filters"
 
 # 14. Inventory summary endpoint returns aggregated metrics
 inventory_summary="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/summary")"
-printf '%s' "$inventory_summary" | grep --quiet '"total_items":'
-printf '%s' "$inventory_summary" | grep --quiet '"health_breakdown":\['
-printf '%s' "$inventory_summary" | grep --quiet '"warehouses":\['
+assert_response_contains "$inventory_summary" '"total_items":' "Inventory summary"
+assert_response_contains "$inventory_summary" '"health_breakdown":[' "Inventory summary"
+assert_response_contains "$inventory_summary" '"warehouses":[' "Inventory summary"
 
 # 15. Inventory items endpoint returns paginated items with health status
 inventory_items="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/items?page=1&per_page=10")"
-printf '%s' "$inventory_items" | grep --quiet '"items":\['
-printf '%s' "$inventory_items" | grep --quiet '"pagination":{'
-printf '%s' "$inventory_items" | grep --quiet '"stock_health":'
+assert_response_contains "$inventory_items" '"items":[' "Inventory items"
+assert_response_contains "$inventory_items" '"pagination":{' "Inventory items"
+assert_response_contains "$inventory_items" '"stock_health":' "Inventory items"
 
 # 16. Cross-workspace inventory isolation: user-1 accessing ws-2 returns 403
 inventory_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/analytics/inventory/summary")"
@@ -171,20 +182,20 @@ fi
 
 # 17. Frontend UI renders Inventory Dashboard
 inventory_page="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/inventory")"
-printf '%s' "$inventory_page" | grep --quiet 'Управление запасами'
+assert_response_contains "$inventory_page" 'Управление запасами' "Inventory page"
 
 # 18. Inventory ABC/XYZ summary endpoint returns 3x3 matrix and distributions
 abc_xyz_summary="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/abc-xyz/summary?period_days=90")"
-printf '%s' "$abc_xyz_summary" | grep --quiet '"matrix":\['
-printf '%s' "$abc_xyz_summary" | grep --quiet '"abc_distribution":\['
-printf '%s' "$abc_xyz_summary" | grep --quiet '"xyz_distribution":\['
+assert_response_contains "$abc_xyz_summary" '"matrix":[' "ABC/XYZ summary"
+assert_response_contains "$abc_xyz_summary" '"abc_distribution":[' "ABC/XYZ summary"
+assert_response_contains "$abc_xyz_summary" '"xyz_distribution":[' "ABC/XYZ summary"
 
 # 19. Inventory ABC/XYZ items endpoint returns classified catalog
 abc_xyz_items="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/abc-xyz/items?period_days=90&page=1&per_page=10")"
-printf '%s' "$abc_xyz_items" | grep --quiet '"items":\['
-printf '%s' "$abc_xyz_items" | grep --quiet '"abc_class":'
-printf '%s' "$abc_xyz_items" | grep --quiet '"xyz_class":'
-printf '%s' "$abc_xyz_items" | grep --quiet '"abc_xyz_group":'
+assert_response_contains "$abc_xyz_items" '"items":[' "ABC/XYZ items"
+assert_response_contains "$abc_xyz_items" '"abc_class":' "ABC/XYZ items"
+assert_response_contains "$abc_xyz_items" '"xyz_class":' "ABC/XYZ items"
+assert_response_contains "$abc_xyz_items" '"abc_xyz_group":' "ABC/XYZ items"
 
 # 20. Cross-workspace ABC/XYZ isolation: user-1 accessing ws-2 returns 403
 abc_xyz_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/analytics/inventory/abc-xyz/summary")"
@@ -195,12 +206,12 @@ fi
 
 # 21. Frontend UI renders ABC/XYZ view tab
 abc_xyz_page="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/inventory?tab=abc-xyz")"
-printf '%s' "$abc_xyz_page" | grep --quiet 'ABC / XYZ Анализ'
+assert_response_contains "$abc_xyz_page" 'ABC / XYZ Анализ' "ABC/XYZ page"
 
 # 22. Dashboards endpoint returns list for workspace
 dashboards_list="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards")"
-printf '%s' "$dashboards_list" | grep --quiet '"items":\['
-printf '%s' "$dashboards_list" | grep --quiet '"Сводный обзор бизнеса"'
+assert_response_contains "$dashboards_list" '"items":[' "Dashboards list"
+assert_response_contains "$dashboards_list" '"id":"d0000001-0000-4000-8000-000000000001"' "Dashboards list"
 
 # 23. Cross-workspace dashboard isolation: user-1 accessing ws-2 dashboard returns 403
 dashboard_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/dashboards/d0000002-0000-4000-8000-000000000001")"
@@ -210,6 +221,4 @@ if [ "$dashboard_cross_status" != "403" ]; then
 fi
 
 echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records, inventory intelligence, ABC/XYZ matrix, and dashboard builder backend are verified."
-
-
 
