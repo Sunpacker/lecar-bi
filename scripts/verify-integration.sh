@@ -197,7 +197,19 @@ fi
 abc_xyz_page="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/inventory?tab=abc-xyz")"
 printf '%s' "$abc_xyz_page" | grep --quiet 'ABC / XYZ Анализ'
 
-echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records, inventory intelligence, and ABC/XYZ matrix analysis are verified."
+# 22. Dashboards endpoint returns list for workspace
+dashboards_list="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards")"
+printf '%s' "$dashboards_list" | grep --quiet '"items":\['
+printf '%s' "$dashboards_list" | grep --quiet '"Сводный обзор бизнеса"'
+
+# 23. Cross-workspace dashboard isolation: user-1 accessing ws-2 dashboard returns 403
+dashboard_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/dashboards/d0000002-0000-4000-8000-000000000001")"
+if [ "$dashboard_cross_status" != "403" ]; then
+    echo "Expected 403 for cross-workspace dashboard access, got $dashboard_cross_status" >&2
+    exit 1
+fi
+
+echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records, inventory intelligence, ABC/XYZ matrix, and dashboard builder backend are verified."
 
 
 
