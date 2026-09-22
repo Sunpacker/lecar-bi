@@ -2,11 +2,13 @@ openapi: 3.0.3
 info:
   title: AutoBI Analytics API
   version: 1.0.0
-  description: Public API boundary. Functional endpoints will be added with features.
+  description: Public API boundary for AutoBI analytics service.
   license:
     name: Proprietary
 servers:
   - url: /api/v1
+security:
+  - UserIdAuth: []
 paths:
   /health:
     get:
@@ -20,7 +22,119 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
+  /me:
+    get:
+      operationId: getCurrentUser
+      summary: Get current authenticated user profile
+      responses:
+        '200':
+          description: Authenticated user details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Missing or invalid user identity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /workspaces:
+    get:
+      operationId: listAccessibleWorkspaces
+      summary: List all workspaces accessible by the current user
+      responses:
+        '200':
+          description: List of accessible workspaces
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceListResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /workspaces/current:
+    get:
+      operationId: getCurrentWorkspace
+      summary: Get currently selected workspace for the user
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+      responses:
+        '200':
+          description: Current workspace context
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentWorkspaceResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - user does not belong to the requested workspace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /workspaces/{id}:
+    get:
+      operationId: getWorkspaceById
+      summary: Get workspace details by identifier
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Workspace identifier
+      responses:
+        '200':
+          description: Workspace details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - cross-workspace access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
+  securitySchemes:
+    UserIdAuth:
+      type: apiKey
+      in: header
+      name: X-User-Id
+      description: Authenticated user identifier
   schemas:
     HealthResponse:
       type: object
@@ -30,3 +144,45 @@ components:
         status: { type: string, enum: [ok] }
         service: { type: string, enum: [analytics] }
         version: { type: string, enum: [v1] }
+    UserResponse:
+      type: object
+      additionalProperties: false
+      required: [id, email, name]
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+        name: { type: string }
+    WorkspaceResponse:
+      type: object
+      additionalProperties: false
+      required: [id, name, slug, role]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        slug: { type: string }
+        role: { type: string, enum: [owner, member] }
+    WorkspaceListResponse:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspaceResponse'
+    CurrentWorkspaceResponse:
+      type: object
+      additionalProperties: false
+      required: [user, workspace]
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        workspace:
+          $ref: '#/components/schemas/WorkspaceResponse'
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [message, code]
+      properties:
+        message: { type: string }
+        code: { type: string }

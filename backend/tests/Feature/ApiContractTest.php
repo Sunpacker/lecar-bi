@@ -21,6 +21,23 @@ final class ApiContractTest extends TestCase
         $this->assertPayloadMatchesSchema($payload, $schema);
     }
 
+    public function test_contract_contains_workspace_and_identity_endpoints(): void
+    {
+        $contract = $this->openApiContract();
+
+        self::assertArrayHasKey('/me', $contract['paths']);
+        self::assertArrayHasKey('/workspaces', $contract['paths']);
+        self::assertArrayHasKey('/workspaces/{id}', $contract['paths']);
+        self::assertArrayHasKey('/workspaces/current', $contract['paths']);
+
+        $schemas = $contract['components']['schemas'];
+        self::assertArrayHasKey('UserResponse', $schemas);
+        self::assertArrayHasKey('WorkspaceResponse', $schemas);
+        self::assertArrayHasKey('WorkspaceListResponse', $schemas);
+        self::assertArrayHasKey('CurrentWorkspaceResponse', $schemas);
+        self::assertArrayHasKey('ErrorResponse', $schemas);
+    }
+
     /** @return array<string, mixed> */
     private function openApiContract(): array
     {
