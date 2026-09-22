@@ -260,8 +260,15 @@ export async function loadWidgetData(
             rows: itemsRes.items.map((item) => ({
               product_name: item.product_name,
               product_sku: item.product_sku,
-              quantity_available: formatMetricValue(item.quantity_available, 'stock_quantity'),
-              inventory_value: formatMetricValue(item.inventory_value, 'stock_value', 'currency'),
+              quantity_available: formatMetricValue(
+                item.quantity_available,
+                'stock_quantity',
+              ),
+              inventory_value: formatMetricValue(
+                item.inventory_value,
+                'stock_value',
+                'currency',
+              ),
             })),
           },
         }
@@ -270,7 +277,8 @@ export async function loadWidgetData(
 
     return { loading: false }
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Ошибка при загрузке данных виджета'
+    const message =
+      err instanceof Error ? err.message : 'Ошибка при загрузке данных виджета'
     return {
       loading: false,
       error: message,

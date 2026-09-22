@@ -19,7 +19,9 @@ export default async function DashboardDetailPage({ params }: DashboardDetailPag
 
   const { id } = await params
   const userId = session.userId
-  const currentWorkspace = await workspaceGateway.getCurrentWorkspace(userId).catch(() => null)
+  const currentWorkspace = await workspaceGateway
+    .getCurrentWorkspace(userId)
+    .catch(() => null)
   const workspaceId = currentWorkspace?.workspace.id ?? 'ws-1'
 
   let dashboard
@@ -31,11 +33,7 @@ export default async function DashboardDetailPage({ params }: DashboardDetailPag
 
   return (
     <main className="px-4 sm:px-6 lg:px-8 py-6 pb-16">
-      <DashboardViewer
-        dashboard={dashboard}
-        userId={userId}
-        workspaceId={workspaceId}
-      />
+      <DashboardViewer dashboard={dashboard} userId={userId} workspaceId={workspaceId} />
     </main>
   )
 }

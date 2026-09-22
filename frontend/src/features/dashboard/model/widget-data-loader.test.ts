@@ -199,7 +199,9 @@ describe('widgetDataLoader', () => {
       options: {},
     }
 
-    vi.mocked(salesGateway.getOverview).mockRejectedValueOnce(new Error('Network failure'))
+    vi.mocked(salesGateway.getOverview).mockRejectedValueOnce(
+      new Error('Network failure'),
+    )
 
     const result = await loadWidgetData(widget, 'user-1', 'ws-1')
 

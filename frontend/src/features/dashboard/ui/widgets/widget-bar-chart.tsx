@@ -28,7 +28,11 @@ export function WidgetBarChart({ title, data }: WidgetBarChartProps) {
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" />
-            <XAxis dataKey="name" stroke="currentColor" className="text-xs text-muted-foreground" />
+            <XAxis
+              dataKey="name"
+              stroke="currentColor"
+              className="text-xs text-muted-foreground"
+            />
             <YAxis stroke="currentColor" className="text-xs text-muted-foreground" />
             <Tooltip
               contentStyle={{

@@ -96,7 +96,9 @@ export function DashboardListView({
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground">Пользовательские дашборды</h2>
+          <h2 className="text-xl font-bold tracking-tight text-foreground">
+            Пользовательские дашборды
+          </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
             Управление аналитическими дашбордами и конфигурациями виджетов
           </p>
@@ -169,9 +171,12 @@ export function DashboardListView({
           <div className="flex size-12 items-center justify-center rounded-full bg-muted/60 text-muted-foreground mb-4">
             <LayoutDashboard className="size-6" />
           </div>
-          <h3 className="text-base font-semibold text-foreground">Нет доступных дашбордов</h3>
+          <h3 className="text-base font-semibold text-foreground">
+            Нет доступных дашбордов
+          </h3>
           <p className="mt-1 text-sm text-muted-foreground max-w-sm">
-            Создайте свой первый дашборд для компоновки нужных метрик и аналитических срезов.
+            Создайте свой первый дашборд для компоновки нужных метрик и аналитических
+            срезов.
           </p>
         </div>
       ) : (
@@ -208,7 +213,8 @@ export function DashboardListView({
                   <div className="flex items-center justify-between text-xs text-muted-foreground pt-4 border-t border-border/50">
                     <span className="inline-flex items-center gap-1.5 font-medium text-foreground">
                       <LayoutDashboard className="size-3.5 text-emerald-500" />
-                      {dash.widget_count} {dash.widget_count === 1 ? 'виджет' : 'виджетов'}
+                      {dash.widget_count}{' '}
+                      {dash.widget_count === 1 ? 'виджет' : 'виджетов'}
                     </span>
                     <span className="inline-flex items-center gap-1 text-[11px]">
                       <Calendar className="size-3" />

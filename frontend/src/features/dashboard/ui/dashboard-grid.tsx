@@ -22,8 +22,8 @@ export function DashboardGrid({ widgets, userId, workspaceId }: DashboardGridPro
           В этом дашборде пока нет виджетов
         </h3>
         <p className="mt-1 text-sm text-muted-foreground max-w-sm">
-          Настройте конфигурацию виджетов или перейдите в режим редактирования для добавления
-          метрик.
+          Настройте конфигурацию виджетов или перейдите в режим редактирования для
+          добавления метрик.
         </p>
       </div>
     )

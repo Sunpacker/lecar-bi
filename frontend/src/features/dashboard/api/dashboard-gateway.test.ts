@@ -178,8 +178,8 @@ describe('dashboardGateway', () => {
       response: new Response(null, { status: 404 }),
     } as never)
 
-    await expect(dashboardGateway.getById('non-existent', 'user-1', 'ws-1')).rejects.toThrow(
-      'Dashboard not found',
-    )
+    await expect(
+      dashboardGateway.getById('non-existent', 'user-1', 'ws-1'),
+    ).rejects.toThrow('Dashboard not found')
   })
 })

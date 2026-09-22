@@ -22,13 +22,19 @@ export const dashboardGateway = {
     })
 
     if (error || !data) {
-      throw new Error((error as { message?: string })?.message ?? 'Failed to load dashboards')
+      throw new Error(
+        (error as { message?: string })?.message ?? 'Failed to load dashboards',
+      )
     }
 
     return data.items
   },
 
-  async getById(id: string, userId: string, workspaceId?: string): Promise<DashboardDetail> {
+  async getById(
+    id: string,
+    userId: string,
+    workspaceId?: string,
+  ): Promise<DashboardDetail> {
     const headers: Record<string, string> = { 'X-User-Id': userId }
     if (workspaceId) {
       headers['X-Workspace-Id'] = workspaceId
@@ -42,7 +48,9 @@ export const dashboardGateway = {
     })
 
     if (error || !data) {
-      throw new Error((error as { message?: string })?.message ?? 'Failed to load dashboard')
+      throw new Error(
+        (error as { message?: string })?.message ?? 'Failed to load dashboard',
+      )
     }
 
     return data.dashboard
@@ -64,7 +72,9 @@ export const dashboardGateway = {
     })
 
     if (error || !data) {
-      throw new Error((error as { message?: string })?.message ?? 'Failed to create dashboard')
+      throw new Error(
+        (error as { message?: string })?.message ?? 'Failed to create dashboard',
+      )
     }
 
     return data.dashboard
@@ -90,7 +100,9 @@ export const dashboardGateway = {
     })
 
     if (error || !data) {
-      throw new Error((error as { message?: string })?.message ?? 'Failed to update dashboard')
+      throw new Error(
+        (error as { message?: string })?.message ?? 'Failed to update dashboard',
+      )
     }
 
     return data.dashboard
@@ -110,7 +122,9 @@ export const dashboardGateway = {
     })
 
     if (error) {
-      throw new Error((error as { message?: string })?.message ?? 'Failed to delete dashboard')
+      throw new Error(
+        (error as { message?: string })?.message ?? 'Failed to delete dashboard',
+      )
     }
   },
 }
