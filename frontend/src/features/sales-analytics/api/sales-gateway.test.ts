@@ -85,4 +85,71 @@ describe('salesGateway', () => {
       'Unauthorized',
     )
   })
+
+  it('fetches sales records with filters, pagination and sorting', async () => {
+    const mockRecords = {
+      items: [
+        {
+          id: 'item-1',
+          order_id: 'ord-1',
+          order_number: 'ORD-101',
+          order_date: '2026-01-15',
+          product_id: 'prod-1',
+          product_name: 'Колодки',
+          product_sku: 'BRK-1',
+          category_id: 'cat-1',
+          category_name: 'Тормоза',
+          region_id: 'reg-1',
+          region_name: 'Москва',
+          brand_name: 'Brembo',
+          quantity: 2,
+          unit_price: 3500,
+          total_price: 7000,
+          gross_profit: 2500,
+          status: 'completed',
+        },
+      ],
+      pagination: {
+        page: 2,
+        per_page: 20,
+        total: 50,
+        total_pages: 3,
+      },
+    }
+
+    vi.mocked(analyticsClient.GET).mockResolvedValueOnce({
+      data: mockRecords,
+      error: undefined,
+      response: new Response(),
+    } as never)
+
+    const result = await salesGateway.getRecords('user-1', 'ws-1', {
+      categoryId: 'cat-1',
+      page: 2,
+      perPage: 20,
+      sortBy: 'total_price',
+      sortDirection: 'desc',
+    })
+
+    expect(analyticsClient.GET).toHaveBeenCalledWith('/analytics/sales/records', {
+      params: {
+        query: {
+          date_from: undefined,
+          date_to: undefined,
+          category_id: 'cat-1',
+          region_id: undefined,
+          page: 2,
+          per_page: 20,
+          sort_by: 'total_price',
+          sort_direction: 'desc',
+        },
+      },
+      headers: {
+        'X-User-Id': 'user-1',
+        'X-Workspace-Id': 'ws-1',
+      },
+    })
+    expect(result.pagination.total).toBe(50)
+    expect(result.items[0].product_name).toBe('Колодки')
+  })
 })
