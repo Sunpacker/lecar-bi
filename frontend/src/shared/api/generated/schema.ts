@@ -123,6 +123,23 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/analytics/sales/records': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get paginated and sorted detail sales records for drill-down */
+    get: operations['getSalesRecords']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
 }
 export type webhooks = Record<string, never>
 export interface components {
@@ -216,6 +233,39 @@ export interface components {
       min_date: string
       /** Format: date */
       max_date: string
+    }
+    PaginationMetadata: {
+      page: number
+      per_page: number
+      total: number
+      total_pages: number
+    }
+    SalesRecordItem: {
+      id: string
+      order_id: string
+      order_number: string
+      /** Format: date */
+      order_date: string
+      product_id: string
+      product_name: string
+      product_sku: string
+      category_id: string
+      category_name: string
+      region_id: string
+      region_name: string
+      brand_name: string
+      quantity: number
+      /** Format: float */
+      unit_price: number
+      /** Format: float */
+      total_price: number
+      /** Format: float */
+      gross_profit: number
+      status: string
+    }
+    SalesRecordsResponse: {
+      items: components['schemas']['SalesRecordItem'][]
+      pagination: components['schemas']['PaginationMetadata']
     }
   }
   responses: never
@@ -495,6 +545,79 @@ export interface operations {
       }
       /** @description Forbidden */
       403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getSalesRecords: {
+    parameters: {
+      query?: {
+        /** @description Start of date filter range (YYYY-MM-DD) */
+        date_from?: string
+        /** @description End of date filter range (YYYY-MM-DD) */
+        date_to?: string
+        /** @description Filter by specific category ID */
+        category_id?: string
+        /** @description Filter by specific region ID */
+        region_id?: string
+        /** @description Page number for pagination */
+        page?: number
+        /** @description Number of items per page */
+        per_page?: number
+        /** @description Field to sort records by */
+        sort_by?:
+          | 'order_date'
+          | 'order_number'
+          | 'product_name'
+          | 'total_price'
+          | 'quantity'
+          | 'gross_profit'
+        /** @description Sort direction */
+        sort_direction?: 'asc' | 'desc'
+      }
+      header?: {
+        /** @description Optional requested workspace identifier */
+        'X-Workspace-Id'?: string
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Paginated detail sales records */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SalesRecordsResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Validation error */
+      422: {
         headers: {
           [name: string]: unknown
         }
