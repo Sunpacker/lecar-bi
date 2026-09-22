@@ -74,13 +74,37 @@ Dashboard собирается и восстанавливается, ownership 
    - Добавлен пункт `Dashboards` в боковую навигацию (`Sidebar`).
    - Покрыто изолированными юнит- и компонентными тестами (все 23 тестовых сьюта и 82 теста фронтенда успешно проходят, typecheck и lint чистые).
 
+9. **Frontend Dashboard Builder UI & Grid Editor (Edit Mode):**
+   - Разработан хук состояния и логики сетки `useDashboardBuilder` (`frontend/src/features/dashboard/model/use-dashboard-builder.ts`):
+     - Управление режимами (`view` / `edit`), редактирование названия и описания;
+     - Строгие инварианты 12-колоночной сетки (`0 <= x <= 11`, `1 <= w <= 12`, `x + w <= 12`, `y >= 0`, `1 <= h <= 24`);
+     - Добавление, редактирование, удаление, перемещение (`moveWidget`) и изменение размеров (`resizeWidget`) виджетов;
+     - Отслеживание изменений (`isDirty`), сохранение через `dashboardGateway.update` и сброс изменений (`discardChanges`).
+   - Разработана slide-over панель настройки виджетов `WidgetConfigSheet` (`frontend/src/features/dashboard/ui/widget-config-sheet.tsx`):
+     - Семантическая настройка: название, тип визуализации (`kpi_card`, `line_chart`, `bar_chart`, `donut_chart`, `table`), датасет (`sales`, `inventory`), метрики, измерения (`dimension`), периоды дат (`date_range`) и сеточные размеры;
+     - Динамическое переключение доступных метрик и разрезов при смене набора данных;
+     - Идиоматический сброс состояния формы по ключу (React 19 без лишних side-effects).
+   - Разработан интерактивный редактор сетки `DashboardGridEditor` и карточка `WidgetEditorCard` (`frontend/src/features/dashboard/ui/dashboard-grid-editor.tsx`, `widget-editor-card.tsx`):
+     - Тулбар с ручкой перетаскивания (drag handle), названием, бейджем типа, кнопками настройки и удаления;
+     - Нижняя панель с кнопками позиционирования (влево, вправо, вверх, вниз) с блокировкой на краях сетки;
+     - Кнопки пошагового изменения ширины (`w`) и высоты (`h`);
+     - Поддержка HTML5 drag-and-drop для перемещения и перестановки виджетов;
+     - Пустое состояние сетки с кнопкой создания первого виджета.
+   - Обновлен компонент `DashboardViewer` (`frontend/src/features/dashboard/ui/dashboard-viewer.tsx`):
+     - Тулбар переключения режимов «Просмотр» / «Редактировать»;
+     - В режиме редактирования: редактируемые поля названия и описания дашборда, бейдж «Несохранённые изменения», кнопки «Добавить виджет», «Сохранить» (с индикацией статуса) и «Отмена»;
+     - Переключение отображения между `DashboardGrid` и `DashboardGridEditor`, монтирование `WidgetConfigSheet`.
+   - Комплексно покрыто тестами:
+     - Юнит-тесты хука `use-dashboard-builder.test.ts` (8 тестов);
+     - Компонентные тесты `widget-config-sheet.test.tsx` (4 теста);
+     - Компонентные тесты редактора сетки `dashboard-grid-editor.test.tsx` (4 теста);
+     - Интеграционные тесты `dashboard-viewer.test.tsx` (3 теста);
+     - Полный прогон фронтенд-тестов: 26 файлов, 100 тестов проходят без ошибок, `typecheck`, `lint` и `format:check` чистые (0 ошибок);
+     - Backend-тесты: 114 тестов (27997 assertions) и Pint/PHPStan без ошибок.
+
 ### Что осталось в текущей фазе
 
-1. **Frontend Dashboard Builder UI & Grid Editor (Edit Mode):**
-   - Интерактивная 12-колоночная сетка с drag-and-drop и изменением размеров виджетов;
-   - Модальное окно добавления/редактирования семантического виджета (выбор dataset, metric, dimension, date_range, параметров);
-   - Сохранение и перезагрузка конфигурации дашборда.
-2. **E2E тестирование и финальный Integration Checkpoint:**
+1. **E2E тестирование и финальный Integration Checkpoint:**
    - Покрытие builder flows сквозными тестами;
    - Подтверждение всех exit criteria Phase 8.
 
@@ -88,4 +112,4 @@ Dashboard собирается и восстанавливается, ownership 
 - Отсутствуют.
 
 ### Следующий шаг
-- Реализация задачи: Frontend Dashboard Builder UI & Grid Editor (Edit Mode — интерактивный drag-and-drop, изменение размеров и модалка настройки виджетов).
+- Реализация задачи: E2E тестирование builder flows и прохождение интеграционного чекпоинта Phase 8.
