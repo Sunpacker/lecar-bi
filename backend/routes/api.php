@@ -18,5 +18,6 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/analytics/sales/overview', [SalesAnalyticsController::class, 'overview']);
         Route::get('/analytics/sales/filters', [SalesAnalyticsController::class, 'filters']);
+        Route::get('/analytics/sales/records', [SalesAnalyticsController::class, 'records']);
     });
 });
