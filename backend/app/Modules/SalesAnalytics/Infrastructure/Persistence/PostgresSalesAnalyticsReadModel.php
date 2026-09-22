@@ -7,6 +7,9 @@ use App\Modules\SalesAnalytics\Application\Dtos\SalesCategoryBreakdownDto;
 use App\Modules\SalesAnalytics\Application\Dtos\SalesFilterCriteriaDto;
 use App\Modules\SalesAnalytics\Application\Dtos\SalesFilterOptionsDto;
 use App\Modules\SalesAnalytics\Application\Dtos\SalesOverviewDto;
+use App\Modules\SalesAnalytics\Application\Dtos\SalesRecordDto;
+use App\Modules\SalesAnalytics\Application\Dtos\SalesRecordsCriteriaDto;
+use App\Modules\SalesAnalytics\Application\Dtos\SalesRecordsPaginatedDto;
 use App\Modules\SalesAnalytics\Application\Dtos\SalesRegionBreakdownDto;
 use App\Modules\SalesAnalytics\Application\Dtos\SalesSummaryDto;
 use App\Modules\SalesAnalytics\Application\Dtos\SalesTrendPointDto;
@@ -141,6 +144,106 @@ final class PostgresSalesAnalyticsReadModel implements SalesAnalyticsReadModelIn
             regions: $regions,
             minDate: $minDate,
             maxDate: $maxDate,
+        );
+    }
+
+    public function getSalesRecords(string $workspaceId, SalesRecordsCriteriaDto $criteria): SalesRecordsPaginatedDto
+    {
+        $filterCriteria = new SalesFilterCriteriaDto(
+            dateFrom: $criteria->dateFrom,
+            dateTo: $criteria->dateTo,
+            categoryId: $criteria->categoryId,
+            regionId: $criteria->regionId,
+        );
+
+        $total = $this->baseItemsQuery($workspaceId, $filterCriteria)->count();
+
+        $sortColumnMap = [
+            'order_date' => 'i.order_date',
+            'order_number' => 'o.order_number',
+            'product_name' => 'p.name',
+            'total_price' => 'i.total_price',
+            'quantity' => 'i.quantity',
+            'gross_profit' => 'i.gross_profit',
+        ];
+        $sortColumn = $sortColumnMap[$criteria->sortBy] ?? 'i.order_date';
+        $direction = $criteria->sortDirection === 'asc' ? 'asc' : 'desc';
+
+        $rows = $this->baseItemsQuery($workspaceId, $filterCriteria, 'i')
+            ->join('fact_orders as o', function ($join) {
+                $join->on('o.id', '=', 'i.order_id')
+                    ->on('o.workspace_id', '=', 'i.workspace_id');
+            })
+            ->join('dim_products as p', function ($join) {
+                $join->on('p.id', '=', 'i.product_id')
+                    ->on('p.workspace_id', '=', 'i.workspace_id');
+            })
+            ->join('dim_categories as c', function ($join) {
+                $join->on('c.id', '=', 'i.category_id')
+                    ->on('c.workspace_id', '=', 'i.workspace_id');
+            })
+            ->join('dim_regions as r', function ($join) {
+                $join->on('r.id', '=', 'i.region_id')
+                    ->on('r.workspace_id', '=', 'i.workspace_id');
+            })
+            ->join('dim_brands as b', function ($join) {
+                $join->on('b.id', '=', 'i.brand_id')
+                    ->on('b.workspace_id', '=', 'i.workspace_id');
+            })
+            ->select([
+                'i.id',
+                'i.order_id',
+                'o.order_number',
+                'i.order_date',
+                'i.product_id',
+                'p.name as product_name',
+                'p.sku as product_sku',
+                'i.category_id',
+                'c.name as category_name',
+                'i.region_id',
+                'r.name as region_name',
+                'b.name as brand_name',
+                'i.quantity',
+                'i.unit_price',
+                'i.total_price',
+                'i.gross_profit',
+                'o.status',
+            ])
+            ->orderBy($sortColumn, $direction)
+            ->forPage($criteria->page, $criteria->perPage)
+            ->get();
+
+        $items = [];
+        foreach ($rows as $row) {
+            $items[] = new SalesRecordDto(
+                id: (string) $row->id,
+                orderId: (string) $row->order_id,
+                orderNumber: (string) $row->order_number,
+                orderDate: (string) $row->order_date,
+                productId: (string) $row->product_id,
+                productName: (string) $row->product_name,
+                productSku: (string) $row->product_sku,
+                categoryId: (string) $row->category_id,
+                categoryName: (string) $row->category_name,
+                regionId: (string) $row->region_id,
+                regionName: (string) $row->region_name,
+                brandName: (string) $row->brand_name,
+                quantity: (int) $row->quantity,
+                unitPrice: (float) $row->unit_price,
+                totalPrice: (float) $row->total_price,
+                grossProfit: (float) $row->gross_profit,
+                status: (string) $row->status,
+            );
+        }
+
+        $totalPages = (int) max(1, ceil($total / $criteria->perPage));
+
+        return new SalesRecordsPaginatedDto(
+            items: $items,
+            total: $total,
+            page: $criteria->page,
+            perPage: $criteria->perPage,
+            totalPages: $totalPages,
         );
     }
 

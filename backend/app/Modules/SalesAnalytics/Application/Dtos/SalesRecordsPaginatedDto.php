@@ -5,7 +5,7 @@ namespace App\Modules\SalesAnalytics\Application\Dtos;
 final readonly class SalesRecordsPaginatedDto
 {
     /**
-     * @param array<int, SalesRecordDto> $items
+     * @param  array<int, SalesRecordDto>  $items
      */
     public function __construct(
         public array $items,
