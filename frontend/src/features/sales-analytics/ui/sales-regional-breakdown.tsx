@@ -7,9 +7,7 @@ interface SalesRegionalBreakdownProps {
   regions: SalesRegionBreakdown[]
 }
 
-export function SalesRegionalBreakdownView({
-  regions,
-}: SalesRegionalBreakdownProps) {
+export function SalesRegionalBreakdownView({ regions }: SalesRegionalBreakdownProps) {
   const currencyFormatter = new Intl.NumberFormat('ru-RU', {
     style: 'currency',
     currency: 'RUB',
@@ -36,12 +34,12 @@ export function SalesRegionalBreakdownView({
               <div className="breakdown-progress">
                 <div
                   className="breakdown-progress__fill breakdown-progress__fill--accent"
-                  style={{ width: `${Math.min(100, Math.max(0, reg.revenue_share * 100))}%` }}
+                  style={{
+                    width: `${Math.min(100, Math.max(0, reg.revenue_share * 100))}%`,
+                  }}
                 />
               </div>
-              <span className="breakdown-item__sub">
-                {reg.order_count} заказов
-              </span>
+              <span className="breakdown-item__sub">{reg.order_count} заказов</span>
             </div>
           )
         })}

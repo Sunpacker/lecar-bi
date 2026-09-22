@@ -120,11 +120,7 @@ export function SalesFiltersBar({
         </select>
       </div>
 
-      <button
-        type="button"
-        className="filter-reset-button"
-        onClick={handleReset}
-      >
+      <button type="button" className="filter-reset-button" onClick={handleReset}>
         Сбросить
       </button>
     </div>

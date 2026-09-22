@@ -7,9 +7,7 @@ interface SalesCategoryBreakdownProps {
   categories: SalesCategoryBreakdown[]
 }
 
-export function SalesCategoryBreakdownView({
-  categories,
-}: SalesCategoryBreakdownProps) {
+export function SalesCategoryBreakdownView({ categories }: SalesCategoryBreakdownProps) {
   const currencyFormatter = new Intl.NumberFormat('ru-RU', {
     style: 'currency',
     currency: 'RUB',
@@ -33,12 +31,12 @@ export function SalesCategoryBreakdownView({
               <div className="breakdown-progress">
                 <div
                   className="breakdown-progress__fill"
-                  style={{ width: `${Math.min(100, Math.max(0, cat.revenue_share * 100))}%` }}
+                  style={{
+                    width: `${Math.min(100, Math.max(0, cat.revenue_share * 100))}%`,
+                  }}
                 />
               </div>
-              <span className="breakdown-item__sub">
-                {cat.order_count} заказов
-              </span>
+              <span className="breakdown-item__sub">{cat.order_count} заказов</span>
             </div>
           )
         })}

@@ -86,4 +86,28 @@ if command -v docker >/dev/null 2>&1; then
     echo "Demo dataset verified: ws-1 ($ws1_orders_count orders), ws-2 ($ws2_orders_count orders), stockouts ($stockout_count days) present in PostgreSQL."
 fi
 
-echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, and demo dataset are verified."
+# 7. Sales filters endpoint
+sales_filters="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/filters")"
+printf '%s' "$sales_filters" | grep --quiet '"categories":\['
+printf '%s' "$sales_filters" | grep --quiet '"regions":\['
+
+# 8. Sales overview endpoint returns aggregated summary from PostgreSQL
+sales_overview="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/overview")"
+printf '%s' "$sales_overview" | grep --quiet '"total_revenue":'
+printf '%s' "$sales_overview" | grep --quiet '"order_count":'
+printf '%s' "$sales_overview" | grep --quiet '"trend":\['
+printf '%s' "$sales_overview" | grep --quiet '"categories":\['
+printf '%s' "$sales_overview" | grep --quiet '"regions":\['
+
+# 9. Cross-workspace sales analytics isolation: user-1 accessing ws-2 returns 403
+sales_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/analytics/sales/overview")"
+if [ "$sales_cross_status" != "403" ]; then
+    echo "Expected 403 for cross-workspace sales analytics access, got $sales_cross_status" >&2
+    exit 1
+fi
+
+# 10. Frontend UI renders Sales Analytics Dashboard
+frontend_dashboard="$(curl --fail --silent --show-error "$FRONTEND_URL/")"
+printf '%s' "$frontend_dashboard" | grep --quiet 'Аналитика продаж'
+
+echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, and sales analytics vertical slice are verified."

@@ -44,9 +44,7 @@ export function SalesKpiCards({ summary }: SalesKpiCardsProps) {
 
       <div className="kpi-card" data-testid="kpi-margin">
         <span className="kpi-card__label">Маржинальность</span>
-        <span className="kpi-card__value">
-          {(summary.margin_rate * 100).toFixed(1)}%
-        </span>
+        <span className="kpi-card__value">{(summary.margin_rate * 100).toFixed(1)}%</span>
         <span className="kpi-card__subtext">
           Прибыль: {currencyFormatter.format(summary.gross_profit)}
         </span>

@@ -20,7 +20,7 @@
 - [x] [Phase 1 — Development Foundation](01-development-foundation.md)
 - [x] [Phase 2 — Identity, Workspace and Access Boundary](02-identity-workspace-access.md)
 - [x] [Phase 3 — Demo Data Model](03-demo-data-model.md)
-- [ ] [Phase 4 — Sales Analytics Vertical Slice](04-sales-analytics.md)
+- [x] [Phase 4 — Sales Analytics Vertical Slice](04-sales-analytics.md)
 - [ ] [Phase 5 — Sales Drill-Down and BI Interaction Model](05-sales-drill-down.md)
 - [ ] [Phase 6 — Inventory Intelligence](06-inventory-intelligence.md)
 - [ ] [Phase 7 — ABC/XYZ Analysis](07-abc-xyz-analysis.md)
