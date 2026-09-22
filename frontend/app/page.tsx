@@ -6,6 +6,7 @@ import {
   type CurrentWorkspace,
   type Workspace,
 } from '../src/features/workspace/api/workspace-gateway'
+import { SalesDashboard } from '../src/features/sales-analytics/ui/sales-dashboard'
 
 export const dynamic = 'force-dynamic'
 
@@ -32,13 +33,24 @@ export default async function HomePage() {
           accessibleWorkspaces={accessibleWorkspaces}
         />
       )}
-      <span className="eyebrow">AUTOBI / IDENTITY & WORKSPACE</span>
-      <h1>Analytics workspace</h1>
-      <p>
-        Пользователь видит только разрешённый workspace, бэкенд обеспечивает
-        авторизационную границу владения данными.
-      </p>
-      <HealthStatus status={healthStatus} />
+      <div className="workspace-hero">
+        <span className="eyebrow">AUTOBI / SALES ANALYTICS</span>
+        <h1>Analytics workspace</h1>
+        <p>
+          Сквозная BI-аналитика продаж: выручка, динамика заказов, средний чек и
+          регионально-категорийные срезы на реальных данных PostgreSQL.
+        </p>
+      </div>
+
+      {workspaceContext ? (
+        <SalesDashboard userId={demoUserId} workspaceId={workspaceContext.workspace.id} />
+      ) : (
+        <SalesDashboard userId={demoUserId} workspaceId="ws-1" />
+      )}
+
+      <footer className="page-footer">
+        <HealthStatus status={healthStatus} />
+      </footer>
     </main>
   )
 }

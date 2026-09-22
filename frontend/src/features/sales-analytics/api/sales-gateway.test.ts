@@ -48,7 +48,7 @@ describe('salesGateway', () => {
       data: mockOverview,
       error: undefined,
       response: new Response(),
-    } as any)
+    } as never)
 
     const result = await salesGateway.getOverview('user-1', 'ws-1', {
       dateFrom: '2025-01-01',
@@ -79,7 +79,7 @@ describe('salesGateway', () => {
       data: undefined,
       error: { message: 'Unauthorized', code: 'FORBIDDEN' },
       response: new Response(),
-    } as any)
+    } as never)
 
     await expect(salesGateway.getOverview('user-1', 'ws-1')).rejects.toThrow(
       'Unauthorized',
