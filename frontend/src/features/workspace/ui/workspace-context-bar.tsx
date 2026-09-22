@@ -32,33 +32,39 @@ export function WorkspaceContextBar({
   }
 
   return (
-    <header
-      className="flex flex-wrap items-center justify-between gap-4 p-4 border border-border bg-card/60 rounded-xl mb-6 backdrop-blur shadow-xs"
+    <div
+      className="flex w-full items-center justify-between gap-4"
       data-testid="workspace-context-bar"
     >
-      <div>
-        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          Пользователь
-        </div>
-        <div className="text-sm font-medium text-foreground">
-          {context.user.name}{' '}
-          <span className="text-muted-foreground font-normal">
-            ({context.user.email})
-          </span>
-        </div>
-      </div>
       <div className="flex items-center gap-3">
         <WorkspaceSwitcher
           currentWorkspaceId={currentId}
           workspaces={accessibleWorkspaces}
           onSelectWorkspace={setCurrentId}
         />
+      </div>
+
+      <div className="flex items-center gap-3 sm:gap-4">
+        <div className="hidden sm:flex items-center gap-2.5 text-left">
+          <div className="size-7 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 text-xs font-semibold select-none">
+            {context.user.name ? context.user.name.charAt(0).toUpperCase() : 'U'}
+          </div>
+          <div className="flex flex-col">
+            <span className="text-xs font-medium text-foreground leading-tight">
+              {context.user.name}
+            </span>
+            <span className="text-[11px] text-muted-foreground leading-tight">
+              {context.user.email}
+            </span>
+          </div>
+        </div>
+
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
           onClick={handleLogout}
           disabled={loggingOut}
-          className="text-xs gap-1.5 text-muted-foreground hover:text-destructive hover:border-destructive/40 cursor-pointer"
+          className="h-8 px-2.5 text-xs gap-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 cursor-pointer transition-colors"
           data-testid="logout-button"
         >
           {loggingOut ? (
@@ -66,9 +72,9 @@ export function WorkspaceContextBar({
           ) : (
             <LogOut className="size-3.5" />
           )}
-          <span>Выйти</span>
+          <span className="hidden sm:inline">Выйти</span>
         </Button>
       </div>
-    </header>
+    </div>
   )
 }

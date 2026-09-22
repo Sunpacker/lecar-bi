@@ -345,6 +345,173 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /analytics/inventory/summary:
+    get:
+      operationId: getInventorySummary
+      summary: Get current inventory summary, health breakdown, and warehouse metrics
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+        - in: query
+          name: warehouse_id
+          required: false
+          schema:
+            type: string
+          description: Optional filter by warehouse ID
+        - in: query
+          name: as_of_date
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Optional snapshot date (YYYY-MM-DD), defaults to latest available snapshot
+      responses:
+        '200':
+          description: Aggregated inventory summary and health distribution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventorySummaryResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - user does not belong to the requested workspace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/inventory/items:
+    get:
+      operationId: getInventoryItems
+      summary: Get paginated and sorted list of inventory items with sales velocity, DOS, and stock health
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+        - in: query
+          name: warehouse_id
+          required: false
+          schema:
+            type: string
+          description: Filter by warehouse ID
+        - in: query
+          name: stock_health
+          required: false
+          schema:
+            type: string
+            enum: [out_of_stock, critical, optimal, overstock]
+          description: Filter by stock health status
+        - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+          description: Search by product name or SKU
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of items per page
+        - in: query
+          name: sort_by
+          required: false
+          schema:
+            type: string
+            enum: [product_name, quantity_on_hand, quantity_available, inventory_value, sales_velocity, days_of_stock]
+            default: quantity_available
+          description: Sort field
+        - in: query
+          name: sort_direction
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+          description: Sort direction
+      responses:
+        '200':
+          description: Paginated inventory items
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItemsResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/inventory/filters:
+    get:
+      operationId: getInventoryFilters
+      summary: Get available filter options for inventory analytics
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+      responses:
+        '200':
+          description: Available inventory filter options
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryFilterOptionsResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     UserIdAuth:
@@ -546,3 +713,230 @@ components:
             $ref: '#/components/schemas/SalesRecordItem'
         pagination:
           $ref: '#/components/schemas/PaginationMetadata'
+    InventorySummary:
+      type: object
+      additionalProperties: false
+      required:
+        - total_items
+        - total_quantity_on_hand
+        - total_quantity_reserved
+        - total_quantity_available
+        - total_inventory_value
+        - critical_count
+        - overstock_count
+        - out_of_stock_count
+        - optimal_count
+        - average_days_of_stock
+      properties:
+        total_items:
+          type: integer
+        total_quantity_on_hand:
+          type: integer
+        total_quantity_reserved:
+          type: integer
+        total_quantity_available:
+          type: integer
+        total_inventory_value:
+          type: number
+          format: float
+        critical_count:
+          type: integer
+        overstock_count:
+          type: integer
+        out_of_stock_count:
+          type: integer
+        optimal_count:
+          type: integer
+        average_days_of_stock:
+          type: number
+          format: float
+          nullable: true
+    StockHealthBreakdownItem:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - label
+        - items_count
+        - total_value
+        - share
+      properties:
+        status:
+          type: string
+          enum: [out_of_stock, critical, optimal, overstock]
+        label:
+          type: string
+        items_count:
+          type: integer
+        total_value:
+          type: number
+          format: float
+        share:
+          type: number
+          format: float
+    WarehouseStockBreakdownItem:
+      type: object
+      additionalProperties: false
+      required:
+        - warehouse_id
+        - warehouse_name
+        - warehouse_code
+        - total_quantity
+        - total_value
+        - items_count
+        - critical_count
+        - overstock_count
+      properties:
+        warehouse_id:
+          type: string
+        warehouse_name:
+          type: string
+        warehouse_code:
+          type: string
+        total_quantity:
+          type: integer
+        total_value:
+          type: number
+          format: float
+        items_count:
+          type: integer
+        critical_count:
+          type: integer
+        overstock_count:
+          type: integer
+    InventorySummaryResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - summary
+        - health_breakdown
+        - warehouses
+        - as_of_date
+      properties:
+        summary:
+          $ref: '#/components/schemas/InventorySummary'
+        health_breakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/StockHealthBreakdownItem'
+        warehouses:
+          type: array
+          items:
+            $ref: '#/components/schemas/WarehouseStockBreakdownItem'
+        as_of_date:
+          type: string
+          format: date
+    InventoryItem:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - product_id
+        - product_name
+        - product_sku
+        - category_id
+        - category_name
+        - warehouse_id
+        - warehouse_name
+        - warehouse_code
+        - quantity_on_hand
+        - quantity_reserved
+        - quantity_available
+        - unit_cost
+        - inventory_value
+        - sales_velocity
+        - days_of_stock
+        - stock_health
+        - stock_health_label
+        - safety_stock
+        - reorder_point
+      properties:
+        id:
+          type: string
+        product_id:
+          type: string
+        product_name:
+          type: string
+        product_sku:
+          type: string
+        category_id:
+          type: string
+        category_name:
+          type: string
+        warehouse_id:
+          type: string
+        warehouse_name:
+          type: string
+        warehouse_code:
+          type: string
+        quantity_on_hand:
+          type: integer
+        quantity_reserved:
+          type: integer
+        quantity_available:
+          type: integer
+        unit_cost:
+          type: number
+          format: float
+        inventory_value:
+          type: number
+          format: float
+        sales_velocity:
+          type: number
+          format: float
+        days_of_stock:
+          type: number
+          format: float
+          nullable: true
+        stock_health:
+          type: string
+          enum: [out_of_stock, critical, optimal, overstock]
+        stock_health_label:
+          type: string
+        safety_stock:
+          type: integer
+        reorder_point:
+          type: integer
+    InventoryItemsResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InventoryItem'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+    InventoryFilterOptionsResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - warehouses
+        - statuses
+        - latest_snapshot_date
+      properties:
+        warehouses:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, name, code]
+            properties:
+              id: { type: string }
+              name: { type: string }
+              code: { type: string }
+        statuses:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [value, label]
+            properties:
+              value: { type: string }
+              label: { type: string }
+        latest_snapshot_date:
+          type: string
+          format: date

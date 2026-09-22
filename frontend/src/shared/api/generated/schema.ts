@@ -157,6 +157,57 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/analytics/inventory/summary': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get current inventory summary, health breakdown, and warehouse metrics */
+    get: operations['getInventorySummary']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/analytics/inventory/items': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get paginated and sorted list of inventory items with sales velocity, DOS, and stock health */
+    get: operations['getInventoryItems']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/analytics/inventory/filters': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get available filter options for inventory analytics */
+    get: operations['getInventoryFilters']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
 }
 export type webhooks = Record<string, never>
 export interface components {
@@ -291,6 +342,92 @@ export interface components {
     SalesRecordsResponse: {
       items: components['schemas']['SalesRecordItem'][]
       pagination: components['schemas']['PaginationMetadata']
+    }
+    InventorySummary: {
+      total_items: number
+      total_quantity_on_hand: number
+      total_quantity_reserved: number
+      total_quantity_available: number
+      /** Format: float */
+      total_inventory_value: number
+      critical_count: number
+      overstock_count: number
+      out_of_stock_count: number
+      optimal_count: number
+      /** Format: float */
+      average_days_of_stock: number | null
+    }
+    StockHealthBreakdownItem: {
+      /** @enum {string} */
+      status: 'out_of_stock' | 'critical' | 'optimal' | 'overstock'
+      label: string
+      items_count: number
+      /** Format: float */
+      total_value: number
+      /** Format: float */
+      share: number
+    }
+    WarehouseStockBreakdownItem: {
+      warehouse_id: string
+      warehouse_name: string
+      warehouse_code: string
+      total_quantity: number
+      /** Format: float */
+      total_value: number
+      items_count: number
+      critical_count: number
+      overstock_count: number
+    }
+    InventorySummaryResponse: {
+      summary: components['schemas']['InventorySummary']
+      health_breakdown: components['schemas']['StockHealthBreakdownItem'][]
+      warehouses: components['schemas']['WarehouseStockBreakdownItem'][]
+      /** Format: date */
+      as_of_date: string
+    }
+    InventoryItem: {
+      id: string
+      product_id: string
+      product_name: string
+      product_sku: string
+      category_id: string
+      category_name: string
+      warehouse_id: string
+      warehouse_name: string
+      warehouse_code: string
+      quantity_on_hand: number
+      quantity_reserved: number
+      quantity_available: number
+      /** Format: float */
+      unit_cost: number
+      /** Format: float */
+      inventory_value: number
+      /** Format: float */
+      sales_velocity: number
+      /** Format: float */
+      days_of_stock: number | null
+      /** @enum {string} */
+      stock_health: 'out_of_stock' | 'critical' | 'optimal' | 'overstock'
+      stock_health_label: string
+      safety_stock: number
+      reorder_point: number
+    }
+    InventoryItemsResponse: {
+      items: components['schemas']['InventoryItem'][]
+      pagination: components['schemas']['PaginationMetadata']
+    }
+    InventoryFilterOptionsResponse: {
+      warehouses: {
+        id: string
+        name: string
+        code: string
+      }[]
+      statuses: {
+        value: string
+        label: string
+      }[]
+      /** Format: date */
+      latest_snapshot_date: string
     }
   }
   responses: never
@@ -685,6 +822,173 @@ export interface operations {
       }
       /** @description Validation error */
       422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getInventorySummary: {
+    parameters: {
+      query?: {
+        /** @description Optional filter by warehouse ID */
+        warehouse_id?: string
+        /** @description Optional snapshot date (YYYY-MM-DD), defaults to latest available snapshot */
+        as_of_date?: string
+      }
+      header?: {
+        /** @description Optional requested workspace identifier */
+        'X-Workspace-Id'?: string
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Aggregated inventory summary and health distribution */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['InventorySummaryResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden - user does not belong to the requested workspace */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Workspace not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getInventoryItems: {
+    parameters: {
+      query?: {
+        /** @description Filter by warehouse ID */
+        warehouse_id?: string
+        /** @description Filter by stock health status */
+        stock_health?: 'out_of_stock' | 'critical' | 'optimal' | 'overstock'
+        /** @description Search by product name or SKU */
+        search?: string
+        /** @description Page number for pagination */
+        page?: number
+        /** @description Number of items per page */
+        per_page?: number
+        /** @description Sort field */
+        sort_by?:
+          | 'product_name'
+          | 'quantity_on_hand'
+          | 'quantity_available'
+          | 'inventory_value'
+          | 'sales_velocity'
+          | 'days_of_stock'
+        /** @description Sort direction */
+        sort_direction?: 'asc' | 'desc'
+      }
+      header?: {
+        /** @description Optional requested workspace identifier */
+        'X-Workspace-Id'?: string
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Paginated inventory items */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['InventoryItemsResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getInventoryFilters: {
+    parameters: {
+      query?: never
+      header?: {
+        /** @description Optional requested workspace identifier */
+        'X-Workspace-Id'?: string
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Available inventory filter options */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['InventoryFilterOptionsResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
         headers: {
           [name: string]: unknown
         }

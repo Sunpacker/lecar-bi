@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\InventoryAnalytics\Presentation\Controllers\InventoryAnalyticsController;
 use App\Modules\SalesAnalytics\Presentation\Controllers\SalesAnalyticsController;
 use App\Modules\Workspace\Presentation\Controllers\AuthController;
 use App\Modules\Workspace\Presentation\Controllers\CurrentWorkspaceController;
@@ -21,5 +22,9 @@ Route::prefix('v1')->group(function () {
         Route::get('/analytics/sales/overview', [SalesAnalyticsController::class, 'overview']);
         Route::get('/analytics/sales/filters', [SalesAnalyticsController::class, 'filters']);
         Route::get('/analytics/sales/records', [SalesAnalyticsController::class, 'records']);
+
+        Route::get('/analytics/inventory/summary', [InventoryAnalyticsController::class, 'summary']);
+        Route::get('/analytics/inventory/items', [InventoryAnalyticsController::class, 'items']);
+        Route::get('/analytics/inventory/filters', [InventoryAnalyticsController::class, 'filters']);
     });
 });

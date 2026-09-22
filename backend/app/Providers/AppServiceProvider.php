@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Modules\InventoryAnalytics\Application\Contracts\InventoryAnalyticsReadModelInterface;
+use App\Modules\InventoryAnalytics\Infrastructure\Persistence\InMemoryInventoryAnalyticsReadModel;
+use App\Modules\InventoryAnalytics\Infrastructure\Persistence\PostgresInventoryAnalyticsReadModel;
 use App\Modules\SalesAnalytics\Application\Contracts\SalesAnalyticsReadModelInterface;
 use App\Modules\SalesAnalytics\Infrastructure\Persistence\InMemorySalesAnalyticsReadModel;
 use App\Modules\SalesAnalytics\Infrastructure\Persistence\PostgresSalesAnalyticsReadModel;
@@ -39,6 +42,14 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return new PostgresSalesAnalyticsReadModel;
+        });
+
+        $this->app->singleton(InventoryAnalyticsReadModelInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new InMemoryInventoryAnalyticsReadModel;
+            }
+
+            return new PostgresInventoryAnalyticsReadModel;
         });
     }
 
