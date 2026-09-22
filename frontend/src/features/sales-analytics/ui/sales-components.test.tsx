@@ -90,4 +90,70 @@ describe('Sales Analytics UI Components', () => {
       expect.objectContaining({ categoryId: 'cat-1' }),
     )
   })
+
+  it('triggers onSelectCategory on category click and deselects if clicked again', () => {
+    const onSelectCategory = vi.fn()
+    const { rerender } = render(
+      <SalesCategoryBreakdownView
+        categories={[
+          {
+            category_id: 'cat-1',
+            category_name: 'Аккумуляторы',
+            revenue: 300000,
+            order_count: 50,
+            revenue_share: 0.2,
+          },
+        ]}
+        selectedCategoryId={undefined}
+        onSelectCategory={onSelectCategory}
+      />,
+    )
+
+    const item = screen.getByRole('button', { name: /Аккумуляторы/i })
+    fireEvent.click(item)
+    expect(onSelectCategory).toHaveBeenCalledWith('cat-1')
+
+    // Rerender with selected state
+    rerender(
+      <SalesCategoryBreakdownView
+        categories={[
+          {
+            category_id: 'cat-1',
+            category_name: 'Аккумуляторы',
+            revenue: 300000,
+            order_count: 50,
+            revenue_share: 0.2,
+          },
+        ]}
+        selectedCategoryId="cat-1"
+        onSelectCategory={onSelectCategory}
+      />,
+    )
+
+    fireEvent.click(item)
+    expect(onSelectCategory).toHaveBeenCalledWith(undefined)
+  })
+
+  it('triggers onSelectRegion on region click', () => {
+    const onSelectRegion = vi.fn()
+    render(
+      <SalesRegionalBreakdownView
+        regions={[
+          {
+            region_id: 'reg-1',
+            region_name: 'Москва',
+            region_code: 'MSK',
+            revenue: 750000,
+            order_count: 100,
+            revenue_share: 0.5,
+          },
+        ]}
+        onSelectRegion={onSelectRegion}
+      />,
+    )
+
+    const item = screen.getByRole('button', { name: /Москва/i })
+    fireEvent.click(item)
+    expect(onSelectRegion).toHaveBeenCalledWith('reg-1')
+  })
 })

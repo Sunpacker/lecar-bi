@@ -5,9 +5,15 @@ import type { SalesTrendPoint } from '../api/sales-gateway'
 
 interface SalesTrendChartProps {
   trend: SalesTrendPoint[]
+  selectedDate?: string
+  onSelectDate?: (date?: string) => void
 }
 
-export function SalesTrendChart({ trend }: SalesTrendChartProps) {
+export function SalesTrendChart({
+  trend,
+  selectedDate,
+  onSelectDate,
+}: SalesTrendChartProps) {
   const currencyFormatter = new Intl.NumberFormat('ru-RU', {
     style: 'currency',
     currency: 'RUB',
@@ -45,9 +51,21 @@ export function SalesTrendChart({ trend }: SalesTrendChartProps) {
     <div className="analytics-card" data-testid="sales-trend-chart">
       <div className="analytics-card__header">
         <h3 className="analytics-card__title">Динамика продаж во времени</h3>
-        <span className="trend-max-label">
-          Пик: {currencyFormatter.format(maxRevenue)}
-        </span>
+        <div className="flex items-center gap-3">
+          {selectedDate && (
+            <button
+              type="button"
+              className="filter-pill-clear"
+              onClick={() => onSelectDate?.(undefined)}
+              title="Сбросить выбор даты"
+            >
+              Сбросить дату ({selectedDate})
+            </button>
+          )}
+          <span className="trend-max-label">
+            Пик: {currencyFormatter.format(maxRevenue)}
+          </span>
+        </div>
       </div>
 
       <div className="svg-chart-container">
@@ -75,6 +93,29 @@ export function SalesTrendChart({ trend }: SalesTrendChartProps) {
             strokeLinejoin="round"
             points={pointsString}
           />
+
+          {/* Interactive points */}
+          {points.map((p) => {
+            const isSelected = selectedDate === p.date
+            return (
+              <circle
+                key={p.date}
+                cx={p.x}
+                cy={p.y}
+                r={isSelected ? 6 : 3.5}
+                fill={isSelected ? '#f0f6fc' : '#71d6bd'}
+                stroke={isSelected ? '#2ea043' : '#0d1117'}
+                strokeWidth={isSelected ? 2.5 : 1}
+                className="trend-point"
+                style={{ cursor: 'pointer' }}
+                onClick={() => onSelectDate?.(isSelected ? undefined : p.date)}
+              >
+                <title>
+                  {p.date}: {currencyFormatter.format(p.revenue)} ({p.order_count} заказов)
+                </title>
+              </circle>
+            )
+          })}
         </svg>
       </div>
 
