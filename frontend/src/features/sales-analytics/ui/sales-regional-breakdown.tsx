@@ -46,9 +46,7 @@ export function SalesRegionalBreakdownView({
               tabIndex={0}
               aria-pressed={isSelected}
               className={`breakdown-item breakdown-item--clickable ${isSelected ? 'breakdown-item--selected' : ''}`}
-              onClick={() =>
-                onSelectRegion?.(isSelected ? undefined : reg.region_id)
-              }
+              onClick={() => onSelectRegion?.(isSelected ? undefined : reg.region_id)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault()

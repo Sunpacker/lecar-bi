@@ -46,9 +46,7 @@ export function SalesCategoryBreakdownView({
               tabIndex={0}
               aria-pressed={isSelected}
               className={`breakdown-item breakdown-item--clickable ${isSelected ? 'breakdown-item--selected' : ''}`}
-              onClick={() =>
-                onSelectCategory?.(isSelected ? undefined : cat.category_id)
-              }
+              onClick={() => onSelectCategory?.(isSelected ? undefined : cat.category_id)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault()

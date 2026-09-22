@@ -111,7 +111,8 @@ export function SalesTrendChart({
                 onClick={() => onSelectDate?.(isSelected ? undefined : p.date)}
               >
                 <title>
-                  {p.date}: {currencyFormatter.format(p.revenue)} ({p.order_count} заказов)
+                  {p.date}: {currencyFormatter.format(p.revenue)} ({p.order_count}{' '}
+                  заказов)
                 </title>
               </circle>
             )

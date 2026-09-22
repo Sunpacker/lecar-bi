@@ -106,8 +106,22 @@ if [ "$sales_cross_status" != "403" ]; then
     exit 1
 fi
 
-# 10. Frontend UI renders Sales Analytics Dashboard
+# 10. Sales detail records endpoint returns paginated items from PostgreSQL
+sales_records="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/records?page=1&per_page=10&sort_by=total_price&sort_direction=desc")"
+printf '%s' "$sales_records" | grep --quiet '"items":\['
+printf '%s' "$sales_records" | grep --quiet '"pagination":{'
+printf '%s' "$sales_records" | grep --quiet '"total":'
+
+# 11. Cross-workspace sales records isolation: user-1 accessing ws-2 records returns 403
+sales_records_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/analytics/sales/records")"
+if [ "$sales_records_cross_status" != "403" ]; then
+    echo "Expected 403 for cross-workspace sales records access, got $sales_records_cross_status" >&2
+    exit 1
+fi
+
+# 12. Frontend UI renders Sales Analytics Dashboard and Detail Table
 frontend_dashboard="$(curl --fail --silent --show-error "$FRONTEND_URL/")"
 printf '%s' "$frontend_dashboard" | grep --quiet 'Аналитика продаж'
 
-echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, and sales analytics vertical slice are verified."
+echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records and cross-filtering are verified."
+

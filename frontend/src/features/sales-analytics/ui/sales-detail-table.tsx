@@ -156,9 +156,7 @@ export function SalesDetailTable({
                     {currencyFormatter.format(item.gross_profit)}
                   </td>
                   <td>
-                    <span
-                      className={`status-badge status-badge--${item.status}`}
-                    >
+                    <span className={`status-badge status-badge--${item.status}`}>
                       {item.status}
                     </span>
                   </td>
