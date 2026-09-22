@@ -30,7 +30,7 @@ final class DashboardDatabaseSeeder extends Seeder
             description: 'Оперативные показатели выручки, заказов и структуры складских запасов',
             widgets: [
                 new Widget(
-                    id: new WidgetId('w0000001-0000-4000-8000-000000000001'),
+                    id: new WidgetId('a0000001-0000-4000-8000-000000000001'),
                     title: 'Выручка за 30 дней',
                     type: WidgetType::KPI_CARD,
                     queryConfig: new WidgetQueryConfig(
@@ -42,7 +42,7 @@ final class DashboardDatabaseSeeder extends Seeder
                     options: ['unit' => 'currency']
                 ),
                 new Widget(
-                    id: new WidgetId('w0000001-0000-4000-8000-000000000002'),
+                    id: new WidgetId('a0000001-0000-4000-8000-000000000002'),
                     title: 'Количество заказов',
                     type: WidgetType::KPI_CARD,
                     queryConfig: new WidgetQueryConfig(
@@ -54,7 +54,7 @@ final class DashboardDatabaseSeeder extends Seeder
                     options: ['unit' => 'count']
                 ),
                 new Widget(
-                    id: new WidgetId('w0000001-0000-4000-8000-000000000003'),
+                    id: new WidgetId('a0000001-0000-4000-8000-000000000003'),
                     title: 'Стоимость запасов',
                     type: WidgetType::KPI_CARD,
                     queryConfig: new WidgetQueryConfig(
@@ -65,7 +65,7 @@ final class DashboardDatabaseSeeder extends Seeder
                     options: ['unit' => 'currency']
                 ),
                 new Widget(
-                    id: new WidgetId('w0000001-0000-4000-8000-000000000004'),
+                    id: new WidgetId('a0000001-0000-4000-8000-000000000004'),
                     title: 'Критический дефицит',
                     type: WidgetType::KPI_CARD,
                     queryConfig: new WidgetQueryConfig(
@@ -76,7 +76,7 @@ final class DashboardDatabaseSeeder extends Seeder
                     options: ['status' => 'critical']
                 ),
                 new Widget(
-                    id: new WidgetId('w0000001-0000-4000-8000-000000000005'),
+                    id: new WidgetId('a0000001-0000-4000-8000-000000000005'),
                     title: 'Динамика выручки и заказов',
                     type: WidgetType::LINE_CHART,
                     queryConfig: new WidgetQueryConfig(
@@ -89,7 +89,7 @@ final class DashboardDatabaseSeeder extends Seeder
                     options: ['show_legend' => true]
                 ),
                 new Widget(
-                    id: new WidgetId('w0000001-0000-4000-8000-000000000006'),
+                    id: new WidgetId('a0000001-0000-4000-8000-000000000006'),
                     title: 'Выручка по категориям',
                     type: WidgetType::DONUT_CHART,
                     queryConfig: new WidgetQueryConfig(
@@ -114,7 +114,7 @@ final class DashboardDatabaseSeeder extends Seeder
             description: 'Сводный дашборд оптового распределения',
             widgets: [
                 new Widget(
-                    id: new WidgetId('w0000002-0000-4000-8000-000000000001'),
+                    id: new WidgetId('a0000002-0000-4000-8000-000000000001'),
                     title: 'Оптовая выручка',
                     type: WidgetType::KPI_CARD,
                     queryConfig: new WidgetQueryConfig(
@@ -126,7 +126,7 @@ final class DashboardDatabaseSeeder extends Seeder
                     options: ['unit' => 'currency']
                 ),
                 new Widget(
-                    id: new WidgetId('w0000002-0000-4000-8000-000000000002'),
+                    id: new WidgetId('a0000002-0000-4000-8000-000000000002'),
                     title: 'Остатки на складах',
                     type: WidgetType::BAR_CHART,
                     queryConfig: new WidgetQueryConfig(
