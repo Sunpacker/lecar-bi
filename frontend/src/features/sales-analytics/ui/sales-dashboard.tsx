@@ -120,7 +120,15 @@ export function SalesDashboard({ userId, workspaceId }: SalesDashboardProps) {
   }, [userId, workspaceId, activeFilters, page, sortBy, sortDirection, syncUrl])
 
   useEffect(() => {
-    loadData()
+    let ignore = false
+    void Promise.resolve().then(() => {
+      if (!ignore) {
+        void loadData()
+      }
+    })
+    return () => {
+      ignore = true
+    }
   }, [loadData])
 
   const handleFilterChange = (newFilters: SalesFilterParams) => {
