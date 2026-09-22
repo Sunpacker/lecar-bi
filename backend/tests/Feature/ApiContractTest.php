@@ -92,6 +92,26 @@ final class ApiContractTest extends TestCase
         self::assertArrayHasKey('AbcXyzProductItem', $schemas);
     }
 
+    public function test_contract_contains_dashboard_endpoints(): void
+    {
+        $contract = $this->openApiContract();
+
+        self::assertArrayHasKey('/dashboards', $contract['paths']);
+        self::assertArrayHasKey('/dashboards/{id}', $contract['paths']);
+
+        $schemas = $contract['components']['schemas'];
+        self::assertArrayHasKey('DashboardListResponse', $schemas);
+        self::assertArrayHasKey('DashboardSummary', $schemas);
+        self::assertArrayHasKey('DashboardDetailResponse', $schemas);
+        self::assertArrayHasKey('DashboardDetail', $schemas);
+        self::assertArrayHasKey('WidgetDetail', $schemas);
+        self::assertArrayHasKey('WidgetInput', $schemas);
+        self::assertArrayHasKey('WidgetGridPosition', $schemas);
+        self::assertArrayHasKey('WidgetQueryConfig', $schemas);
+        self::assertArrayHasKey('CreateDashboardRequest', $schemas);
+        self::assertArrayHasKey('UpdateDashboardRequest', $schemas);
+    }
+
     /** @return array<string, mixed> */
     private function openApiContract(): array
     {

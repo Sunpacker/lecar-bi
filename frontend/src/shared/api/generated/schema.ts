@@ -242,6 +242,43 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/dashboards': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List all custom dashboards for the current workspace */
+    get: operations['getDashboards']
+    put?: never
+    /** Create a new custom dashboard */
+    post: operations['createDashboard']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/dashboards/{id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get details and widget layout for a specific dashboard */
+    get: operations['getDashboardById']
+    /** Update a dashboard title, description, and widget layout */
+    put: operations['updateDashboard']
+    post?: never
+    /** Delete a custom dashboard */
+    delete: operations['deleteDashboard']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
 }
 export type webhooks = Record<string, never>
 export interface components {
@@ -569,6 +606,99 @@ export interface components {
       current_stock: number
       /** Format: float */
       inventory_value: number
+    }
+    DashboardSummary: {
+      id: string
+      workspace_id: string
+      title: string
+      description: string | null
+      widget_count: number
+      /** Format: date-time */
+      created_at: string
+      /** Format: date-time */
+      updated_at: string
+    }
+    DashboardListResponse: {
+      items: components['schemas']['DashboardSummary'][]
+    }
+    WidgetGridPosition: {
+      x: number
+      y: number
+      w: number
+      h: number
+    }
+    WidgetQueryConfig: {
+      /** @enum {string} */
+      dataset: 'sales' | 'inventory'
+      /** @enum {string} */
+      metric:
+        | 'revenue'
+        | 'order_count'
+        | 'average_order_value'
+        | 'gross_profit'
+        | 'margin_rate'
+        | 'stock_quantity'
+        | 'stock_value'
+        | 'out_of_stock_count'
+        | 'overstock_count'
+      /** @enum {string|null} */
+      dimension?:
+        | 'date'
+        | 'category'
+        | 'region'
+        | 'warehouse'
+        | 'abc_class'
+        | 'xyz_class'
+        | 'supplier'
+        | null
+      /** @enum {string|null} */
+      date_range?: '30d' | '90d' | '180d' | '365d' | 'all' | null
+    }
+    WidgetDetail: {
+      id: string
+      title: string
+      /** @enum {string} */
+      type: 'kpi_card' | 'line_chart' | 'bar_chart' | 'donut_chart' | 'table'
+      query_config: components['schemas']['WidgetQueryConfig']
+      position: components['schemas']['WidgetGridPosition']
+      options: {
+        [key: string]: unknown
+      }
+    }
+    WidgetInput: {
+      id?: string | null
+      title: string
+      /** @enum {string} */
+      type: 'kpi_card' | 'line_chart' | 'bar_chart' | 'donut_chart' | 'table'
+      query_config: components['schemas']['WidgetQueryConfig']
+      position: components['schemas']['WidgetGridPosition']
+      /** @default {} */
+      options: {
+        [key: string]: unknown
+      }
+    }
+    CreateDashboardRequest: {
+      title: string
+      description?: string | null
+    }
+    UpdateDashboardRequest: {
+      title: string
+      description?: string | null
+      widgets: components['schemas']['WidgetInput'][]
+    }
+    DashboardDetail: {
+      id: string
+      workspace_id: string
+      title: string
+      description: string | null
+      widgets: components['schemas']['WidgetDetail'][]
+      /** Format: date-time */
+      created_at: string
+      /** Format: date-time */
+      updated_at: string
+    }
+    DashboardDetailResponse: {
+      dashboard: components['schemas']['DashboardDetail']
     }
   }
   responses: never
@@ -1290,6 +1420,280 @@ export interface operations {
       }
       /** @description Validation error */
       422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getDashboards: {
+    parameters: {
+      query?: never
+      header?: {
+        /** @description Optional requested workspace identifier */
+        'X-Workspace-Id'?: string
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description List of dashboards */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['DashboardListResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Workspace not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  createDashboard: {
+    parameters: {
+      query?: never
+      header?: {
+        /** @description Optional requested workspace identifier */
+        'X-Workspace-Id'?: string
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateDashboardRequest']
+      }
+    }
+    responses: {
+      /** @description Dashboard created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['DashboardDetailResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getDashboardById: {
+    parameters: {
+      query?: never
+      header?: {
+        /** @description Optional requested workspace identifier */
+        'X-Workspace-Id'?: string
+      }
+      path: {
+        /** @description Dashboard identifier */
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Dashboard detail and widget configuration */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['DashboardDetailResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Dashboard not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  updateDashboard: {
+    parameters: {
+      query?: never
+      header?: {
+        /** @description Optional requested workspace identifier */
+        'X-Workspace-Id'?: string
+      }
+      path: {
+        /** @description Dashboard identifier */
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateDashboardRequest']
+      }
+    }
+    responses: {
+      /** @description Dashboard updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['DashboardDetailResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Dashboard not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  deleteDashboard: {
+    parameters: {
+      query?: never
+      header?: {
+        /** @description Optional requested workspace identifier */
+        'X-Workspace-Id'?: string
+      }
+      path: {
+        /** @description Dashboard identifier */
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Dashboard deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Dashboard not found */
+      404: {
         headers: {
           [name: string]: unknown
         }

@@ -708,6 +708,215 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /dashboards:
+    get:
+      operationId: getDashboards
+      summary: List all custom dashboards for the current workspace
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+      responses:
+        '200':
+          description: List of dashboards
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardListResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      operationId: createDashboard
+      summary: Create a new custom dashboard
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDashboardRequest'
+      responses:
+        '201':
+          description: Dashboard created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardDetailResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /dashboards/{id}:
+    get:
+      operationId: getDashboardById
+      summary: Get details and widget layout for a specific dashboard
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Dashboard identifier
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+      responses:
+        '200':
+          description: Dashboard detail and widget configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardDetailResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Dashboard not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      operationId: updateDashboard
+      summary: Update a dashboard title, description, and widget layout
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Dashboard identifier
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDashboardRequest'
+      responses:
+        '200':
+          description: Dashboard updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardDetailResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Dashboard not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      operationId: deleteDashboard
+      summary: Delete a custom dashboard
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Dashboard identifier
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+      responses:
+        '204':
+          description: Dashboard deleted successfully
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Dashboard not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     UserIdAuth:
@@ -1399,3 +1608,211 @@ components:
         inventory_value:
           type: number
           format: float
+    DashboardSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - workspace_id
+        - title
+        - description
+        - widget_count
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        workspace_id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        widget_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    DashboardListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardSummary'
+    WidgetGridPosition:
+      type: object
+      additionalProperties: false
+      required:
+        - x
+        - y
+        - w
+        - h
+      properties:
+        x:
+          type: integer
+          minimum: 0
+          maximum: 11
+        y:
+          type: integer
+          minimum: 0
+        w:
+          type: integer
+          minimum: 1
+          maximum: 12
+        h:
+          type: integer
+          minimum: 1
+          maximum: 24
+    WidgetQueryConfig:
+      type: object
+      additionalProperties: false
+      required:
+        - dataset
+        - metric
+      properties:
+        dataset:
+          type: string
+          enum: [sales, inventory]
+        metric:
+          type: string
+          enum: [revenue, order_count, average_order_value, gross_profit, margin_rate, stock_quantity, stock_value, out_of_stock_count, overstock_count]
+        dimension:
+          type: string
+          nullable: true
+          enum: [date, category, region, warehouse, abc_class, xyz_class, supplier]
+        date_range:
+          type: string
+          nullable: true
+          enum: ['30d', '90d', '180d', '365d', 'all']
+    WidgetDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+        - type
+        - query_config
+        - position
+        - options
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+          enum: [kpi_card, line_chart, bar_chart, donut_chart, table]
+        query_config:
+          $ref: '#/components/schemas/WidgetQueryConfig'
+        position:
+          $ref: '#/components/schemas/WidgetGridPosition'
+        options:
+          type: object
+          additionalProperties: true
+    WidgetInput:
+      type: object
+      additionalProperties: false
+      required:
+        - title
+        - type
+        - query_config
+        - position
+      properties:
+        id:
+          type: string
+          nullable: true
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        type:
+          type: string
+          enum: [kpi_card, line_chart, bar_chart, donut_chart, table]
+        query_config:
+          $ref: '#/components/schemas/WidgetQueryConfig'
+        position:
+          $ref: '#/components/schemas/WidgetGridPosition'
+        options:
+          type: object
+          additionalProperties: true
+          default: {}
+    CreateDashboardRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+    UpdateDashboardRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - title
+        - widgets
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+        widgets:
+          type: array
+          items:
+            $ref: '#/components/schemas/WidgetInput'
+    DashboardDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - workspace_id
+        - title
+        - description
+        - widgets
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        workspace_id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        widgets:
+          type: array
+          items:
+            $ref: '#/components/schemas/WidgetDetail'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    DashboardDetailResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - dashboard
+      properties:
+        dashboard:
+          $ref: '#/components/schemas/DashboardDetail'
