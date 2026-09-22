@@ -385,3 +385,232 @@ p {
   font-weight: 500;
   cursor: pointer;
 }
+
+/* Interactive Breakdown Items */
+.breakdown-item--clickable {
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 6px;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.breakdown-item--clickable:hover {
+  background: #1c2128;
+  border-color: #30363d;
+}
+
+.breakdown-item--selected {
+  background: rgba(113, 214, 189, 0.08);
+  border-color: #71d6bd;
+}
+
+.selection-indicator {
+  color: #71d6bd;
+  margin-right: 4px;
+}
+
+.breakdown-progress__fill--active {
+  background: #71d6bd !important;
+  box-shadow: 0 0 8px rgba(113, 214, 189, 0.5);
+}
+
+.filter-pill-clear {
+  padding: 3px 8px;
+  background: rgba(113, 214, 189, 0.15);
+  color: #71d6bd;
+  border: 1px solid rgba(113, 214, 189, 0.3);
+  border-radius: 12px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.filter-pill-clear:hover {
+  background: rgba(113, 214, 189, 0.3);
+}
+
+/* Detail Table Styles */
+.detail-table-card {
+  margin-top: 16px;
+}
+
+.detail-table-subtitle {
+  font-size: 13px;
+  color: #8b949e;
+  margin-top: 4px;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+.detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  color: #f0f6fc;
+}
+
+.detail-table th {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 2px solid #21262d;
+  color: #8b949e;
+  font-weight: 500;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.detail-table td {
+  padding: 12px;
+  border-bottom: 1px solid #21262d;
+  vertical-align: middle;
+}
+
+.detail-table-row:hover {
+  background: #1c2128;
+}
+
+.th-sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.th-sort-button:hover,
+.th-sort-button--active {
+  color: #71d6bd;
+}
+
+.th-sort-button--right {
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.sort-icon {
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.text-profit {
+  color: #7ee787;
+}
+
+.product-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.product-name {
+  font-weight: 500;
+}
+
+.product-sku {
+  font-size: 11px;
+  color: #8b949e;
+}
+
+.category-tag,
+.region-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #21262d;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #c9d1d9;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  text-transform: capitalize;
+}
+
+.status-badge--completed,
+.status-badge--delivered {
+  background: rgba(35, 134, 54, 0.2);
+  color: #7ee787;
+  border: 1px solid rgba(35, 134, 54, 0.4);
+}
+
+.status-badge--pending,
+.status-badge--processing {
+  background: rgba(187, 128, 9, 0.2);
+  color: #e3b341;
+  border: 1px solid rgba(187, 128, 9, 0.4);
+}
+
+.status-badge--cancelled {
+  background: rgba(218, 54, 51, 0.2);
+  color: #f85149;
+  border: 1px solid rgba(218, 54, 51, 0.4);
+}
+
+.table-empty-cell {
+  text-align: center;
+  padding: 32px;
+  color: #8b949e;
+  font-style: italic;
+}
+
+/* Pagination Toolbar */
+.pagination-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid #21262d;
+  font-size: 13px;
+  color: #8b949e;
+}
+
+.pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-pagination {
+  padding: 6px 12px;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  color: #c9d1d9;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-pagination:hover:not(:disabled) {
+  background: #30363d;
+  color: #f0f6fc;
+}
+
+.btn-pagination:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-current {
+  font-weight: 500;
+  color: #f0f6fc;
+}
