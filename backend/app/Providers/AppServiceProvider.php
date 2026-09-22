@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use App\Modules\SalesAnalytics\Application\Contracts\SalesAnalyticsReadModelInterface;
+use App\Modules\SalesAnalytics\Infrastructure\Persistence\InMemorySalesAnalyticsReadModel;
+use App\Modules\SalesAnalytics\Infrastructure\Persistence\PostgresSalesAnalyticsReadModel;
 use App\Modules\Workspace\Domain\Repositories\UserRepositoryInterface;
 use App\Modules\Workspace\Domain\Repositories\WorkspaceRepositoryInterface;
 use App\Modules\Workspace\Infrastructure\Persistence\Eloquent\Repositories\EloquentUserRepository;
@@ -28,6 +31,14 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return new EloquentWorkspaceRepository;
+        });
+
+        $this->app->singleton(SalesAnalyticsReadModelInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new InMemorySalesAnalyticsReadModel;
+            }
+
+            return new PostgresSalesAnalyticsReadModel;
         });
     }
 
