@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { Menu, LayoutDashboard } from 'lucide-react'
+import { LayoutDashboard, Menu } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { WorkspaceContextBar } from '../../../features/workspace/ui/workspace-context-bar'
@@ -28,6 +28,7 @@ export function Header({ workspaceContext, accessibleWorkspaces }: HeaderProps) 
           <Menu className="h-5 w-5" />
           <span className="sr-only">Open menu</span>
         </SheetTrigger>
+
         <SheetContent side="left" className="w-64 p-0">
           <div className="flex h-16 shrink-0 items-center gap-x-2 px-6 border-b border-border">
             <LayoutDashboard className="h-6 w-6 text-emerald-500" />
@@ -35,19 +36,22 @@ export function Header({ workspaceContext, accessibleWorkspaces }: HeaderProps) 
               AutoBI
             </SheetTitle>
           </div>
+
           <nav className="flex-1 px-3 py-4 overflow-y-auto">
             <NavigationList onItemClick={() => setOpen(false)} />
           </nav>
         </SheetContent>
       </Sheet>
 
-      <div className="flex flex-1 items-center justify-between min-w-0">
-        {workspaceContext && (
-          <WorkspaceContextBar
-            context={workspaceContext}
-            accessibleWorkspaces={accessibleWorkspaces}
-          />
-        )}
+      <div className="flex min-w-0 flex-1 items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          {workspaceContext && (
+            <WorkspaceContextBar
+              context={workspaceContext}
+              accessibleWorkspaces={accessibleWorkspaces}
+            />
+          )}
+        </div>
       </div>
     </header>
   )
