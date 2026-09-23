@@ -26,6 +26,12 @@ final class InMemoryWorkspaceRepository implements WorkspaceRepositoryInterface
         ));
     }
 
+    /** @return list<Workspace> */
+    public function findAll(): array
+    {
+        return array_values($this->workspaces);
+    }
+
     public function save(Workspace $workspace): void
     {
         $this->workspaces[$workspace->id()->value()] = $workspace;

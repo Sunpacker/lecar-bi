@@ -57,6 +57,11 @@ final class WorkspaceApplicationTest extends TestCase
                 return array_values(array_filter($this->items, fn (Workspace $ws) => $ws->hasMember($userId)));
             }
 
+            public function findAll(): array
+            {
+                return array_values($this->items);
+            }
+
             public function save(Workspace $workspace): void
             {
                 $this->items[$workspace->id()->value()] = $workspace;

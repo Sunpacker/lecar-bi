@@ -13,5 +13,8 @@ interface WorkspaceRepositoryInterface
     /** @return list<Workspace> */
     public function findByUserId(UserId $userId): array;
 
+    /** @return list<Workspace> */
+    public function findAll(): array;
+
     public function save(Workspace $workspace): void;
 }

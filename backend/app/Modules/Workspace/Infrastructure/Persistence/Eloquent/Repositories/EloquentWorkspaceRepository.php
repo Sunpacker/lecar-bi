@@ -35,6 +35,14 @@ final class EloquentWorkspaceRepository implements WorkspaceRepositoryInterface
         return $records->map(fn (WorkspaceModel $model) => $this->toDomain($model))->values()->all();
     }
 
+    /** @return list<Workspace> */
+    public function findAll(): array
+    {
+        $records = WorkspaceModel::query()->with('members')->get();
+
+        return $records->map(fn (WorkspaceModel $model) => $this->toDomain($model))->values()->all();
+    }
+
     public function save(Workspace $workspace): void
     {
         /** @var WorkspaceModel $model */
