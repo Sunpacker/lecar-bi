@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { DashboardViewer } from './dashboard-viewer'
 import { dashboardGateway, type DashboardDetail } from '../api/dashboard-gateway'
+import { WorkspaceAccessProvider } from '../../workspace/ui/workspace-access-provider'
 import * as widgetDataLoader from '../model/widget-data-loader'
 
 vi.mock('../api/dashboard-gateway', () => ({
@@ -76,7 +77,13 @@ describe('Dashboard Builder Full E2E Flow', () => {
     })
 
     render(
-      <DashboardViewer dashboard={initialDashboard} userId="user-1" workspaceId="ws-1" />,
+      <WorkspaceAccessProvider capabilities={['dashboards.view', 'dashboards.manage']}>
+        <DashboardViewer
+          dashboard={initialDashboard}
+          userId="user-1"
+          workspaceId="ws-1"
+        />
+      </WorkspaceAccessProvider>,
     )
 
     // 1. Initial View Mode check
@@ -170,7 +177,13 @@ describe('Dashboard Builder Full E2E Flow', () => {
 
   it('allows discarding builder changes without mutating original state', () => {
     render(
-      <DashboardViewer dashboard={initialDashboard} userId="user-1" workspaceId="ws-1" />,
+      <WorkspaceAccessProvider capabilities={['dashboards.view', 'dashboards.manage']}>
+        <DashboardViewer
+          dashboard={initialDashboard}
+          userId="user-1"
+          workspaceId="ws-1"
+        />
+      </WorkspaceAccessProvider>,
     )
 
     // Switch to edit mode

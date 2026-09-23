@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { DashboardViewer } from './dashboard-viewer'
 import { dashboardGateway, type DashboardDetail } from '../api/dashboard-gateway'
+import { WorkspaceAccessProvider } from '../../workspace/ui/workspace-access-provider'
 import { salesGateway } from '../../sales-analytics/api/sales-gateway'
 import { inventoryGateway } from '../../inventory-analytics/api/inventory-gateway'
 
@@ -100,7 +101,9 @@ describe('Dashboard Shared Filters & Saved Views E2E Flow', () => {
 
   it('runs complete flow: loads default view -> changes period -> saves new view -> resets', async () => {
     render(
-      <DashboardViewer dashboard={mockDashboard} userId="user-1" workspaceId="ws-1" />,
+      <WorkspaceAccessProvider capabilities={['dashboards.view', 'dashboards.manage']}>
+        <DashboardViewer dashboard={mockDashboard} userId="user-1" workspaceId="ws-1" />
+      </WorkspaceAccessProvider>,
     )
 
     // Wait for saved view and filter bar to load

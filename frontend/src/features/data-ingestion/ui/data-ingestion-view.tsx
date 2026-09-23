@@ -9,6 +9,7 @@ import type { ImportBatchSummary, DatasetType, ImportStatus } from '../api/impor
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { RefreshCw, Filter } from 'lucide-react'
+import { useWorkspaceAccess } from '../../workspace/ui/workspace-access-provider'
 
 interface DataIngestionViewProps {
   userId: string
@@ -16,6 +17,9 @@ interface DataIngestionViewProps {
 }
 
 export function DataIngestionView({ userId, workspaceId }: DataIngestionViewProps) {
+  const { hasCapability } = useWorkspaceAccess()
+  const canManageImports = hasCapability('imports.manage')
+
   const [batches, setBatches] = useState<ImportBatchSummary[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isUploading, setIsUploading] = useState(false)
@@ -119,7 +123,9 @@ export function DataIngestionView({ userId, workspaceId }: DataIngestionViewProp
 
   return (
     <div className="space-y-6">
-      <ImportUploadDropzone onUpload={handleUpload} isUploading={isUploading} />
+      {canManageImports && (
+        <ImportUploadDropzone onUpload={handleUpload} isUploading={isUploading} />
+      )}
 
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -185,6 +191,7 @@ export function DataIngestionView({ userId, workspaceId }: DataIngestionViewProp
             onSelectBatch={handleSelectBatch}
             onRetryBatch={handleRetry}
             retryingBatchId={retryingBatchId}
+            canRetry={canManageImports}
           />
         )}
       </div>
@@ -197,6 +204,7 @@ export function DataIngestionView({ userId, workspaceId }: DataIngestionViewProp
         workspaceId={workspaceId}
         onRetryBatch={handleRetry}
         isRetrying={retryingBatchId === selectedBatch?.id}
+        canRetry={canManageImports}
       />
     </div>
   )

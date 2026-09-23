@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { DashboardListView } from './dashboard-list-view'
 import { dashboardGateway, type DashboardSummary } from '../api/dashboard-gateway'
+import { WorkspaceAccessProvider } from '../../workspace/ui/workspace-access-provider'
 
 vi.mock('../api/dashboard-gateway', () => ({
   dashboardGateway: {
@@ -41,11 +42,13 @@ describe('DashboardListView Full Flow', () => {
     })
 
     render(
-      <DashboardListView
-        initialDashboards={mockInitialList}
-        userId="user-1"
-        workspaceId="ws-1"
-      />,
+      <WorkspaceAccessProvider capabilities={['dashboards.view', 'dashboards.manage']}>
+        <DashboardListView
+          initialDashboards={mockInitialList}
+          userId="user-1"
+          workspaceId="ws-1"
+        />
+      </WorkspaceAccessProvider>,
     )
 
     expect(screen.getByText('Дашборд директора')).toBeInTheDocument()
@@ -83,11 +86,13 @@ describe('DashboardListView Full Flow', () => {
     vi.mocked(dashboardGateway.delete).mockResolvedValueOnce(undefined)
 
     render(
-      <DashboardListView
-        initialDashboards={mockInitialList}
-        userId="user-1"
-        workspaceId="ws-1"
-      />,
+      <WorkspaceAccessProvider capabilities={['dashboards.view', 'dashboards.manage']}>
+        <DashboardListView
+          initialDashboards={mockInitialList}
+          userId="user-1"
+          workspaceId="ws-1"
+        />
+      </WorkspaceAccessProvider>,
     )
 
     expect(screen.getByText('Дашборд директора')).toBeInTheDocument()

@@ -213,4 +213,51 @@ describe('Alerts UI Components', () => {
       expect(onOpenChange).toHaveBeenCalledWith(false)
     })
   })
+
+  it('hides mutation buttons in alert table when canManageAlerts is false (viewer)', () => {
+    render(
+      <AlertTable
+        alerts={mockAlerts}
+        onAcknowledge={vi.fn()}
+        onOpenResolve={vi.fn()}
+        statusFilter="active"
+        onStatusChange={vi.fn()}
+        onSeverityChange={vi.fn()}
+        canManageAlerts={false}
+      />,
+    )
+
+    // Items and links are visible
+    expect(screen.getByText('Масляный фильтр BOSCH')).toBeDefined()
+    expect(screen.getAllByRole('link', { name: /Запасы/i })).toHaveLength(2)
+
+    // Action mutation buttons must NOT be rendered for viewer
+    expect(screen.queryByText('В работу')).toBeNull()
+    expect(screen.queryByText('Закрыть')).toBeNull()
+  })
+
+  it('hides rule mutations and create/eval buttons when canManageRules is false (viewer)', () => {
+    render(
+      <AlertRuleList
+        rules={mockRules}
+        onToggleRule={vi.fn()}
+        onDeleteRule={vi.fn()}
+        onEvaluate={vi.fn()}
+        onOpenCreate={vi.fn()}
+        canManageRules={false}
+      />,
+    )
+
+    // Rule information is visible
+    expect(screen.getByText('Критический дефицит (DOS < 7)')).toBeDefined()
+
+    // Header buttons are hidden
+    expect(screen.queryByText('Запустить оценку')).toBeNull()
+    expect(screen.queryByText('+ Создать правило')).toBeNull()
+
+    // Row action buttons are hidden (replaced by dash)
+    expect(screen.queryByText('Вкл')).toBeNull()
+    expect(screen.queryByTitle('Удалить правило')).toBeNull()
+    expect(screen.getByText('—')).toBeDefined()
+  })
 })

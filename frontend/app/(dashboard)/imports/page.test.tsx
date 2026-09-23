@@ -62,6 +62,7 @@ describe('ImportsPage', () => {
         name: 'Main Workspace',
         slug: 'main-workspace',
         role: 'owner',
+        capabilities: ['imports.view', 'imports.manage'],
       },
     })
 

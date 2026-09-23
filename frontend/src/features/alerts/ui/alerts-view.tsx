@@ -15,6 +15,7 @@ import { AlertRuleDialog } from './alert-rule-dialog'
 import { AlertResolveDialog } from './alert-resolve-dialog'
 import { Button } from '@/components/ui/button'
 import { Play, Bell, ShieldAlert } from 'lucide-react'
+import { useWorkspaceAccess } from '../../workspace/ui/workspace-access-provider'
 
 interface AlertsViewProps {
   userId: string
@@ -22,6 +23,9 @@ interface AlertsViewProps {
 }
 
 export function AlertsView({ userId, workspaceId }: AlertsViewProps) {
+  const { hasCapability } = useWorkspaceAccess()
+  const canManageAlerts = hasCapability('alerts.manage')
+
   const [activeTab, setActiveTab] = useState<'alerts' | 'rules'>('alerts')
   const [summary, setSummary] = useState<AlertSummaryResponse | null>(null)
   const [alerts, setAlerts] = useState<Alert[]>([])
@@ -224,30 +228,32 @@ export function AlertsView({ userId, workspaceId }: AlertsViewProps) {
           </Button>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleEvaluate}
-            disabled={isEvaluating}
-            className="text-xs"
-          >
-            <Play
-              className={`h-3.5 w-3.5 mr-1.5 ${isEvaluating ? 'animate-spin' : ''}`}
-            />
-            {isEvaluating ? 'Оценка...' : 'Пересчитать алерты'}
-          </Button>
-
-          {activeTab === 'rules' && (
+        {canManageAlerts && (
+          <div className="flex items-center gap-2">
             <Button
+              variant="outline"
               size="sm"
-              onClick={() => setIsRuleDialogOpen(true)}
+              onClick={handleEvaluate}
+              disabled={isEvaluating}
               className="text-xs"
             >
-              + Добавить правило
+              <Play
+                className={`h-3.5 w-3.5 mr-1.5 ${isEvaluating ? 'animate-spin' : ''}`}
+              />
+              {isEvaluating ? 'Оценка...' : 'Пересчитать алерты'}
             </Button>
-          )}
-        </div>
+
+            {activeTab === 'rules' && (
+              <Button
+                size="sm"
+                onClick={() => setIsRuleDialogOpen(true)}
+                className="text-xs"
+              >
+                + Добавить правило
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Main Tab Content */}
@@ -261,6 +267,7 @@ export function AlertsView({ userId, workspaceId }: AlertsViewProps) {
           onStatusChange={setStatusFilter}
           severityFilter={severityFilter}
           onSeverityChange={setSeverityFilter}
+          canManageAlerts={canManageAlerts}
         />
       ) : (
         <AlertRuleList
@@ -271,6 +278,7 @@ export function AlertsView({ userId, workspaceId }: AlertsViewProps) {
           onDeleteRule={handleDeleteRule}
           onEvaluate={handleEvaluate}
           onOpenCreate={() => setIsRuleDialogOpen(true)}
+          canManageRules={canManageAlerts}
         />
       )}
 

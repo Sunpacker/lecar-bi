@@ -32,6 +32,7 @@ interface AlertTableProps {
   onStatusChange: (status: string) => void
   severityFilter?: string
   onSeverityChange: (severity?: string) => void
+  canManageAlerts?: boolean
 }
 
 export function AlertTable({
@@ -43,6 +44,7 @@ export function AlertTable({
   onStatusChange,
   severityFilter,
   onSeverityChange,
+  canManageAlerts = true,
 }: AlertTableProps) {
   const dateFormatter = new Intl.DateTimeFormat('ru-RU', {
     day: '2-digit',
@@ -240,7 +242,7 @@ export function AlertTable({
                         </Link>
 
                         {/* Кнопка "В работу" */}
-                        {alert.status === 'open' && (
+                        {canManageAlerts && alert.status === 'open' && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -252,7 +254,7 @@ export function AlertTable({
                         )}
 
                         {/* Кнопка "Закрыть" */}
-                        {alert.status !== 'resolved' && (
+                        {canManageAlerts && alert.status !== 'resolved' && (
                           <Button
                             variant="outline"
                             size="sm"

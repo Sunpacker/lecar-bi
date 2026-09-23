@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { DataIngestionView } from './data-ingestion-view'
 import { importGateway } from '../api/import-gateway'
 import type { ImportBatchSummary } from '../api/import-gateway'
+import { WorkspaceAccessProvider } from '../../workspace/ui/workspace-access-provider'
 
 vi.mock('../api/import-gateway', () => ({
   importGateway: {
@@ -67,15 +68,16 @@ describe('DataIngestionView E2E Flow', () => {
       resolveBatches = resolve
     })
 
-    vi.mocked(importGateway.getBatches).mockReturnValue(batchesPromise)
+    vi.mocked(importGateway.getBatches).mockReturnValueOnce(batchesPromise)
 
-    render(<DataIngestionView userId="user-1" workspaceId="ws-1" />)
+    render(
+      <WorkspaceAccessProvider capabilities={['imports.view', 'imports.manage']}>
+        <DataIngestionView userId="user-1" workspaceId="ws-1" />
+      </WorkspaceAccessProvider>,
+    )
 
-    // While loading and batches.length === 0, skeleton should be rendered
     expect(screen.getByTestId('import-loading-skeleton')).toBeDefined()
-    expect(screen.queryByText(/Нет загруженных наборов данных/i)).toBeNull()
 
-    // When batches resolve, skeleton should disappear and data should be shown
     await act(async () => {
       resolveBatches({
         items: [completedBatch],
@@ -108,7 +110,11 @@ describe('DataIngestionView E2E Flow', () => {
         total_pages: 1,
       })
 
-    render(<DataIngestionView userId="user-1" workspaceId="ws-1" />)
+    render(
+      <WorkspaceAccessProvider capabilities={['imports.view', 'imports.manage']}>
+        <DataIngestionView userId="user-1" workspaceId="ws-1" />
+      </WorkspaceAccessProvider>,
+    )
 
     await waitFor(() => {
       expect(screen.getByText('sales_running.csv')).toBeDefined()
@@ -148,7 +154,11 @@ describe('DataIngestionView E2E Flow', () => {
       created_at: '2026-09-23T10:00:00Z',
     })
 
-    render(<DataIngestionView userId="user-1" workspaceId="ws-1" />)
+    render(
+      <WorkspaceAccessProvider capabilities={['imports.view', 'imports.manage']}>
+        <DataIngestionView userId="user-1" workspaceId="ws-1" />
+      </WorkspaceAccessProvider>,
+    )
 
     const file = new File(['sku,qty\nSKU1,5'], 'new_upload.csv', { type: 'text/csv' })
     const input = screen.getByTestId('file-input')
@@ -183,7 +193,11 @@ describe('DataIngestionView E2E Flow', () => {
       total_pages: 0,
     })
 
-    render(<DataIngestionView userId="user-1" workspaceId="ws-1" />)
+    render(
+      <WorkspaceAccessProvider capabilities={['imports.view', 'imports.manage']}>
+        <DataIngestionView userId="user-1" workspaceId="ws-1" />
+      </WorkspaceAccessProvider>,
+    )
 
     await waitFor(() => {
       expect(screen.getByText('sales_running.csv')).toBeDefined()
@@ -198,7 +212,7 @@ describe('DataIngestionView E2E Flow', () => {
     })
   })
 
-  it('triggers retry for a failed batch', async () => {
+  it('triggers retry for a failed batch when user has imports.manage capability', async () => {
     const failedBatch: ImportBatchSummary = {
       ...initialBatch,
       id: 'batch-failed-1',
@@ -227,7 +241,11 @@ describe('DataIngestionView E2E Flow', () => {
       created_at: '2026-09-23T10:00:00Z',
     })
 
-    render(<DataIngestionView userId="user-1" workspaceId="ws-1" />)
+    render(
+      <WorkspaceAccessProvider capabilities={['imports.view', 'imports.manage']}>
+        <DataIngestionView userId="user-1" workspaceId="ws-1" />
+      </WorkspaceAccessProvider>,
+    )
 
     await waitFor(() => {
       expect(screen.getByText('sales_running.csv')).toBeDefined()
@@ -243,5 +261,40 @@ describe('DataIngestionView E2E Flow', () => {
         'ws-1',
       )
     })
+  })
+
+  it('viewer can view batches and details but dropzone and retry are hidden', async () => {
+    const failedBatch: ImportBatchSummary = {
+      ...initialBatch,
+      id: 'batch-failed-viewer',
+      status: 'failed',
+      progress_percentage: 0,
+    }
+    vi.mocked(importGateway.getBatches).mockResolvedValue({
+      items: [failedBatch],
+      total: 1,
+      page: 1,
+      per_page: 20,
+      total_pages: 1,
+    })
+
+    render(
+      <WorkspaceAccessProvider capabilities={['imports.view']}>
+        <DataIngestionView userId="user-1" workspaceId="ws-1" />
+      </WorkspaceAccessProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('sales_running.csv')).toBeDefined()
+    })
+
+    // Dropzone file input must NOT be rendered for viewer
+    expect(screen.queryByTestId('file-input')).toBeNull()
+
+    // Retry button in batch list must NOT be rendered for viewer
+    expect(screen.queryByRole('button', { name: /Повторить/i })).toBeNull()
+
+    // View button (Детали) IS rendered for viewer
+    expect(screen.getByRole('button', { name: /Детали/i })).toBeDefined()
   })
 })

@@ -22,6 +22,7 @@ import {
 } from '@/components/ui/sheet'
 import { Plus, LayoutDashboard, Calendar, Trash2 } from 'lucide-react'
 import { dashboardGateway, type DashboardSummary } from '../api/dashboard-gateway'
+import { useWorkspaceAccess } from '../../workspace/ui/workspace-access-provider'
 
 interface DashboardListViewProps {
   initialDashboards: DashboardSummary[]
@@ -34,6 +35,9 @@ export function DashboardListView({
   userId,
   workspaceId,
 }: DashboardListViewProps) {
+  const { hasCapability } = useWorkspaceAccess()
+  const canManageDashboards = hasCapability('dashboards.manage')
+
   const [dashboards, setDashboards] = useState<DashboardSummary[]>(initialDashboards)
   const [isOpen, setIsOpen] = useState(false)
   const [title, setTitle] = useState('')
@@ -104,66 +108,68 @@ export function DashboardListView({
           </p>
         </div>
 
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 text-sm font-medium transition-colors cursor-pointer">
-            <Plus className="size-4" />
-            <span>Создать дашборд</span>
-          </SheetTrigger>
-          <SheetContent className="p-6">
-            <SheetHeader>
-              <SheetTitle>Новый дашборд</SheetTitle>
-              <SheetDescription>
-                Задайте название и назначение дашборда для вашего рабочего пространства.
-              </SheetDescription>
-            </SheetHeader>
+        {canManageDashboards && (
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 text-sm font-medium transition-colors cursor-pointer">
+              <Plus className="size-4" />
+              <span>Создать дашборд</span>
+            </SheetTrigger>
+            <SheetContent className="p-6">
+              <SheetHeader>
+                <SheetTitle>Новый дашборд</SheetTitle>
+                <SheetDescription>
+                  Задайте название и назначение дашборда для вашего рабочего пространства.
+                </SheetDescription>
+              </SheetHeader>
 
-            <form onSubmit={handleCreate} className="mt-6 space-y-4">
-              {error && (
-                <div className="p-3 text-xs rounded-md bg-rose-500/10 border border-rose-500/20 text-rose-400">
-                  {error}
+              <form onSubmit={handleCreate} className="mt-6 space-y-4">
+                {error && (
+                  <div className="p-3 text-xs rounded-md bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                    {error}
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <Label htmlFor="dashboard-title">Название</Label>
+                  <Input
+                    id="dashboard-title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Например: Обзор продаж Тольятти"
+                    required
+                  />
                 </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="dashboard-title">Название</Label>
-                <Input
-                  id="dashboard-title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Например: Обзор продаж Тольятти"
-                  required
-                />
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="dashboard-desc">Описание (необязательно)</Label>
-                <Input
-                  id="dashboard-desc"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Краткое описание метрик и назначения"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dashboard-desc">Описание (необязательно)</Label>
+                  <Input
+                    id="dashboard-desc"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Краткое описание метрик и назначения"
+                  />
+                </div>
 
-              <div className="pt-4 flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsOpen(false)}
-                  disabled={isSubmitting}
-                >
-                  Отмена
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting || !title.trim()}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white"
-                >
-                  {isSubmitting ? 'Сохранение...' : 'Сохранить'}
-                </Button>
-              </div>
-            </form>
-          </SheetContent>
-        </Sheet>
+                <div className="pt-4 flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsOpen(false)}
+                    disabled={isSubmitting}
+                  >
+                    Отмена
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting || !title.trim()}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white"
+                  >
+                    {isSubmitting ? 'Сохранение...' : 'Сохранить'}
+                  </Button>
+                </div>
+              </form>
+            </SheetContent>
+          </Sheet>
+        )}
       </div>
 
       {dashboards.length === 0 ? (
@@ -175,8 +181,9 @@ export function DashboardListView({
             Нет доступных дашбордов
           </h3>
           <p className="mt-1 text-sm text-muted-foreground max-w-sm">
-            Создайте свой первый дашборд для компоновки нужных метрик и аналитических
-            срезов.
+            {canManageDashboards
+              ? 'Создайте свой первый дашборд для компоновки нужных метрик и аналитических срезов.'
+              : 'В этом рабочем пространстве пока нет созданных дашбордов.'}
           </p>
         </div>
       ) : (
@@ -193,15 +200,17 @@ export function DashboardListView({
                     <CardTitle className="text-base font-bold text-foreground group-hover:text-emerald-400 transition-colors">
                       {dash.title}
                     </CardTitle>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Удалить дашборд"
-                      onClick={(e) => handleDelete(dash.id, e)}
-                      className="size-8 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-rose-400 transition-opacity"
-                    >
-                      <Trash2 className="size-4" />
-                    </Button>
+                    {canManageDashboards && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="Удалить дашборд"
+                        onClick={(e) => handleDelete(dash.id, e)}
+                        className="size-8 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-rose-400 transition-opacity"
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
+                    )}
                   </div>
                   {dash.description && (
                     <CardDescription className="text-xs line-clamp-2 mt-1">

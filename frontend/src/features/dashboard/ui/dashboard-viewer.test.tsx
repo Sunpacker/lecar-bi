@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { DashboardViewer } from './dashboard-viewer'
 import { dashboardGateway, type DashboardDetail } from '../api/dashboard-gateway'
+import { WorkspaceAccessProvider } from '../../workspace/ui/workspace-access-provider'
 
 vi.mock('../api/dashboard-gateway', () => ({
   dashboardGateway: {
@@ -46,15 +47,29 @@ describe('DashboardViewer', () => {
     vi.mocked(dashboardGateway.listSavedViews).mockResolvedValue([])
   })
 
-  it('renders in view mode with edit button and grid view', () => {
+  it('renders in view mode with edit button and grid view when user has dashboards.manage capability', () => {
     render(
-      <DashboardViewer dashboard={mockDashboard} userId="user-1" workspaceId="ws-1" />,
+      <WorkspaceAccessProvider capabilities={['dashboards.view', 'dashboards.manage']}>
+        <DashboardViewer dashboard={mockDashboard} userId="user-1" workspaceId="ws-1" />
+      </WorkspaceAccessProvider>,
     )
 
     expect(screen.getByText('Сводный дашборд')).toBeInTheDocument()
     expect(screen.getByText('Аналитика бизнеса')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Редактировать/i })).toBeInTheDocument()
     expect(screen.getByTestId('dashboard-grid-view')).toBeInTheDocument()
+  })
+
+  it('hides edit button when user lacks dashboards.manage capability (viewer)', () => {
+    render(
+      <WorkspaceAccessProvider capabilities={['dashboards.view']}>
+        <DashboardViewer dashboard={mockDashboard} userId="user-1" workspaceId="ws-1" />
+      </WorkspaceAccessProvider>,
+    )
+
+    expect(screen.getByText('Сводный дашборд')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Редактировать/i })).toBeNull()
+    expect(screen.getByRole('button', { name: /Обновить данные/i })).toBeInTheDocument()
   })
 
   it('switches to edit mode, allows modifying title and saving changes', async () => {
@@ -64,7 +79,9 @@ describe('DashboardViewer', () => {
     })
 
     render(
-      <DashboardViewer dashboard={mockDashboard} userId="user-1" workspaceId="ws-1" />,
+      <WorkspaceAccessProvider capabilities={['dashboards.view', 'dashboards.manage']}>
+        <DashboardViewer dashboard={mockDashboard} userId="user-1" workspaceId="ws-1" />
+      </WorkspaceAccessProvider>,
     )
 
     // Switch to edit mode
@@ -97,7 +114,9 @@ describe('DashboardViewer', () => {
 
   it('allows canceling edit mode and discarding changes', () => {
     render(
-      <DashboardViewer dashboard={mockDashboard} userId="user-1" workspaceId="ws-1" />,
+      <WorkspaceAccessProvider capabilities={['dashboards.view', 'dashboards.manage']}>
+        <DashboardViewer dashboard={mockDashboard} userId="user-1" workspaceId="ws-1" />
+      </WorkspaceAccessProvider>,
     )
 
     // Switch to edit mode
@@ -128,7 +147,9 @@ describe('DashboardViewer', () => {
     ])
 
     render(
-      <DashboardViewer dashboard={mockDashboard} userId="user-1" workspaceId="ws-1" />,
+      <WorkspaceAccessProvider capabilities={['dashboards.view']}>
+        <DashboardViewer dashboard={mockDashboard} userId="user-1" workspaceId="ws-1" />
+      </WorkspaceAccessProvider>,
     )
 
     await waitFor(() => {
