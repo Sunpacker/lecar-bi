@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Providers;
 
 use App\Modules\Alerting\Application\Contracts\InventoryAlertSourceInterface;
@@ -46,6 +48,15 @@ use App\Modules\Workspace\Infrastructure\Persistence\Eloquent\Repositories\Eloqu
 use App\Modules\Workspace\Infrastructure\Persistence\Eloquent\Repositories\EloquentWorkspaceRepository;
 use App\Modules\Workspace\Infrastructure\Persistence\InMemory\InMemoryUserRepository;
 use App\Modules\Workspace\Infrastructure\Persistence\InMemory\InMemoryWorkspaceRepository;
+use App\Shared\Application\Ports\IntegrationEventTransportInterface;
+use App\Shared\Application\Ports\OutboxRepositoryInterface;
+use App\Shared\Application\Ports\TransactionManagerInterface;
+use App\Shared\Infrastructure\Outbox\InMemoryOutboxRepository;
+use App\Shared\Infrastructure\Persistence\Eloquent\Repositories\EloquentOutboxRepository;
+use App\Shared\Infrastructure\Persistence\LaravelTransactionManager;
+use App\Shared\Infrastructure\Persistence\NoOpTransactionManager;
+use App\Shared\Infrastructure\Transport\InMemoryIntegrationEventTransport;
+use App\Shared\Infrastructure\Transport\RedisStreamIntegrationEventTransport;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
@@ -171,6 +182,32 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return new PostgresInventoryAlertSource;
+        });
+
+        // --- Outbox / Integration Events ---
+
+        $this->app->singleton(TransactionManagerInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new NoOpTransactionManager;
+            }
+
+            return new LaravelTransactionManager;
+        });
+
+        $this->app->singleton(OutboxRepositoryInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new InMemoryOutboxRepository;
+            }
+
+            return new EloquentOutboxRepository;
+        });
+
+        $this->app->singleton(IntegrationEventTransportInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new InMemoryIntegrationEventTransport;
+            }
+
+            return new RedisStreamIntegrationEventTransport;
         });
     }
 

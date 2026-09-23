@@ -1,0 +1,132 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://autobi/contracts/events/alert-triggered.v1.schema.json",
+  "title": "alert.triggered v1",
+  "description": "Integration event published when a new alert cycle is triggered. Consumers MUST deduplicate by event_id; repeated delivery is normal (at-least-once semantics).",
+  "type": "object",
+  "required": [
+    "event_id",
+    "event_type",
+    "event_version",
+    "occurred_at",
+    "producer",
+    "workspace_id",
+    "aggregate",
+    "payload"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "event_id": {
+      "type": "string",
+      "description": "Globally unique, stable identifier for this event emission. Unchanged on redelivery.",
+      "minLength": 1
+    },
+    "event_type": {
+      "type": "string",
+      "const": "alert.triggered"
+    },
+    "event_version": {
+      "type": "integer",
+      "const": 1
+    },
+    "occurred_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 UTC timestamp when the alert was triggered."
+    },
+    "producer": {
+      "type": "string",
+      "const": "analytics"
+    },
+    "workspace_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "aggregate": {
+      "type": "object",
+      "required": ["type", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "alert"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "payload": {
+      "type": "object",
+      "required": [
+        "rule_id",
+        "rule_name",
+        "severity",
+        "metric",
+        "comparator",
+        "current_value",
+        "threshold_value",
+        "analytical_context"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "rule_id": {
+          "type": ["string", "null"],
+          "description": "ID of the alert rule that triggered this alert. Null if rule was deleted."
+        },
+        "rule_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["info", "warning", "critical"]
+        },
+        "metric": {
+          "type": "string",
+          "description": "The rule metric that was evaluated (e.g., quantity_available, days_of_stock, inventory_value)."
+        },
+        "comparator": {
+          "type": "string",
+          "description": "The comparator used (e.g., lte, lt, gte, gt, eq)."
+        },
+        "current_value": {
+          "type": "number",
+          "description": "The actual metric value at trigger time."
+        },
+        "threshold_value": {
+          "type": "number",
+          "description": "The threshold value defined in the rule."
+        },
+        "analytical_context": {
+          "type": "object",
+          "description": "Domain-specific context for the triggered alert.",
+          "required": ["target"],
+          "additionalProperties": true,
+          "properties": {
+            "target": {
+              "type": "string",
+              "description": "The analytical domain (e.g., inventory)."
+            },
+            "product_id": {
+              "type": ["string", "null"]
+            },
+            "product_name": {
+              "type": ["string", "null"]
+            },
+            "product_sku": {
+              "type": ["string", "null"]
+            },
+            "warehouse_id": {
+              "type": ["string", "null"]
+            },
+            "warehouse_name": {
+              "type": ["string", "null"]
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -97,3 +97,16 @@
 Причина: единый UI-стек обеспечивает согласованность интерфейса и упрощает поддержку общих компонентов.
 
 Правила использования описаны в [архитектуре frontend](03-frontend-nextjs.md#обязательный-ui-стек).
+
+## ADR-017 — Redis Stream as Replaceable Integration Event Transport
+
+Решение: Redis Stream `autobi.integration-events` является начальным транспортом для integration events, реализованным как заменяемый адаптер через `IntegrationEventTransportInterface`. Domain и Application layers не зависят от Redis.
+
+Причина: на текущем этапе полноценный message broker (RabbitMQ, Kafka) не нужен. Redis уже является обязательной инфраструктурной зависимостью. Транспорт инкапсулирован за портом, поэтому его замена не затронет Domain или Application.
+
+Ограничения:
+- Семантика доставки: at-least-once. Consumers обязаны дедуплицировать по `event_id`.
+- Глобальный порядок событий не гарантируется.
+- PostgreSQL outbox является источником истины; Redis Stream — только канал доставки.
+- Retention Stream не управляется в Phase 13 — будет добавлен после появления consumer и observability.
+- Consumer group будет создана в Phase 14.

@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace App\Modules\Alerting\Domain;
 
+use App\Modules\Alerting\Domain\Events\AlertTriggered;
 use App\Modules\Alerting\Domain\Exceptions\InvalidAlertStateTransitionException;
+use App\Shared\Domain\DomainEventId;
+use App\Shared\Domain\HasDomainEvents;
 use DateTimeImmutable;
 use InvalidArgumentException;
 
 final class Alert
 {
+    use HasDomainEvents;
+
     private AlertId $id;
 
     private string $workspaceId;
@@ -86,6 +91,55 @@ final class Alert
         $this->resolvedAt = $resolvedAt;
         $this->resolvedBy = $resolvedBy !== null ? trim($resolvedBy) : null;
         $this->resolutionNote = $resolutionNote !== null ? trim($resolutionNote) : null;
+    }
+
+    /**
+     * Factory method: creates a new Alert and records the AlertTriggered domain event.
+     * The event_id and timestamp are passed explicitly — no framework clock or helpers inside Domain.
+     */
+    public static function trigger(
+        AlertId $id,
+        DomainEventId $eventId,
+        string $workspaceId,
+        ?AlertRuleId $ruleId,
+        string $ruleName,
+        AlertSeverity $severity,
+        DedupFingerprint $dedupFingerprint,
+        AlertContext $context,
+        RuleMetric $metric,
+        RuleComparator $comparator,
+        DateTimeImmutable $now,
+    ): self {
+        $alert = new self(
+            id: $id,
+            workspaceId: $workspaceId,
+            ruleId: $ruleId,
+            ruleName: $ruleName,
+            severity: $severity,
+            status: AlertStatus::OPEN,
+            dedupFingerprint: $dedupFingerprint,
+            context: $context,
+            triggeredAt: $now,
+            createdAt: $now,
+            updatedAt: $now,
+        );
+
+        $alert->recordDomainEvent(new AlertTriggered(
+            eventId: $eventId,
+            alertId: $id,
+            workspaceId: $workspaceId,
+            ruleId: $ruleId,
+            ruleName: $ruleName,
+            severity: $severity,
+            metric: $metric,
+            comparator: $comparator,
+            currentValue: $context->currentValue() ?? 0.0,
+            thresholdValue: $context->thresholdValue() ?? 0.0,
+            context: $context,
+            occurredAt: $now,
+        ));
+
+        return $alert;
     }
 
     public function id(): AlertId
@@ -215,6 +269,7 @@ final class Alert
 
     public function retrigger(float $currentValue, ?DateTimeImmutable $at = null): void
     {
+        // Retrigger does NOT record a new domain event — it only updates state on an existing active alert.
         $this->context = $this->context->withCurrentValue($currentValue);
         $this->triggeredAt = $at ?? new DateTimeImmutable;
         $this->updatedAt = new DateTimeImmutable;

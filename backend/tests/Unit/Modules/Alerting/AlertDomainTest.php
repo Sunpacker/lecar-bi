@@ -11,7 +11,11 @@ use App\Modules\Alerting\Domain\AlertRuleId;
 use App\Modules\Alerting\Domain\AlertSeverity;
 use App\Modules\Alerting\Domain\AlertStatus;
 use App\Modules\Alerting\Domain\DedupFingerprint;
+use App\Modules\Alerting\Domain\Events\AlertTriggered;
 use App\Modules\Alerting\Domain\Exceptions\InvalidAlertStateTransitionException;
+use App\Modules\Alerting\Domain\RuleComparator;
+use App\Modules\Alerting\Domain\RuleMetric;
+use App\Shared\Domain\DomainEventId;
 use DateTimeImmutable;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
@@ -119,6 +123,157 @@ final class AlertDomainTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         new AlertId('');
+    }
+
+    // --- Phase 13: Domain Event Tests ---
+
+    public function test_trigger_factory_records_exactly_one_alert_triggered_event(): void
+    {
+        $now = new DateTimeImmutable('2026-09-23 10:00:00');
+        $eventId = new DomainEventId('evt-test-001');
+
+        $alert = Alert::trigger(
+            id: new AlertId('alt-1'),
+            eventId: $eventId,
+            workspaceId: 'ws-1',
+            ruleId: new AlertRuleId('rule-1'),
+            ruleName: 'Дефицит колодок',
+            severity: AlertSeverity::CRITICAL,
+            dedupFingerprint: DedupFingerprint::generate('ws-1', 'rule-1', 'prod-1', 'wh-1'),
+            context: new AlertContext(
+                target: 'inventory',
+                warehouseId: 'wh-1',
+                warehouseName: 'Центральный склад',
+                productId: 'prod-1',
+                productName: 'Тормозные колодки',
+                productSku: 'BRK-001',
+                currentValue: 0.0,
+                thresholdValue: 0.0,
+            ),
+            metric: RuleMetric::QUANTITY_AVAILABLE,
+            comparator: RuleComparator::LESS_THAN_OR_EQUAL,
+            now: $now,
+        );
+
+        $events = $alert->peekDomainEvents();
+
+        self::assertCount(1, $events);
+        self::assertInstanceOf(AlertTriggered::class, $events[0]);
+
+        $event = $events[0];
+        self::assertSame('evt-test-001', $event->eventId()->value());
+        self::assertSame('alt-1', $event->alertId()->value());
+        self::assertSame('ws-1', $event->workspaceId());
+        self::assertSame(AlertSeverity::CRITICAL, $event->severity());
+        self::assertSame($now, $event->occurredAt());
+        self::assertSame(RuleMetric::QUANTITY_AVAILABLE, $event->metric());
+        self::assertSame(RuleComparator::LESS_THAN_OR_EQUAL, $event->comparator());
+    }
+
+    public function test_trigger_factory_creates_open_alert(): void
+    {
+        $alert = Alert::trigger(
+            id: new AlertId('alt-1'),
+            eventId: new DomainEventId('evt-test-002'),
+            workspaceId: 'ws-1',
+            ruleId: new AlertRuleId('rule-1'),
+            ruleName: 'Дефицит',
+            severity: AlertSeverity::WARNING,
+            dedupFingerprint: DedupFingerprint::generate('ws-1', 'rule-1', 'prod-1', 'wh-1'),
+            context: new AlertContext(target: 'inventory', currentValue: 5.0, thresholdValue: 10.0),
+            metric: RuleMetric::QUANTITY_AVAILABLE,
+            comparator: RuleComparator::LESS_THAN_OR_EQUAL,
+            now: new DateTimeImmutable,
+        );
+
+        self::assertSame(AlertStatus::OPEN, $alert->status());
+    }
+
+    public function test_retrigger_does_not_record_domain_event(): void
+    {
+        $alert = Alert::trigger(
+            id: new AlertId('alt-1'),
+            eventId: new DomainEventId('evt-test-003'),
+            workspaceId: 'ws-1',
+            ruleId: new AlertRuleId('rule-1'),
+            ruleName: 'Дефицит',
+            severity: AlertSeverity::CRITICAL,
+            dedupFingerprint: DedupFingerprint::generate('ws-1', 'rule-1', 'prod-1', 'wh-1'),
+            context: new AlertContext(target: 'inventory', currentValue: 5.0, thresholdValue: 10.0),
+            metric: RuleMetric::QUANTITY_AVAILABLE,
+            comparator: RuleComparator::LESS_THAN_OR_EQUAL,
+            now: new DateTimeImmutable,
+        );
+
+        // Release events from trigger
+        $alert->releaseDomainEvents();
+
+        // Retrigger should NOT record new domain event
+        $alert->retrigger(3.0, new DateTimeImmutable);
+
+        self::assertCount(0, $alert->peekDomainEvents());
+    }
+
+    public function test_rehydration_via_constructor_does_not_record_domain_event(): void
+    {
+        // Simulates loading an existing alert from the database (rehydration)
+        $alert = $this->createTestAlert();
+
+        // No events should be recorded on rehydration
+        self::assertCount(0, $alert->peekDomainEvents());
+    }
+
+    public function test_acknowledge_does_not_record_domain_event(): void
+    {
+        $alert = $this->createTestAlert();
+        $alert->releaseDomainEvents(); // clear any existing events
+
+        $alert->acknowledge('user-1', new DateTimeImmutable);
+
+        self::assertCount(0, $alert->peekDomainEvents());
+    }
+
+    public function test_resolve_does_not_record_domain_event(): void
+    {
+        $alert = $this->createTestAlert();
+        $alert->releaseDomainEvents();
+
+        $alert->resolve('user-1', 'Fixed', new DateTimeImmutable);
+
+        self::assertCount(0, $alert->peekDomainEvents());
+    }
+
+    public function test_release_domain_events_clears_the_list(): void
+    {
+        $alert = Alert::trigger(
+            id: new AlertId('alt-1'),
+            eventId: new DomainEventId('evt-test-004'),
+            workspaceId: 'ws-1',
+            ruleId: null,
+            ruleName: 'Дефицит',
+            severity: AlertSeverity::INFO,
+            dedupFingerprint: DedupFingerprint::generate('ws-1', 'rule-1', 'prod-1', 'wh-1'),
+            context: new AlertContext(target: 'inventory'),
+            metric: RuleMetric::QUANTITY_AVAILABLE,
+            comparator: RuleComparator::LESS_THAN_OR_EQUAL,
+            now: new DateTimeImmutable,
+        );
+
+        $released = $alert->releaseDomainEvents();
+        self::assertCount(1, $released);
+
+        // After release, no events remain
+        self::assertCount(0, $alert->peekDomainEvents());
+        self::assertCount(0, $alert->releaseDomainEvents());
+    }
+
+    public function test_domain_event_id_is_unique(): void
+    {
+        $id1 = DomainEventId::generate();
+        $id2 = DomainEventId::generate();
+
+        self::assertNotSame($id1->value(), $id2->value());
+        self::assertStringStartsWith('evt-', $id1->value());
     }
 
     private function createTestAlert(): Alert

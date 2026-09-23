@@ -6,16 +6,20 @@ namespace App\Modules\Alerting\Application\Commands;
 
 use App\Modules\Alerting\Application\Contracts\InventoryAlertSourceInterface;
 use App\Modules\Alerting\Application\Dtos\AlertEvaluationResultDto;
+use App\Modules\Alerting\Application\Mappers\AlertTriggeredIntegrationMapper;
 use App\Modules\Alerting\Domain\Alert;
 use App\Modules\Alerting\Domain\AlertContext;
 use App\Modules\Alerting\Domain\AlertId;
 use App\Modules\Alerting\Domain\AlertRuleId;
-use App\Modules\Alerting\Domain\AlertStatus;
 use App\Modules\Alerting\Domain\DedupFingerprint;
+use App\Modules\Alerting\Domain\Events\AlertTriggered;
 use App\Modules\Alerting\Domain\Repositories\AlertRepositoryInterface;
 use App\Modules\Alerting\Domain\Repositories\AlertRuleRepositoryInterface;
 use App\Modules\Alerting\Domain\RuleMetric;
 use App\Modules\Alerting\Domain\RuleType;
+use App\Shared\Application\Ports\OutboxRepositoryInterface;
+use App\Shared\Application\Ports\TransactionManagerInterface;
+use App\Shared\Domain\DomainEventId;
 use DateTimeImmutable;
 
 final class EvaluateAlertRulesHandler
@@ -24,6 +28,9 @@ final class EvaluateAlertRulesHandler
         private AlertRuleRepositoryInterface $ruleRepository,
         private AlertRepositoryInterface $alertRepository,
         private InventoryAlertSourceInterface $inventorySource,
+        private ?OutboxRepositoryInterface $outboxRepository = null,
+        private ?TransactionManagerInterface $transactionManager = null,
+        private ?AlertTriggeredIntegrationMapper $mapper = null,
     ) {}
 
     public function handle(EvaluateAlertRulesCommand $command): AlertEvaluationResultDto
@@ -97,11 +104,14 @@ final class EvaluateAlertRulesHandler
 
                 if ($existingActiveAlert !== null) {
                     // Retrigger existing active alert (update value and timestamp) without creating duplicate!
+                    // retrigger() does NOT record a domain event — expected behavior.
                     $existingActiveAlert->retrigger($actualMetric, $now);
                     $this->alertRepository->save($existingActiveAlert);
                     $alertsUpdated++;
                 } else {
+                    // New alert cycle: save alert + register outbox message atomically.
                     $newAlertId = new AlertId(sprintf('alt-%s', bin2hex(random_bytes(10))));
+                    $eventId = DomainEventId::generate();
                     $alertContext = new AlertContext(
                         target: 'inventory',
                         warehouseId: $candidate->warehouseId,
@@ -113,21 +123,35 @@ final class EvaluateAlertRulesHandler
                         thresholdValue: $threshold,
                     );
 
-                    $newAlert = new Alert(
+                    $newAlert = Alert::trigger(
                         id: $newAlertId,
+                        eventId: $eventId,
                         workspaceId: $command->workspaceId,
                         ruleId: $rule->id(),
                         ruleName: $rule->name(),
                         severity: $rule->severity(),
-                        status: AlertStatus::OPEN,
                         dedupFingerprint: $fingerprint,
                         context: $alertContext,
-                        triggeredAt: $now,
-                        createdAt: $now,
-                        updatedAt: $now,
+                        metric: $rule->condition()->metric(),
+                        comparator: $rule->condition()->comparator(),
+                        now: $now,
                     );
 
-                    $this->alertRepository->save($newAlert);
+                    if ($this->transactionManager !== null && $this->outboxRepository !== null && $this->mapper !== null) {
+                        $this->transactionManager->transaction(function () use ($newAlert): void {
+                            $this->alertRepository->save($newAlert);
+
+                            foreach ($newAlert->releaseDomainEvents() as $domainEvent) {
+                                if ($domainEvent instanceof AlertTriggered) {
+                                    $integrationEvent = $this->mapper->map($domainEvent);
+                                    $this->outboxRepository->register($integrationEvent);
+                                }
+                            }
+                        });
+                    } else {
+                        $this->alertRepository->save($newAlert);
+                    }
+
                     $alertsCreated++;
                 }
             }
