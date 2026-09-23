@@ -89,13 +89,14 @@ assert_response_contains "$backend_response" '"service":"analytics"' "Analytics 
 
 # 1b. Technical health check: notification service (live and ready probes)
 notif_live_response="$(curl --fail --silent --show-error "$NOTIFICATION_URL/api/v1/health/live")"
-assert_response_contains "$notif_live_response" '"status":"live"' "Notification liveness"
-assert_response_contains "$notif_live_response" '"service":"notification"' "Notification liveness"
+assert_json_value_equals "$notif_live_response" '.status' 'ok' "Notification liveness"
+assert_json_value_equals "$notif_live_response" '.service' 'notification' "Notification liveness"
 
 notif_ready_response="$(curl --fail --silent --show-error "$NOTIFICATION_URL/api/v1/health/ready")"
-assert_response_contains "$notif_ready_response" '"status":"ready"' "Notification readiness"
-assert_response_contains "$notif_ready_response" '"database":"ok"' "Notification readiness DB"
-assert_response_contains "$notif_ready_response" '"redis":"ok"' "Notification readiness Redis"
+assert_json_value_equals "$notif_ready_response" '.status' 'ok' "Notification readiness"
+assert_json_value_equals "$notif_ready_response" '.service' 'notification' "Notification readiness"
+assert_json_value_equals "$notif_ready_response" '.checks.database' 'ok' "Notification readiness DB"
+assert_json_value_equals "$notif_ready_response" '.checks.redis' 'ok' "Notification readiness Redis"
 
 # 1c. Environmental database isolation check: notification must not have analytics DB env
 if command -v docker >/dev/null 2>&1; then
