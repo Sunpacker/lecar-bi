@@ -73,16 +73,46 @@ Filtered view сохраняется/восстанавливается, filter 
    - Расширен интеграционный bash-скрипт `scripts/verify-integration.sh` шагами создания, чтения, модификации, изоляции и удаления сохранённых представлений дашборда.
    - Все автоматические проверки (`make check`: OpenAPI lint, Prettier, ESLint, TypeScript, Vitest, Pint, PHPStan, PHPUnit) пройдены без ошибок (134 теста бэкенда, 104 теста фронтенда).
 
+7. **Frontend API Gateway & Сериализация фильтров (`frontend/src/features/dashboard/api`):**
+   - Расширен `DashboardGateway` методами управления сохранёнными представлениями: `listSavedViews`, `getSavedView`, `createSavedView`, `updateSavedView`, `deleteSavedView`.
+   - Покрыто юнит-тестами `dashboard-gateway.test.ts` (11 тестов).
+
+8. **Frontend Доменная логика фильтров и проекция на датасеты (`frontend/src/features/dashboard/model`):**
+   - Реализован модуль `filter-resolver.ts`:
+     - Резолвинг пресетов дат: `30d`, `90d`, `180d`, `365d`, `all`, `custom`;
+     - Слияние фильтров дашборда и локальных оверрайдов виджета (`mergeFilters`);
+     - Семантическая проекция и санитизация фильтров по датасетам (`sanitizeFiltersForDataset`): отсечение `warehouse_id` и `stock_health` для Sales, отсечение `region_id` для Inventory;
+     - Сравнение на равенство фильтров (`isFiltersEqual`) и проверка активности фильтров (`hasActiveFilters`).
+   - Покрыто юнит-тестами `filter-resolver.test.ts` (11 тестов).
+
+9. **Frontend State & Синхронизация с URL (`frontend/src/features/dashboard/model/use-dashboard-filters.ts`):**
+   - Разработан хук `useDashboardFilters`:
+     - Поддержка активного представления (`activeViewId`), отслеживание изменений относительно сохранённого пресета (`isModifiedFromActiveView`);
+     - Двусторонняя синхронизация фильтров с URL query-параметрами (`window.history.replaceState` без лишних перерендеров);
+     - Автоматический выбор дефолтного представления (`is_default = true`) при загрузке через чистый derived state;
+     - Функции управления: `setFilters`, `patchFilters`, `resetFilters`, `applyView`, `saveCurrentAsView`, `updateCurrentView`, `removeView`, `toggleDefaultView`.
+   - Покрыто юнит-тестами `use-dashboard-filters.test.ts` (4 теста).
+
+10. **Frontend Загрузка данных виджетов (`frontend/src/features/dashboard/model/widget-data-loader.ts`):**
+    - Обновлён `loadWidgetData`: поддержка фильтров дашборда, объединение с локальными оверрайдами виджета, резолвинг диапазонов дат, санитизация параметров под датасет, маппинг `stock_health` (`low_stock` -> `critical`, `in_stock` -> `optimal`).
+    - Покрыто тестами `widget-data-loader.test.ts` (9 тестов).
+
+11. **Frontend UI Компоненты (`frontend/src/features/dashboard/ui`):**
+    - `DashboardFilterBar`: панель фильтров с кнопками периодов дат, селекторами `date_from`/`date_to`, выбором категорий, регионов, складов, статуса запасов и кнопкой сброса активных фильтров.
+    - `DashboardSavedViewsMenu`: меню выбора сохранённых представлений, индикатор изменённости текущих фильтров (*), создание нового пресета (с возможностью назначения по умолчанию), переключение дефолтного пресета (звёздочка), удаление пресетов.
+    - Интеграция в `DashboardViewer` и сквозная передача фильтров через `DashboardGrid` в `WidgetRenderer`.
+    - Компоненты покрыты тестами: `dashboard-filter-bar.test.tsx` (3 теста), `dashboard-saved-views-menu.test.tsx` (2 теста), `dashboard-viewer.test.tsx` (4 теста).
+
+12. **Сквозное E2E тестирование (`frontend/src/features/dashboard/ui/dashboard-saved-views-flow.test.tsx`):**
+    - Написан комплексный интеграционный тест: автоматическая загрузка дефолтного представления -> смена фильтра периода (30d -> 90d) -> запрос sales overview с обновлённым интервалом -> сохранение нового пресета через модальное меню -> сброс фильтров.
+    - Пройден полный цикл валидации frontend (Prettier format:check, ESLint, TypeScript check, 134 теста Vitest).
+
 ### Что осталось в текущей фазе
 
-1. Frontend UI: разработка панели фильтров дашборда (`DashboardFilterBar`) с поддержкой пресетов дат (`30d`, `90d`, `180d`, `365d`, `all`, custom range), фильтрами по категориям, регионам и складам.
-2. Frontend UI: меню управления сохранёнными представлениями (Saved Views Selector) в `DashboardViewer`: сохранение текущей комбинации фильтров, переключение между сохранёнными пресетами, удаление пресетов, отображение дефолтного представления.
-3. Frontend State & Loader: передача фильтров дашборда в `loadWidgetData` с учётом виджетных переопределений и автоматическим отсечением несовместимых фильтров датасетов.
-4. Синхронизация активных фильтров с URL query-параметрами.
-5. Сквозные E2E-тесты и закрытие чекпоинта Phase 9.
+1. Прохождение обязательного интеграционного чекпоинта Phase 9 (`ROADMAP.md#integration-checkpoints` / `scripts/verify-integration.sh`) и закрытие фазы.
 
 ### Блокеры
 - Отсутствуют.
 
 ### Следующий шаг
-- Разработка UI-компонентов Shared Filters и селектора Saved Views на фронтенде (`frontend/src/features/dashboard`).
+- Прохождение интеграционного чекпоинта Phase 9 и подтверждение закрытия фазы в `ROADMAP.md`.
