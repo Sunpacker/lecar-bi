@@ -8,6 +8,7 @@ import * as widgetDataLoader from '../model/widget-data-loader'
 vi.mock('../api/dashboard-gateway', () => ({
   dashboardGateway: {
     update: vi.fn(),
+    listSavedViews: vi.fn().mockResolvedValue([]),
   },
 }))
 

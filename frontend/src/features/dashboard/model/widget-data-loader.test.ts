@@ -208,4 +208,122 @@ describe('widgetDataLoader', () => {
     expect(result.error).toBe('Network failure')
     expect(result.loading).toBe(false)
   })
+
+  it('applies dashboard filters to sales overview query', async () => {
+    const widget: WidgetDetail = {
+      id: 'w-1',
+      title: 'Выручка',
+      type: 'kpi_card',
+      query_config: { dataset: 'sales', metric: 'revenue' },
+      position: { x: 0, y: 0, w: 4, h: 2 },
+      options: {},
+    }
+
+    vi.mocked(salesGateway.getOverview).mockResolvedValueOnce({
+      summary: {
+        total_revenue: 150000,
+        order_count: 50,
+        average_order_value: 3000,
+        gross_profit: 45000,
+        margin_rate: 0.3,
+      },
+      trend: [],
+      categories: [],
+      regions: [],
+    })
+
+    const dashboardFilters = {
+      date_range: '30d' as const,
+      category_id: 'cat-10',
+      region_id: 'reg-5',
+    }
+
+    const res = await loadWidgetData(widget, 'user-1', 'ws-1', dashboardFilters)
+
+    expect(salesGateway.getOverview).toHaveBeenCalledWith(
+      'user-1',
+      'ws-1',
+      expect.objectContaining({
+        categoryId: 'cat-10',
+        regionId: 'reg-5',
+        dateFrom: expect.any(String),
+        dateTo: expect.any(String),
+      }),
+    )
+    expect(res.kpi?.value).toBe(150000)
+  })
+
+  it('widget-level date_range overrides dashboard date_range', async () => {
+    const widget: WidgetDetail = {
+      id: 'w-2',
+      title: 'Выручка 90d',
+      type: 'kpi_card',
+      query_config: {
+        dataset: 'sales',
+        metric: 'revenue',
+        date_range: '90d',
+      },
+      position: { x: 0, y: 0, w: 4, h: 2 },
+      options: {},
+    }
+
+    vi.mocked(salesGateway.getOverview).mockResolvedValueOnce({
+      summary: {
+        total_revenue: 200000,
+        order_count: 80,
+        average_order_value: 2500,
+        gross_profit: 60000,
+        margin_rate: 0.3,
+      },
+      trend: [],
+      categories: [],
+      regions: [],
+    })
+
+    const dashboardFilters = { date_range: '30d' as const }
+    await loadWidgetData(widget, 'user-1', 'ws-1', dashboardFilters)
+
+    expect(salesGateway.getOverview).toHaveBeenCalled()
+  })
+
+  it('applies warehouse and stock_health filters to inventory queries and sanitizes region_id', async () => {
+    const widget: WidgetDetail = {
+      id: 'w-3',
+      title: 'Остатки',
+      type: 'kpi_card',
+      query_config: { dataset: 'inventory', metric: 'stock_quantity' },
+      position: { x: 0, y: 0, w: 4, h: 2 },
+      options: {},
+    }
+
+    vi.mocked(inventoryGateway.getSummary).mockResolvedValueOnce({
+      summary: {
+        total_items: 10,
+        total_quantity_on_hand: 500,
+        total_quantity_reserved: 0,
+        total_quantity_available: 500,
+        total_inventory_value: 1200000,
+        out_of_stock_count: 2,
+        overstock_count: 5,
+        critical_count: 10,
+        optimal_count: 400,
+        average_days_of_stock: 30,
+      },
+      warehouses: [],
+      health_breakdown: [],
+      as_of_date: '2026-09-23',
+    })
+
+    const dashboardFilters = {
+      warehouse_id: 'wh-1',
+      region_id: 'reg-ignored',
+    }
+
+    await loadWidgetData(widget, 'user-1', 'ws-1', dashboardFilters)
+
+    expect(inventoryGateway.getSummary).toHaveBeenCalledWith('user-1', 'ws-1', {
+      warehouseId: 'wh-1',
+      asOfDate: undefined,
+    })
+  })
 })

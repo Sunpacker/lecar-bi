@@ -182,4 +182,191 @@ describe('dashboardGateway', () => {
       dashboardGateway.getById('non-existent', 'user-1', 'ws-1'),
     ).rejects.toThrow('Dashboard not found')
   })
+
+  it('lists saved views for a dashboard', async () => {
+    const mockViewsList = {
+      items: [
+        {
+          id: 'view-1',
+          dashboard_id: 'dash-1',
+          name: 'Основной вид',
+          filters: { date_range: '30d' },
+          is_default: true,
+          created_at: '2026-09-23T10:00:00Z',
+          updated_at: '2026-09-23T10:00:00Z',
+        },
+      ],
+    }
+
+    vi.mocked(analyticsClient.GET).mockResolvedValueOnce({
+      data: mockViewsList,
+      error: undefined,
+      response: new Response(),
+    } as never)
+
+    const result = await dashboardGateway.listSavedViews('dash-1', 'user-1', 'ws-1')
+
+    expect(analyticsClient.GET).toHaveBeenCalledWith('/dashboards/{dashboardId}/views', {
+      params: { path: { dashboardId: 'dash-1' } },
+      headers: {
+        'X-User-Id': 'user-1',
+        'X-Workspace-Id': 'ws-1',
+      },
+    })
+    expect(result).toEqual(mockViewsList.items)
+  })
+
+  it('gets a single saved view by ID', async () => {
+    const mockView = {
+      view: {
+        id: 'view-1',
+        dashboard_id: 'dash-1',
+        name: 'Основной вид',
+        filters: { date_range: '30d' },
+        is_default: true,
+        created_at: '2026-09-23T10:00:00Z',
+        updated_at: '2026-09-23T10:00:00Z',
+      },
+    }
+
+    vi.mocked(analyticsClient.GET).mockResolvedValueOnce({
+      data: mockView,
+      error: undefined,
+      response: new Response(),
+    } as never)
+
+    const result = await dashboardGateway.getSavedView(
+      'dash-1',
+      'view-1',
+      'user-1',
+      'ws-1',
+    )
+
+    expect(analyticsClient.GET).toHaveBeenCalledWith(
+      '/dashboards/{dashboardId}/views/{viewId}',
+      {
+        params: { path: { dashboardId: 'dash-1', viewId: 'view-1' } },
+        headers: {
+          'X-User-Id': 'user-1',
+          'X-Workspace-Id': 'ws-1',
+        },
+      },
+    )
+    expect(result).toEqual(mockView.view)
+  })
+
+  it('creates a saved view', async () => {
+    const mockCreated = {
+      view: {
+        id: 'view-new',
+        dashboard_id: 'dash-1',
+        name: 'Новый фильтр',
+        filters: { date_range: '90d', region_id: 'reg-1' },
+        is_default: false,
+        created_at: '2026-09-23T10:00:00Z',
+        updated_at: '2026-09-23T10:00:00Z',
+      },
+    }
+
+    vi.mocked(analyticsClient.POST).mockResolvedValueOnce({
+      data: mockCreated,
+      error: undefined,
+      response: new Response(),
+    } as never)
+
+    const result = await dashboardGateway.createSavedView(
+      'dash-1',
+      'user-1',
+      {
+        name: 'Новый фильтр',
+        filters: { date_range: '90d', region_id: 'reg-1' },
+        is_default: false,
+      },
+      'ws-1',
+    )
+
+    expect(analyticsClient.POST).toHaveBeenCalledWith('/dashboards/{dashboardId}/views', {
+      params: { path: { dashboardId: 'dash-1' } },
+      body: {
+        name: 'Новый фильтр',
+        filters: { date_range: '90d', region_id: 'reg-1' },
+        is_default: false,
+      },
+      headers: {
+        'X-User-Id': 'user-1',
+        'X-Workspace-Id': 'ws-1',
+      },
+    })
+    expect(result).toEqual(mockCreated.view)
+  })
+
+  it('updates a saved view', async () => {
+    const mockUpdated = {
+      view: {
+        id: 'view-1',
+        dashboard_id: 'dash-1',
+        name: 'Обновленный фильтр',
+        filters: { date_range: '180d' },
+        is_default: true,
+        created_at: '2026-09-23T10:00:00Z',
+        updated_at: '2026-09-23T11:00:00Z',
+      },
+    }
+
+    vi.mocked(analyticsClient.PUT).mockResolvedValueOnce({
+      data: mockUpdated,
+      error: undefined,
+      response: new Response(),
+    } as never)
+
+    const result = await dashboardGateway.updateSavedView(
+      'dash-1',
+      'view-1',
+      'user-1',
+      {
+        name: 'Обновленный фильтр',
+        filters: { date_range: '180d' },
+        is_default: true,
+      },
+      'ws-1',
+    )
+
+    expect(analyticsClient.PUT).toHaveBeenCalledWith(
+      '/dashboards/{dashboardId}/views/{viewId}',
+      {
+        params: { path: { dashboardId: 'dash-1', viewId: 'view-1' } },
+        body: {
+          name: 'Обновленный фильтр',
+          filters: { date_range: '180d' },
+          is_default: true,
+        },
+        headers: {
+          'X-User-Id': 'user-1',
+          'X-Workspace-Id': 'ws-1',
+        },
+      },
+    )
+    expect(result).toEqual(mockUpdated.view)
+  })
+
+  it('deletes a saved view', async () => {
+    vi.mocked(analyticsClient.DELETE).mockResolvedValueOnce({
+      data: undefined,
+      error: undefined,
+      response: new Response(null, { status: 204 }),
+    } as never)
+
+    await dashboardGateway.deleteSavedView('dash-1', 'view-1', 'user-1', 'ws-1')
+
+    expect(analyticsClient.DELETE).toHaveBeenCalledWith(
+      '/dashboards/{dashboardId}/views/{viewId}',
+      {
+        params: { path: { dashboardId: 'dash-1', viewId: 'view-1' } },
+        headers: {
+          'X-User-Id': 'user-1',
+          'X-Workspace-Id': 'ws-1',
+        },
+      },
+    )
+  })
 })

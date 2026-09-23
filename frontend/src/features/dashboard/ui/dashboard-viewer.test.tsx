@@ -7,6 +7,7 @@ import { dashboardGateway, type DashboardDetail } from '../api/dashboard-gateway
 vi.mock('../api/dashboard-gateway', () => ({
   dashboardGateway: {
     update: vi.fn(),
+    listSavedViews: vi.fn(),
   },
 }))
 
@@ -42,6 +43,7 @@ const mockDashboard: DashboardDetail = {
 describe('DashboardViewer', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(dashboardGateway.listSavedViews).mockResolvedValue([])
   })
 
   it('renders in view mode with edit button and grid view', () => {
@@ -110,5 +112,28 @@ describe('DashboardViewer', () => {
     // Back in view mode with original title
     expect(screen.queryByTestId('dashboard-title-input')).not.toBeInTheDocument()
     expect(screen.getByText('Сводный дашборд')).toBeInTheDocument()
+  })
+
+  it('renders shared filter bar and saved views menu in view mode', async () => {
+    vi.mocked(dashboardGateway.listSavedViews).mockResolvedValueOnce([
+      {
+        id: 'v-1',
+        dashboard_id: 'dash-1',
+        name: 'Вид по умолчанию',
+        filters: { date_range: '30d' },
+        is_default: true,
+        created_at: '2026-09-23T10:00:00Z',
+        updated_at: '2026-09-23T10:00:00Z',
+      },
+    ])
+
+    render(
+      <DashboardViewer dashboard={mockDashboard} userId="user-1" workspaceId="ws-1" />,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('dashboard-filter-bar')).toBeInTheDocument()
+      expect(screen.getByTestId('saved-views-menu')).toBeInTheDocument()
+    })
   })
 })
