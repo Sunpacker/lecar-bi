@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Dashboard\Presentation\Controllers\DashboardController;
+use App\Modules\Dashboard\Presentation\Controllers\DashboardSavedViewController;
 use App\Modules\InventoryAnalytics\Presentation\Controllers\InventoryAnalyticsController;
 use App\Modules\SalesAnalytics\Presentation\Controllers\SalesAnalyticsController;
 use App\Modules\Workspace\Presentation\Controllers\AuthController;
@@ -25,6 +26,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/dashboards/{id}', [DashboardController::class, 'show']);
         Route::put('/dashboards/{id}', [DashboardController::class, 'update']);
         Route::delete('/dashboards/{id}', [DashboardController::class, 'destroy']);
+
+        Route::get('/dashboards/{dashboardId}/views', [DashboardSavedViewController::class, 'index']);
+        Route::post('/dashboards/{dashboardId}/views', [DashboardSavedViewController::class, 'store']);
+        Route::get('/dashboards/{dashboardId}/views/{viewId}', [DashboardSavedViewController::class, 'show']);
+        Route::put('/dashboards/{dashboardId}/views/{viewId}', [DashboardSavedViewController::class, 'update']);
+        Route::delete('/dashboards/{dashboardId}/views/{viewId}', [DashboardSavedViewController::class, 'destroy']);
 
         Route::get('/analytics/sales/overview', [SalesAnalyticsController::class, 'overview']);
         Route::get('/analytics/sales/filters', [SalesAnalyticsController::class, 'filters']);
