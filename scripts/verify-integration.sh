@@ -496,8 +496,7 @@ curl --fail --silent --show-error -H "X-User-Id: user-4" -H "X-Workspace-Id: ws-
 
 # 49. Workspace RBAC: member management access boundary
 members_list="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/ws-1/members")"
-assert_response_contains "$members_list" '"user_id":"user-1"' "Workspace members list"
-assert_response_contains "$members_list" '"role":"owner"' "Workspace members owner"
+assert_json_value_equals "$members_list" '.items | map(select(.user.id == "user-1" and .role == "owner")) | length' '1' "Workspace owner membership"
 
 user3_members_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-3" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/ws-1/members")"
 if [ "$user3_members_status" != "403" ]; then
@@ -534,7 +533,7 @@ fi
 sole_demote_status="$(curl --silent -o /dev/null -w "%{http_code}" -X PATCH -H "Content-Type: application/json" \
     -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
     -d '{"role":"viewer"}' \
-    "$BACKEND_URL/api/v1/workspaces/ws-1/members/user-1")"
+    "$BACKEND_URL/api/v1/workspaces/ws-1/members/user-1/role")"
 if [ "$sole_demote_status" != "409" ]; then
     echo "Expected 409 for sole owner demoting self, got $sole_demote_status" >&2
     exit 1
@@ -544,13 +543,13 @@ fi
 promote_member="$(curl --fail --silent --show-error -X PATCH -H "Content-Type: application/json" \
     -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
     -d '{"role":"owner"}' \
-    "$BACKEND_URL/api/v1/workspaces/ws-1/members/user-3")"
+    "$BACKEND_URL/api/v1/workspaces/ws-1/members/user-3/role")"
 assert_json_value_equals "$promote_member" '.member.role' 'owner' "Promote member to owner"
 
 demote_member="$(curl --fail --silent --show-error -X PATCH -H "Content-Type: application/json" \
     -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
     -d '{"role":"member"}' \
-    "$BACKEND_URL/api/v1/workspaces/ws-1/members/user-3")"
+    "$BACKEND_URL/api/v1/workspaces/ws-1/members/user-3/role")"
 assert_json_value_equals "$demote_member" '.member.role' 'member' "Demote back to member"
 
 # 53. Workspace RBAC: cross-workspace isolation across all roles
