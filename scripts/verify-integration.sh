@@ -220,5 +220,72 @@ if [ "$dashboard_cross_status" != "403" ]; then
     exit 1
 fi
 
-echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records, inventory intelligence, ABC/XYZ matrix, and dashboard builder backend are verified."
+# 24. Dashboard Builder Full Lifecycle: Create custom dashboard via POST
+created_dash_json="$(curl --fail --silent --show-error -H "Content-Type: application/json" \
+    -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
+    -d '{"title":"Интеграционный дашборд","description":"Создан для проверки жизненного цикла"}' \
+    "$BACKEND_URL/api/v1/dashboards")"
+assert_response_contains "$created_dash_json" '"title":"Интеграционный дашборд"' "Dashboard creation"
+CUSTOM_DASH_ID="$(printf '%s' "$created_dash_json" | grep -o '"id":"[^"]*"' | head -n 1 | cut -d'"' -f4)"
+
+if [ -z "$CUSTOM_DASH_ID" ]; then
+    echo "Failed to extract created dashboard ID from response" >&2
+    exit 1
+fi
+
+# 25. Dashboard Builder: Restore dashboard via GET
+restored_dash_json="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID")"
+assert_response_contains "$restored_dash_json" '"id":"'"$CUSTOM_DASH_ID"'"' "Dashboard restore"
+assert_response_contains "$restored_dash_json" '"title":"Интеграционный дашборд"' "Dashboard restore title"
+
+# 26. Dashboard Builder: Update dashboard via PUT (reposition & add widget)
+updated_dash_json="$(curl --fail --silent --show-error -X PUT -H "Content-Type: application/json" \
+    -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
+    -d '{
+      "title": "Обновленный дашборд",
+      "description": "Описание обновлено",
+      "widgets": [
+        {
+          "id": "e0000001-0000-4000-8000-000000000001",
+          "title": "Выручка перемещенная",
+          "type": "kpi_card",
+          "position": {"x": 4, "y": 0, "w": 6, "h": 2},
+          "query_config": {"dataset": "sales", "metric": "revenue", "date_range": "30d"},
+          "options": {}
+        }
+      ]
+    }' \
+    "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID")"
+assert_response_contains "$updated_dash_json" '"title":"Обновленный дашборд"' "Dashboard update"
+assert_response_contains "$updated_dash_json" '"x":4' "Widget reposition"
+
+# 27. Cross-tenant isolation on custom dashboard
+cross_custom_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-2" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID")"
+if [ "$cross_custom_status" != "403" ]; then
+    echo "Expected 403 for cross-workspace access to custom dashboard, got $cross_custom_status" >&2
+    exit 1
+fi
+
+# 28. Frontend UI: Authenticated Next.js renders Dashboards pages
+frontend_dashboards_page="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/dashboards")"
+assert_response_contains "$frontend_dashboards_page" 'Пользовательские дашборды' "Frontend dashboards page"
+
+frontend_dash_view="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/dashboards/$CUSTOM_DASH_ID")"
+assert_response_contains "$frontend_dash_view" 'Обновленный дашборд' "Frontend custom dashboard view"
+
+# 29. Dashboard Builder: Delete custom dashboard via DELETE
+delete_status="$(curl --silent -o /dev/null -w "%{http_code}" -X DELETE -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID")"
+if [ "$delete_status" != "204" ]; then
+    echo "Expected 204 for DELETE dashboard, got $delete_status" >&2
+    exit 1
+fi
+
+# 30. Verify 404 after deletion
+deleted_get_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID")"
+if [ "$deleted_get_status" != "404" ]; then
+    echo "Expected 404 for deleted dashboard, got $deleted_get_status" >&2
+    exit 1
+fi
+
+echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records, inventory intelligence, ABC/XYZ matrix, and complete dashboard builder CRUD lifecycle are verified."
 
