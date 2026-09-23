@@ -7,6 +7,7 @@ use App\Modules\DataIngestion\Domain\Exceptions\CannotRetryImportException;
 use App\Modules\DataIngestion\Domain\ImportBatch;
 use App\Modules\DataIngestion\Domain\ImportBatchId;
 use App\Modules\DataIngestion\Domain\ImportStatus;
+use App\Modules\DataIngestion\Domain\RowError;
 use App\Modules\DataIngestion\Domain\SourceFormat;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\Test;
@@ -60,7 +61,7 @@ final class ImportBatchDomainTest extends TestCase
             successfulRows: 0,
             failedRows: 0,
             errorMessage: null,
-            createdAt: new DateTimeImmutable(),
+            createdAt: new DateTimeImmutable,
             completedAt: null,
         );
 
@@ -98,7 +99,7 @@ final class ImportBatchDomainTest extends TestCase
             successfulRows: 5,
             failedRows: 5,
             errorMessage: 'Timeout error',
-            createdAt: new DateTimeImmutable(),
+            createdAt: new DateTimeImmutable,
             completedAt: null,
         );
 
@@ -124,12 +125,101 @@ final class ImportBatchDomainTest extends TestCase
             successfulRows: 20,
             failedRows: 0,
             errorMessage: null,
-            createdAt: new DateTimeImmutable(),
+            createdAt: new DateTimeImmutable,
             completedAt: null,
         );
 
         self::assertFalse($batch->canRetry());
         $this->expectException(CannotRetryImportException::class);
         $batch->prepareRetry();
+    }
+
+    #[Test]
+    public function can_create_import_batch_using_factory(): void
+    {
+        $id = ImportBatchId::generate();
+        $batch = ImportBatch::create(
+            id: $id,
+            workspaceId: 'ws-2',
+            datasetType: DatasetType::INVENTORY,
+            sourceFormat: SourceFormat::JSON,
+            originalFilename: 'stock_2026.json',
+            storedFilePath: 'imports/ws-2/stock_2026.json',
+        );
+
+        self::assertSame($id->toString(), $batch->id()->toString());
+        self::assertSame(ImportStatus::PENDING, $batch->status());
+        self::assertSame(0, $batch->totalRows());
+        self::assertNull($batch->completedAt());
+    }
+
+    #[Test]
+    public function cannot_start_processing_from_completed_state(): void
+    {
+        $batch = ImportBatch::create(
+            id: ImportBatchId::generate(),
+            workspaceId: 'ws-1',
+            datasetType: DatasetType::SALES,
+            sourceFormat: SourceFormat::CSV,
+            originalFilename: 'test.csv',
+            storedFilePath: 'test.csv',
+        );
+        $batch->startValidation();
+        $batch->startProcessing(10);
+        $batch->markCompleted();
+
+        $this->expectException(\DomainException::class);
+        $batch->startProcessing(20);
+    }
+
+    #[Test]
+    public function marking_failed_records_reason_and_completion_time(): void
+    {
+        $batch = ImportBatch::create(
+            id: ImportBatchId::generate(),
+            workspaceId: 'ws-1',
+            datasetType: DatasetType::SALES,
+            sourceFormat: SourceFormat::CSV,
+            originalFilename: 'test.csv',
+            storedFilePath: 'test.csv',
+        );
+        $batch->startValidation();
+        $batch->startProcessing(10);
+
+        $batch->markFailed('Something went wrong');
+
+        self::assertSame(ImportStatus::FAILED, $batch->status());
+        self::assertSame('Something went wrong', $batch->errorMessage());
+        self::assertNotNull($batch->completedAt());
+    }
+
+    #[Test]
+    public function import_batch_id_equality_and_validation(): void
+    {
+        $id1 = ImportBatchId::generate();
+        $id2 = ImportBatchId::fromString($id1->toString());
+        $id3 = ImportBatchId::generate();
+
+        self::assertTrue($id1->equals($id2));
+        self::assertFalse($id1->equals($id3));
+
+        $this->expectException(\InvalidArgumentException::class);
+        ImportBatchId::fromString('   ');
+    }
+
+    #[Test]
+    public function can_instantiate_row_error(): void
+    {
+        $error = new RowError(
+            rowNumber: 42,
+            field: 'sku',
+            value: 'UNKNOWN',
+            message: 'SKU not found'
+        );
+
+        self::assertSame(42, $error->rowNumber);
+        self::assertSame('sku', $error->field);
+        self::assertSame('UNKNOWN', $error->value);
+        self::assertSame('SKU not found', $error->message);
     }
 }

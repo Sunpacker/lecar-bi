@@ -22,7 +22,32 @@ final class ImportBatch
         private ?string $errorMessage,
         private readonly DateTimeImmutable $createdAt,
         private ?DateTimeImmutable $completedAt
-    ) {
+    ) {}
+
+    public static function create(
+        ImportBatchId $id,
+        string $workspaceId,
+        DatasetType $datasetType,
+        SourceFormat $sourceFormat,
+        string $originalFilename,
+        string $storedFilePath
+    ): self {
+        return new self(
+            id: $id,
+            workspaceId: $workspaceId,
+            datasetType: $datasetType,
+            sourceFormat: $sourceFormat,
+            originalFilename: $originalFilename,
+            storedFilePath: $storedFilePath,
+            status: ImportStatus::PENDING,
+            totalRows: 0,
+            processedRows: 0,
+            successfulRows: 0,
+            failedRows: 0,
+            errorMessage: null,
+            createdAt: new DateTimeImmutable,
+            completedAt: null
+        );
     }
 
     public function id(): ImportBatchId
@@ -100,23 +125,38 @@ final class ImportBatch
         return in_array($this->status, [
             ImportStatus::COMPLETED,
             ImportStatus::COMPLETED_WITH_ERRORS,
-            ImportStatus::FAILED
+            ImportStatus::FAILED,
         ], true);
     }
 
     public function startValidation(): void
     {
+        if ($this->status !== ImportStatus::PENDING) {
+            throw new \DomainException('Can only start validation from PENDING state.');
+        }
         $this->status = ImportStatus::VALIDATING;
     }
 
     public function startProcessing(int $totalRows): void
     {
+        if (! in_array($this->status, [ImportStatus::VALIDATING, ImportStatus::PENDING], true)) {
+            throw new \DomainException('Can only start processing from VALIDATING or PENDING states.');
+        }
+        if ($totalRows < 0) {
+            throw new \DomainException('Total rows cannot be negative.');
+        }
         $this->status = ImportStatus::PROCESSING;
         $this->totalRows = $totalRows;
     }
 
     public function recordProgress(int $processed, int $successful, int $failed): void
     {
+        if ($this->status !== ImportStatus::PROCESSING) {
+            throw new \DomainException('Can only record progress in PROCESSING state.');
+        }
+        if ($processed < 0 || $successful < 0 || $failed < 0) {
+            throw new \DomainException('Progress counts cannot be negative.');
+        }
         $this->processedRows = $processed;
         $this->successfulRows = $successful;
         $this->failedRows = $failed;
@@ -124,35 +164,41 @@ final class ImportBatch
 
     public function markCompleted(): void
     {
+        if ($this->status !== ImportStatus::PROCESSING) {
+            throw new \DomainException('Can only mark completed from PROCESSING state.');
+        }
         $this->status = ImportStatus::COMPLETED;
-        $this->completedAt = new DateTimeImmutable();
+        $this->completedAt = new DateTimeImmutable;
     }
 
     public function markCompletedWithErrors(): void
     {
+        if ($this->status !== ImportStatus::PROCESSING) {
+            throw new \DomainException('Can only mark completed with errors from PROCESSING state.');
+        }
         $this->status = ImportStatus::COMPLETED_WITH_ERRORS;
-        $this->completedAt = new DateTimeImmutable();
+        $this->completedAt = new DateTimeImmutable;
     }
 
     public function markFailed(string $reason): void
     {
         $this->status = ImportStatus::FAILED;
         $this->errorMessage = $reason;
-        $this->completedAt = new DateTimeImmutable();
+        $this->completedAt = new DateTimeImmutable;
     }
 
     public function canRetry(): bool
     {
         return in_array($this->status, [
             ImportStatus::FAILED,
-            ImportStatus::COMPLETED_WITH_ERRORS
+            ImportStatus::COMPLETED_WITH_ERRORS,
         ], true);
     }
 
     public function prepareRetry(): void
     {
-        if (!$this->canRetry()) {
-            throw new CannotRetryImportException();
+        if (! $this->canRetry()) {
+            throw new CannotRetryImportException;
         }
 
         $this->status = ImportStatus::PENDING;

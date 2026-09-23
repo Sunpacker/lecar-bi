@@ -16,4 +16,6 @@ interface ImportBatchRepositoryInterface
      * @return ImportBatch[]
      */
     public function listByWorkspace(string $workspaceId, ?ImportStatus $status, int $page, int $perPage): array;
+
+    public function countByWorkspace(string $workspaceId, ?ImportStatus $status = null): int;
 }

@@ -9,6 +9,5 @@ final readonly class RowError
         public ?string $field,
         public ?string $value,
         public string $message
-    ) {
-    }
+    ) {}
 }
