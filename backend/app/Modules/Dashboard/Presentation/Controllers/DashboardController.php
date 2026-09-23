@@ -39,8 +39,7 @@ final class DashboardController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $dashboards = $handler->handle(new GetDashboardsQuery($workspaceId));
 
@@ -77,8 +76,7 @@ final class DashboardController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $title = (string) $request->input('title');
             $description = $request->input('description') !== null ? (string) $request->input('description') : null;
@@ -123,8 +121,7 @@ final class DashboardController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $dashboard = $handler->handle(new GetDashboardByIdQuery($workspaceId, $id));
 
@@ -179,8 +176,7 @@ final class DashboardController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $title = (string) $request->input('title');
             $description = $request->input('description') !== null ? (string) $request->input('description') : null;
@@ -278,8 +274,7 @@ final class DashboardController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $handler->handle(new DeleteDashboardCommand($workspaceId, $id));
 
@@ -295,5 +290,19 @@ final class DashboardController
                 'code' => 'NOT_FOUND',
             ], 404);
         }
+    }
+
+    private function resolveWorkspaceId(Request $request, GetCurrentWorkspaceHandler $workspaceHandler): string
+    {
+        $workspaceId = (string) $request->attributes->get('current_workspace_id');
+        if ($workspaceId !== '') {
+            return $workspaceId;
+        }
+
+        $userId = (string) $request->attributes->get('authenticated_user_id');
+        $requestedWs = $request->header('X-Workspace-Id');
+        $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
+
+        return $currentWorkspace->workspace->id;
     }
 }

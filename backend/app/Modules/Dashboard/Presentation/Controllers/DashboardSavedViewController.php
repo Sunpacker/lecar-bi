@@ -40,8 +40,7 @@ final class DashboardSavedViewController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $views = $handler->handle(new GetSavedViewsByDashboardQuery($workspaceId, $dashboardId));
 
@@ -71,8 +70,7 @@ final class DashboardSavedViewController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             /** @var array<string, mixed> $rawFilters */
             $rawFilters = (array) $request->input('filters', []);
@@ -117,8 +115,7 @@ final class DashboardSavedViewController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $view = $handler->handle(new GetSavedViewByIdQuery($workspaceId, $dashboardId, $viewId));
 
@@ -149,8 +146,7 @@ final class DashboardSavedViewController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             /** @var array<string, mixed> $rawFilters */
             $rawFilters = (array) $request->input('filters', []);
@@ -196,8 +192,7 @@ final class DashboardSavedViewController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $handler->handle(new DeleteSavedViewCommand($workspaceId, $dashboardId, $viewId));
 
@@ -253,5 +248,19 @@ final class DashboardSavedViewController
             'created_at' => $view->createdAt,
             'updated_at' => $view->updatedAt,
         ];
+    }
+
+    private function resolveWorkspaceId(Request $request, GetCurrentWorkspaceHandler $workspaceHandler): string
+    {
+        $workspaceId = (string) $request->attributes->get('current_workspace_id');
+        if ($workspaceId !== '') {
+            return $workspaceId;
+        }
+
+        $userId = (string) $request->attributes->get('authenticated_user_id');
+        $requestedWs = $request->header('X-Workspace-Id');
+        $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
+
+        return $currentWorkspace->workspace->id;
     }
 }
