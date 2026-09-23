@@ -14,6 +14,29 @@ paths:
     get:
       operationId: getImportBatches
       summary: List data ingestion batches for workspace
+      parameters:
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: status
+          required: false
+          schema:
+            $ref: '#/components/schemas/ImportStatus'
+        - in: query
+          name: dataset_type
+          required: false
+          schema:
+            $ref: '#/components/schemas/DatasetType'
       responses:
         '200':
           description: List of import batches
@@ -21,6 +44,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImportBatchListResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
     post:
       operationId: uploadImportBatch
       summary: Upload data ingestion file
@@ -38,8 +73,7 @@ paths:
                   type: string
                   format: binary
                 dataset_type:
-                  type: string
-                  enum: [sales, inventory]
+                  $ref: '#/components/schemas/DatasetType'
       responses:
         '202':
           description: Accepted
@@ -47,6 +81,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImportBatchDetailResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /imports/{id}:
     get:
       operationId: getImportBatch
@@ -64,6 +116,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImportBatchDetailResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: Not found
           content:
@@ -99,6 +163,24 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImportFailureListResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /imports/{id}/retry:
     post:
       operationId: retryImportBatch
@@ -1307,7 +1389,7 @@ components:
       enum: [csv, json]
     ImportBatchSummary:
       type: object
-      required: [id, workspace_id, dataset_type, source_format, original_filename, status, total_rows, processed_rows, successful_rows, failed_rows]
+      required: [id, workspace_id, dataset_type, source_format, original_filename, status, total_rows, processed_rows, successful_rows, failed_rows, created_at]
       properties:
         id:
           type: string
@@ -1361,7 +1443,7 @@ components:
       additionalProperties: false
     ImportBatchDetail:
       type: object
-      required: [id, workspace_id, dataset_type, source_format, original_filename, status, total_rows, processed_rows, successful_rows, failed_rows, stored_file_path]
+      required: [id, workspace_id, dataset_type, source_format, original_filename, status, total_rows, processed_rows, successful_rows, failed_rows, stored_file_path, created_at]
       properties:
         id:
           type: string
@@ -1407,7 +1489,7 @@ components:
       additionalProperties: false
     ImportFailureItem:
       type: object
-      required: [id, row_number, error_message]
+      required: [id, row_number, error_message, created_at]
       properties:
         id:
           type: string
@@ -1427,7 +1509,7 @@ components:
       additionalProperties: false
     ImportFailureListResponse:
       type: object
-      required: [items, total, page, per_page]
+      required: [items, total, page, per_page, total_pages]
       properties:
         items:
           type: array
@@ -1438,6 +1520,8 @@ components:
         page:
           type: integer
         per_page:
+          type: integer
+        total_pages:
           type: integer
       additionalProperties: false
     LoginRequest:

@@ -415,7 +415,7 @@ export interface components {
       progress_percentage?: number
       error_message?: string | null
       /** Format: date-time */
-      created_at?: string
+      created_at: string
       /** Format: date-time */
       completed_at?: string | null
     }
@@ -440,7 +440,7 @@ export interface components {
       progress_percentage?: number
       error_message?: string | null
       /** Format: date-time */
-      created_at?: string
+      created_at: string
       /** Format: date-time */
       completed_at?: string | null
       stored_file_path: string
@@ -455,13 +455,14 @@ export interface components {
       value?: string | null
       error_message: string
       /** Format: date-time */
-      created_at?: string
+      created_at: string
     }
     ImportFailureListResponse: {
       items: components['schemas']['ImportFailureItem'][]
       total: number
       page: number
       per_page: number
+      total_pages: number
     }
     LoginRequest: {
       /** Format: email */
@@ -934,7 +935,12 @@ export type $defs = Record<string, never>
 export interface operations {
   getImportBatches: {
     parameters: {
-      query?: never
+      query?: {
+        page?: number
+        per_page?: number
+        status?: components['schemas']['ImportStatus']
+        dataset_type?: components['schemas']['DatasetType']
+      }
       header?: never
       path?: never
       cookie?: never
@@ -948,6 +954,24 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['ImportBatchListResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
         }
       }
     }
@@ -964,8 +988,7 @@ export interface operations {
         'multipart/form-data': {
           /** Format: binary */
           file: string
-          /** @enum {string} */
-          dataset_type: 'sales' | 'inventory'
+          dataset_type: components['schemas']['DatasetType']
         }
       }
     }
@@ -977,6 +1000,33 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['ImportBatchDetailResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
         }
       }
     }
@@ -999,6 +1049,24 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['ImportBatchDetailResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
         }
       }
       /** @description Not found */
@@ -1033,6 +1101,33 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['ImportFailureListResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
         }
       }
     }
