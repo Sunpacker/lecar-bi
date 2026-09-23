@@ -273,19 +273,60 @@ assert_response_contains "$frontend_dashboards_page" 'Пользовательс
 frontend_dash_view="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/dashboards/$CUSTOM_DASH_ID")"
 assert_response_contains "$frontend_dash_view" 'Обновленный дашборд' "Frontend custom dashboard view"
 
-# 29. Dashboard Builder: Delete custom dashboard via DELETE
+# 29. Dashboard Saved Views: Create saved view / filter preset via POST
+created_view_json="$(curl --fail --silent --show-error -H "Content-Type: application/json" \
+    -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
+    -d '{"name":"Интеграционный пресет","filters":{"date_range":"30d","region_id":"reg-1"},"is_default":true}' \
+    "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID/views")"
+assert_response_contains "$created_view_json" '"name":"Интеграционный пресет"' "Saved view creation"
+assert_response_contains "$created_view_json" '"is_default":true' "Saved view default flag"
+CUSTOM_VIEW_ID="$(printf '%s' "$created_view_json" | grep -o '"id":"[^"]*"' | head -n 1 | cut -d'"' -f4)"
+
+if [ -z "$CUSTOM_VIEW_ID" ]; then
+    echo "Failed to extract created saved view ID from response" >&2
+    exit 1
+fi
+
+# 30. Dashboard Saved Views: List and read saved view
+views_list_json="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID/views")"
+assert_response_contains "$views_list_json" '"items":[' "Saved views list"
+assert_response_contains "$views_list_json" '"Интеграционный пресет"' "Saved view list content"
+
+# 31. Dashboard Saved Views: Update saved view via PUT
+updated_view_json="$(curl --fail --silent --show-error -X PUT -H "Content-Type: application/json" \
+    -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
+    -d '{"name":"Обновленный пресет","filters":{"date_range":"90d"},"is_default":false}' \
+    "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID/views/$CUSTOM_VIEW_ID")"
+assert_response_contains "$updated_view_json" '"name":"Обновленный пресет"' "Saved view update"
+assert_response_contains "$updated_view_json" '"date_range":"90d"' "Saved view filter update"
+
+# 32. Cross-tenant isolation on saved views: user-2 accessing ws-1 views returns 403
+cross_view_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-2" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID/views")"
+if [ "$cross_view_status" != "403" ]; then
+    echo "Expected 403 for cross-workspace access to saved views, got $cross_view_status" >&2
+    exit 1
+fi
+
+# 33. Dashboard Saved Views: Delete saved view via DELETE
+del_view_status="$(curl --silent -o /dev/null -w "%{http_code}" -X DELETE -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID/views/$CUSTOM_VIEW_ID")"
+if [ "$del_view_status" != "204" ]; then
+    echo "Expected 204 for DELETE saved view, got $del_view_status" >&2
+    exit 1
+fi
+
+# 34. Dashboard Builder: Delete custom dashboard via DELETE
 delete_status="$(curl --silent -o /dev/null -w "%{http_code}" -X DELETE -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID")"
 if [ "$delete_status" != "204" ]; then
     echo "Expected 204 for DELETE dashboard, got $delete_status" >&2
     exit 1
 fi
 
-# 30. Verify 404 after deletion
+# 35. Verify 404 after deletion
 deleted_get_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID")"
 if [ "$deleted_get_status" != "404" ]; then
     echo "Expected 404 for deleted dashboard, got $deleted_get_status" >&2
     exit 1
 fi
 
-echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records, inventory intelligence, ABC/XYZ matrix, and complete dashboard builder CRUD lifecycle are verified."
+echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records, inventory intelligence, ABC/XYZ matrix, dashboard builder, and dashboard saved views CRUD lifecycle are verified."
 
