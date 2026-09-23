@@ -2,6 +2,7 @@
 
 use App\Modules\Dashboard\Presentation\Controllers\DashboardController;
 use App\Modules\Dashboard\Presentation\Controllers\DashboardSavedViewController;
+use App\Modules\DataIngestion\Presentation\Controllers\ImportBatchController;
 use App\Modules\InventoryAnalytics\Presentation\Controllers\InventoryAnalyticsController;
 use App\Modules\SalesAnalytics\Presentation\Controllers\SalesAnalyticsController;
 use App\Modules\Workspace\Presentation\Controllers\AuthController;
@@ -20,6 +21,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/workspaces', [WorkspaceController::class, 'index']);
         Route::get('/workspaces/current', [CurrentWorkspaceController::class, 'show']);
         Route::get('/workspaces/{id}', [WorkspaceController::class, 'show']);
+
+        Route::get('/imports', [ImportBatchController::class, 'index']);
+        Route::post('/imports', [ImportBatchController::class, 'store']);
+        Route::get('/imports/{id}', [ImportBatchController::class, 'show']);
+        Route::get('/imports/{id}/failures', [ImportBatchController::class, 'failures']);
+        Route::post('/imports/{id}/retry', [ImportBatchController::class, 'retry']);
 
         Route::get('/dashboards', [DashboardController::class, 'index']);
         Route::post('/dashboards', [DashboardController::class, 'store']);
