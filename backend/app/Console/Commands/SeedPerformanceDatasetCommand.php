@@ -20,9 +20,9 @@ final class SeedPerformanceDatasetCommand extends Command
 
     public function handle(PerformanceDatasetSeeder $seeder): int
     {
-        // 1. Safety check: reject production environment
-        if (app()->environment('production')) {
-            $this->error('CRITICAL SAFETY ERROR: performance:seed is strictly forbidden in production environment.');
+        // 1. Safety check: strictly restrict to local and testing environments
+        if (! app()->environment(['local', 'testing'])) {
+            $this->error('CRITICAL SAFETY ERROR: performance:seed is strictly restricted to local and testing environments.');
 
             return self::FAILURE;
         }
