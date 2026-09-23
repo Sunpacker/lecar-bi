@@ -4,7 +4,15 @@ import React from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { BarChart3, Package, Users, Bell, Settings, LayoutDashboard } from 'lucide-react'
+import {
+  BarChart3,
+  Package,
+  Users,
+  Bell,
+  Settings,
+  LayoutDashboard,
+  UploadCloud,
+} from 'lucide-react'
 
 export interface NavigationItem {
   name: string
@@ -18,6 +26,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { name: 'Sales Analytics', href: '/', icon: BarChart3 },
   { name: 'Inventory', href: '/inventory', icon: Package },
   { name: 'Dashboards', href: '/dashboards', icon: LayoutDashboard },
+  { name: 'Импорт данных', href: '/imports', icon: UploadCloud },
   { name: 'Suppliers', href: '/suppliers', icon: Users, disabled: true, badge: 'Скоро' },
   { name: 'Alerts', href: '/alerts', icon: Bell, disabled: true, badge: 'Скоро' },
   { name: 'Settings', href: '/settings', icon: Settings, disabled: true, badge: 'Скоро' },
