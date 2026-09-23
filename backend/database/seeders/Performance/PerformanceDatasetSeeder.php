@@ -20,9 +20,9 @@ final class PerformanceDatasetSeeder extends Seeder
         int $seed = 42,
         ?callable $progressCallback = null
     ): void {
-        // 1. Safety guards
-        if (app()->environment('production')) {
-            throw new RuntimeException('Performance seeding is strictly forbidden in production environment.');
+        // 1. Safety guards: strictly restricted to local and testing environments
+        if (! app()->environment(['local', 'testing'])) {
+            throw new RuntimeException('Performance seeding is strictly restricted to local and testing environments.');
         }
 
         if (! str_starts_with($workspaceId, 'perf-')) {

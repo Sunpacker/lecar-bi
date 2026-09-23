@@ -46,38 +46,44 @@ final class PerformanceCommandSafetyTest extends TestCase
     }
 
     #[Test]
-    public function seed_command_rejects_production_environment(): void
+    public function seed_command_rejects_non_local_or_testing_environment(): void
     {
         $originalEnv = $this->app->environment();
-        $this->app['env'] = 'production';
 
-        try {
-            $this->artisan('performance:seed', [
-                '--workspace' => 'perf-ws-test',
-                '--profile' => 'small',
-            ])
-                ->assertFailed()
-                ->expectsOutputToContain('CRITICAL SAFETY ERROR: performance:seed is strictly forbidden in production environment.');
-        } finally {
-            $this->app['env'] = $originalEnv;
+        foreach (['production', 'staging'] as $env) {
+            $this->app['env'] = $env;
+
+            try {
+                $this->artisan('performance:seed', [
+                    '--workspace' => 'perf-ws-test',
+                    '--profile' => 'small',
+                ])
+                    ->assertFailed()
+                    ->expectsOutputToContain('CRITICAL SAFETY ERROR: performance:seed is strictly restricted to local and testing environments.');
+            } finally {
+                $this->app['env'] = $originalEnv;
+            }
         }
     }
 
     #[Test]
-    public function benchmark_command_rejects_production_environment(): void
+    public function benchmark_command_rejects_non_local_or_testing_environment(): void
     {
         $originalEnv = $this->app->environment();
-        $this->app['env'] = 'production';
 
-        try {
-            $this->artisan('performance:benchmark', [
-                '--workspace' => 'perf-ws-test',
-                '--profile' => 'small',
-            ])
-                ->assertFailed()
-                ->expectsOutputToContain('CRITICAL SAFETY ERROR: performance:benchmark is strictly forbidden in production environment.');
-        } finally {
-            $this->app['env'] = $originalEnv;
+        foreach (['production', 'staging'] as $env) {
+            $this->app['env'] = $env;
+
+            try {
+                $this->artisan('performance:benchmark', [
+                    '--workspace' => 'perf-ws-test',
+                    '--profile' => 'small',
+                ])
+                    ->assertFailed()
+                    ->expectsOutputToContain('CRITICAL SAFETY ERROR: performance:benchmark is strictly restricted to local and testing environments.');
+            } finally {
+                $this->app['env'] = $originalEnv;
+            }
         }
     }
 
