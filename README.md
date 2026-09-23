@@ -1,18 +1,20 @@
 # AutoBI
 
-Проект разделён на два самостоятельных deployable-сервиса:
+Проект разделён на три самостоятельных deployable-сервиса:
 
 - `frontend` — отдельное Next.js-приложение на React/TypeScript.
 - `backend` — отдельный Laravel analytics-микросервис на PHP.
+- `notification` — отдельный Laravel notification-микросервис на PHP для обработки интеграционных событий.
 
-Frontend и backend не разделяют исходный код и не импортируют внутренности друг друга. Взаимодействие выполняется только через OpenAPI HTTP API и будущие integration events.
+Сервисы не разделяют исходный код, хранилища и не импортируют внутренности друг друга. Взаимодействие выполняется через OpenAPI HTTP API и асинхронные Integration Events через Redis Streams.
 
 ## Структура
 
 - `frontend/` — только Next.js, React, TypeScript и frontend-конфигурация.
-- `backend/` — только Laravel/PHP, DDD bounded contexts и backend-конфигурация.
-- `contracts/openapi/` — публичный API-контракт.
-- `infra/docker-compose.yml` — orchestration frontend, backend, PostgreSQL и Redis.
+- `backend/` — только Laravel/PHP, DDD bounded contexts и аналитическая база данных.
+- `notification/` — только Laravel/PHP, обработчики событий Redis Streams и изолированная БД уведомлений.
+- `contracts/` — публичный OpenAPI-контракт и схемы интеграционных событий (JSON Schema).
+- `infra/docker-compose.yml` — orchestration frontend, backend, notification, PostgreSQL (analytics), notification-postgres и Redis.
 - `docs/` — архитектурные правила и локальный запуск.
 
 ## Режим разработки
@@ -44,8 +46,10 @@ cp infra/.env.example infra/.env
 С настройками по умолчанию сервисы будут доступны по адресам:
 
 - Frontend: `http://localhost:3000`
-- Backend: `http://localhost:8080`
-- Backend health: `http://localhost:8080/api/v1/health`
+- Analytics Backend: `http://localhost:8080`
+- Analytics health: `http://localhost:8080/api/v1/health`
+- Notification Service: `http://localhost:8081`
+- Notification health (liveness/readiness): `http://localhost:8081/api/v1/health/live`, `http://localhost:8081/api/v1/health/ready`
 
 ## Проверки качества
 
@@ -53,7 +57,7 @@ cp infra/.env.example infra/.env
 make check
 ```
 
-Команда валидирует OpenAPI, обновляет generated TypeScript schema, запускает frontend lint, format check, typecheck, tests и production build, затем проверяет Composer metadata, форматирование, статический анализ, архитектурные ограничения и backend tests.
+Команда валидирует OpenAPI, обновляет generated TypeScript schema, запускает frontend lint, format check, typecheck, tests и production build, проверяет Composer metadata, форматирование, статический анализ, архитектурные ограничения и тесты backend, а затем аналогичные проверки качества (composer validate, Pint, PHPStan, PHPUnit) для сервиса notification.
 
 Для проверки уже запущенного полного стека:
 
@@ -78,11 +82,21 @@ npm --prefix frontend ci
 make dev-frontend
 ```
 
-Backend:
+Analytics Backend:
 
 ```bash
 cd backend
 composer install
 cp .env.example .env
 php artisan serve --host=0.0.0.0 --port=8080
+```
+
+Notification Service:
+
+```bash
+cd notification
+composer install
+cp .env.example .env
+php artisan serve --host=0.0.0.0 --port=8081
+php artisan notifications:consume
 ```

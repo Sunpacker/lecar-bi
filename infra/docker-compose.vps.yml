@@ -96,8 +96,106 @@ services:
     networks:
       - internal
 
+  notification:
+    image: ${NOTIFICATION_IMAGE:-lecar-bi/notification:latest}
+    build:
+      context: ../notification
+      dockerfile: Dockerfile
+    environment:
+      APP_NAME: ${NOTIFICATION_APP_NAME:-Lecar Notification}
+      APP_ENV: production
+      APP_KEY: ${NOTIFICATION_APP_KEY:?NOTIFICATION_APP_KEY must be set}
+      APP_DEBUG: "false"
+      APP_URL: ${NOTIFICATION_APP_URL:-http://localhost:8081}
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: info
+      DB_CONNECTION: pgsql
+      DB_HOST: notification-postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${NOTIFICATION_POSTGRES_DB:-lecar_notification}
+      DB_USERNAME: ${NOTIFICATION_POSTGRES_USER:-lecar_notification}
+      DB_PASSWORD: ${NOTIFICATION_POSTGRES_PASSWORD:?NOTIFICATION_POSTGRES_PASSWORD must be set}
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      INTEGRATION_EVENTS_REDIS_DB: ${INTEGRATION_EVENTS_REDIS_DB:-2}
+      INTEGRATION_STREAM_NAME: ${INTEGRATION_STREAM_NAME:-autobi.integration-events}
+      INTEGRATION_GROUP_NAME: ${INTEGRATION_GROUP_NAME:-notification-service-v1}
+      INTEGRATION_CONSUMER_NAME: notification-http
+      INTEGRATION_DEAD_LETTER_STREAM: ${INTEGRATION_DEAD_LETTER_STREAM:-autobi.integration-events.dead-letter}
+    expose:
+      - "8081"
+    depends_on:
+      notification-postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        ["CMD-SHELL", "curl -fsS http://127.0.0.1:8081/api/v1/health/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - internal
+
+  notification-worker:
+    image: ${NOTIFICATION_IMAGE:-lecar-bi/notification:latest}
+    command: ["php", "artisan", "notifications:consume"]
+    environment:
+      APP_NAME: ${NOTIFICATION_APP_NAME:-Lecar Notification}
+      APP_ENV: production
+      APP_KEY: ${NOTIFICATION_APP_KEY:?NOTIFICATION_APP_KEY must be set}
+      APP_DEBUG: "false"
+      APP_URL: ${NOTIFICATION_APP_URL:-http://localhost:8081}
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: info
+      DB_CONNECTION: pgsql
+      DB_HOST: notification-postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${NOTIFICATION_POSTGRES_DB:-lecar_notification}
+      DB_USERNAME: ${NOTIFICATION_POSTGRES_USER:-lecar_notification}
+      DB_PASSWORD: ${NOTIFICATION_POSTGRES_PASSWORD:?NOTIFICATION_POSTGRES_PASSWORD must be set}
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      INTEGRATION_EVENTS_REDIS_DB: ${INTEGRATION_EVENTS_REDIS_DB:-2}
+      INTEGRATION_STREAM_NAME: ${INTEGRATION_STREAM_NAME:-autobi.integration-events}
+      INTEGRATION_GROUP_NAME: ${INTEGRATION_GROUP_NAME:-notification-service-v1}
+      INTEGRATION_CONSUMER_NAME: notification-worker-1
+      INTEGRATION_DEAD_LETTER_STREAM: ${INTEGRATION_DEAD_LETTER_STREAM:-autobi.integration-events.dead-letter}
+    depends_on:
+      notification-postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - internal
+
+  notification-postgres:
+    image: ${POSTGRES_IMAGE:-postgres:16-alpine}
+    environment:
+      POSTGRES_DB: ${NOTIFICATION_POSTGRES_DB:-lecar_notification}
+      POSTGRES_USER: ${NOTIFICATION_POSTGRES_USER:-lecar_notification}
+      POSTGRES_PASSWORD: ${NOTIFICATION_POSTGRES_PASSWORD:?NOTIFICATION_POSTGRES_PASSWORD must be set}
+    volumes:
+      - notification-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - internal
+
 volumes:
   postgres-data:
+  notification-postgres-data:
   redis-data:
 
 networks:

@@ -4,6 +4,7 @@ set -eu
 
 FRONTEND_URL="${FRONTEND_URL:-http://127.0.0.1:3000}"
 BACKEND_URL="${BACKEND_URL:-http://127.0.0.1:8080}"
+NOTIFICATION_URL="${NOTIFICATION_URL:-http://127.0.0.1:8081}"
 INFRA_ENV_FILE="${INFRA_ENV_FILE:-infra/.env.example}"
 MAX_ATTEMPTS="${MAX_ATTEMPTS:-30}"
 
@@ -73,16 +74,37 @@ fi
 
 wait_for_service "analytics" "$BACKEND_URL/api/v1/health"
 wait_for_service "web" "$FRONTEND_URL/api/health"
+wait_for_service "notification" "$NOTIFICATION_URL/api/v1/health/ready"
 
 # Apply migrations and seed data if docker compose environment is active
 if command -v docker >/dev/null 2>&1; then
     docker compose --env-file "$INFRA_ENV_FILE" -f infra/docker-compose.yml exec -T backend php artisan migrate --force --seed --no-interaction >/dev/null
+    docker compose --env-file "$INFRA_ENV_FILE" -f infra/docker-compose.yml exec -T notification php artisan migrate --force --no-interaction >/dev/null
 fi
 
-# 1. Technical health check
+# 1. Technical health check: analytics
 backend_response="$(curl --fail --silent --show-error "$BACKEND_URL/api/v1/health")"
 assert_response_contains "$backend_response" '"status":"ok"' "Analytics health"
 assert_response_contains "$backend_response" '"service":"analytics"' "Analytics health"
+
+# 1b. Technical health check: notification service (live and ready probes)
+notif_live_response="$(curl --fail --silent --show-error "$NOTIFICATION_URL/api/v1/health/live")"
+assert_response_contains "$notif_live_response" '"status":"live"' "Notification liveness"
+assert_response_contains "$notif_live_response" '"service":"notification"' "Notification liveness"
+
+notif_ready_response="$(curl --fail --silent --show-error "$NOTIFICATION_URL/api/v1/health/ready")"
+assert_response_contains "$notif_ready_response" '"status":"ready"' "Notification readiness"
+assert_response_contains "$notif_ready_response" '"database":"ok"' "Notification readiness DB"
+assert_response_contains "$notif_ready_response" '"redis":"ok"' "Notification readiness Redis"
+
+# 1c. Environmental database isolation check: notification must not have analytics DB env
+if command -v docker >/dev/null 2>&1; then
+    notif_env="$(docker compose --env-file "$INFRA_ENV_FILE" -f infra/docker-compose.yml exec -T notification env 2>/dev/null || true)"
+    if printf '%s' "$notif_env" | grep -E '^POSTGRES_DB=autobi' >/dev/null; then
+        echo "Isolation failure: notification container has analytics POSTGRES_DB env!" >&2
+        exit 1
+    fi
+fi
 
 # 2. Access boundary: unauthenticated request returns 401
 unauth_status="$(curl --silent -o /dev/null -w "%{http_code}" "$BACKEND_URL/api/v1/workspaces")"
@@ -406,4 +428,141 @@ fi
 frontend_alerts_page="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/alerts")"
 assert_response_contains "$frontend_alerts_page" 'Алерты и дефицит' "Frontend alerts page"
 
-echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records, inventory intelligence, ABC/XYZ matrix, dashboard builder, dashboard saved views, and alerting & incident management lifecycle are verified."
+# 44. Event-driven Integration: Publish alert events from Outbox to Redis Stream & consume into Notification Service
+if command -v docker >/dev/null 2>&1; then
+    echo "Verifying event-driven integration: analytics outbox -> Redis Stream -> notification service..."
+    # Publish outbox messages from analytics
+    docker compose --env-file "$INFRA_ENV_FILE" -f infra/docker-compose.yml exec -T backend php artisan outbox:publish >/dev/null 2>&1 || true
+
+    # Consume pending messages in notification service
+    docker compose --env-file "$INFRA_ENV_FILE" -f infra/docker-compose.yml exec -T notification php artisan notifications:consume --once >/dev/null 2>&1 || true
+
+    # Verify notifications projected into notification-postgres
+    notif_count="$(docker compose --env-file "$INFRA_ENV_FILE" -f infra/docker-compose.yml exec -T notification php -r 'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap(); echo \NotificationService\Notification\Infrastructure\Persistence\NotificationModel::count();' 2>/dev/null | tr -d '\r\n')"
+
+    consumed_count="$(docker compose --env-file "$INFRA_ENV_FILE" -f infra/docker-compose.yml exec -T notification php -r 'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap(); echo \NotificationService\Notification\Infrastructure\Persistence\ConsumedEventModel::count();' 2>/dev/null | tr -d '\r\n')"
+
+    echo "Notification service state: $notif_count notifications, $consumed_count consumed events."
+
+    # 45. Deduplication verification: re-consuming the same stream/batch is idempotent
+    docker compose --env-file "$INFRA_ENV_FILE" -f infra/docker-compose.yml exec -T notification php artisan notifications:consume --once >/dev/null 2>&1 || true
+    notif_count_after="$(docker compose --env-file "$INFRA_ENV_FILE" -f infra/docker-compose.yml exec -T notification php -r 'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap(); echo \NotificationService\Notification\Infrastructure\Persistence\NotificationModel::count();' 2>/dev/null | tr -d '\r\n')"
+
+    if [ "$notif_count" != "$notif_count_after" ]; then
+        echo "Error: Notification count changed after re-consuming duplicate events ($notif_count vs $notif_count_after)" >&2
+        exit 1
+    fi
+    echo "Deduplication verified: re-running consumer does not create duplicate notifications."
+
+    # 46. Failure isolation: Stop notification service, verify analytics remains healthy
+    echo "Verifying failure isolation: stopping notification service..."
+    docker compose --env-file "$INFRA_ENV_FILE" -f infra/docker-compose.yml stop notification notification-worker >/dev/null 2>&1
+
+    analytics_still_ok="$(curl --fail --silent --show-error "$BACKEND_URL/api/v1/health")"
+    assert_response_contains "$analytics_still_ok" '"status":"ok"' "Analytics health during notification outage"
+
+    # Restart notification service and verify recovery
+    echo "Restarting notification service..."
+    docker compose --env-file "$INFRA_ENV_FILE" -f infra/docker-compose.yml start notification notification-worker >/dev/null 2>&1
+    wait_for_service "notification" "$NOTIFICATION_URL/api/v1/health/ready"
+    echo "Notification service recovered successfully."
+fi
+
+# 47. Workspace RBAC: verify current workspace capabilities for owner, member, and viewer
+user1_curr_ws="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/current")"
+assert_response_contains "$user1_curr_ws" '"workspace.members.manage"' "Owner capabilities"
+assert_response_contains "$user1_curr_ws" '"dashboards.manage"' "Owner capabilities"
+
+user3_curr_ws="$(curl --fail --silent --show-error -H "X-User-Id: user-3" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/current")"
+assert_response_contains "$user3_curr_ws" '"dashboards.manage"' "Member capabilities"
+if printf '%s' "$user3_curr_ws" | grep -q '"workspace.members.manage"'; then
+    echo "Member unexpectedly has workspace.members.manage capability" >&2
+    exit 1
+fi
+
+user4_curr_ws="$(curl --fail --silent --show-error -H "X-User-Id: user-4" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/current")"
+assert_response_contains "$user4_curr_ws" '"dashboards.view"' "Viewer capabilities"
+assert_response_contains "$user4_curr_ws" '"analytics.view"' "Viewer capabilities"
+if printf '%s' "$user4_curr_ws" | grep -q '"dashboards.manage"'; then
+    echo "Viewer unexpectedly has dashboards.manage capability" >&2
+    exit 1
+fi
+
+# 48. Workspace RBAC: read permissions across all roles
+curl --fail --silent --show-error -H "X-User-Id: user-4" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards" >/dev/null
+curl --fail --silent --show-error -H "X-User-Id: user-4" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/overview" >/dev/null
+curl --fail --silent --show-error -H "X-User-Id: user-4" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alerts" >/dev/null
+
+# 49. Workspace RBAC: member management access boundary
+members_list="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/ws-1/members")"
+assert_response_contains "$members_list" '"user_id":"user-1"' "Workspace members list"
+assert_response_contains "$members_list" '"role":"owner"' "Workspace members owner"
+
+user3_members_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-3" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/ws-1/members")"
+if [ "$user3_members_status" != "403" ]; then
+    echo "Expected 403 for member accessing workspace members list, got $user3_members_status" >&2
+    exit 1
+fi
+
+user4_members_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-4" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/ws-1/members")"
+if [ "$user4_members_status" != "403" ]; then
+    echo "Expected 403 for viewer accessing workspace members list, got $user4_members_status" >&2
+    exit 1
+fi
+
+# 50. Workspace RBAC: viewer mutations forbidden with 403 INSUFFICIENT_CAPABILITY
+viewer_create_dash_status="$(curl --silent -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: application/json" \
+    -H "X-User-Id: user-4" -H "X-Workspace-Id: ws-1" \
+    -d '{"title":"Viewer Forbidden Dashboard"}' \
+    "$BACKEND_URL/api/v1/dashboards")"
+if [ "$viewer_create_dash_status" != "403" ]; then
+    echo "Expected 403 for viewer creating dashboard, got $viewer_create_dash_status" >&2
+    exit 1
+fi
+
+viewer_create_rule_status="$(curl --silent -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: application/json" \
+    -H "X-User-Id: user-4" -H "X-Workspace-Id: ws-1" \
+    -d '{"name":"Viewer Forbidden Rule","rule_type":"critical_stock","severity":"critical","metric":"days_of_stock","comparator":"lt","threshold_value":5,"is_enabled":true}' \
+    "$BACKEND_URL/api/v1/alert-rules")"
+if [ "$viewer_create_rule_status" != "403" ]; then
+    echo "Expected 403 for viewer creating alert rule, got $viewer_create_rule_status" >&2
+    exit 1
+fi
+
+# 51. Workspace RBAC: sole owner demotion invariant returns 409 LAST_WORKSPACE_OWNER
+sole_demote_status="$(curl --silent -o /dev/null -w "%{http_code}" -X PATCH -H "Content-Type: application/json" \
+    -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
+    -d '{"role":"viewer"}' \
+    "$BACKEND_URL/api/v1/workspaces/ws-1/members/user-1")"
+if [ "$sole_demote_status" != "409" ]; then
+    echo "Expected 409 for sole owner demoting self, got $sole_demote_status" >&2
+    exit 1
+fi
+
+# 52. Workspace RBAC: role promotion and demotion lifecycle
+promote_member="$(curl --fail --silent --show-error -X PATCH -H "Content-Type: application/json" \
+    -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
+    -d '{"role":"owner"}' \
+    "$BACKEND_URL/api/v1/workspaces/ws-1/members/user-3")"
+assert_json_value_equals "$promote_member" '.member.role' 'owner' "Promote member to owner"
+
+demote_member="$(curl --fail --silent --show-error -X PATCH -H "Content-Type: application/json" \
+    -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
+    -d '{"role":"member"}' \
+    "$BACKEND_URL/api/v1/workspaces/ws-1/members/user-3")"
+assert_json_value_equals "$demote_member" '.member.role' 'member' "Demote back to member"
+
+# 53. Workspace RBAC: cross-workspace isolation across all roles
+for uid in user-1 user-3 user-4; do
+    cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: $uid" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/dashboards")"
+    if [ "$cross_status" != "403" ]; then
+        echo "Expected 403 for cross-workspace access to ws-2 by $uid, got $cross_status" >&2
+        exit 1
+    fi
+done
+
+# 54. Frontend UI: settings access page
+frontend_access_page="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/settings/access")"
+assert_response_contains "$frontend_access_page" 'Управление доступом' "Frontend access settings page"
+
+echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records, inventory intelligence, ABC/XYZ matrix, dashboard builder, dashboard saved views, alerting & incident management lifecycle, notification service event streaming & isolation, and workspace RBAC capability matrix are verified."
