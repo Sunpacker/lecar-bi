@@ -1,0 +1,29 @@
+{
+  "event_id": "evt-0123456789abcdef0123456789abcdef",
+  "event_type": "alert.triggered",
+  "event_version": 1,
+  "occurred_at": "2026-09-23T10:00:00+00:00",
+  "producer": "analytics",
+  "workspace_id": "ws-demo-001",
+  "aggregate": {
+    "type": "alert",
+    "id": "alt-0a1b2c3d4e5f"
+  },
+  "payload": {
+    "rule_id": "rule-reorder-kolodki",
+    "rule_name": "Reorder Point — Тормозные колодки",
+    "severity": "critical",
+    "metric": "quantity_available",
+    "comparator": "lte",
+    "current_value": 5,
+    "threshold_value": 20,
+    "analytical_context": {
+      "target": "inventory",
+      "product_id": "prod-kolodki-001",
+      "product_name": "Тормозные колодки передние",
+      "product_sku": "BRK-FRONT-001",
+      "warehouse_id": "wh-central-msk",
+      "warehouse_name": "Центральный склад Москва"
+    }
+  }
+}
