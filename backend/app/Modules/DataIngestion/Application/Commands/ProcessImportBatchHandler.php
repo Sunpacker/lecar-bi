@@ -108,7 +108,7 @@ final class ProcessImportBatchHandler
 
             if ($failed > 0 && $successful > 0) {
                 $batch->markCompletedWithErrors();
-            } elseif ($failed > 0 && $successful === 0) {
+            } elseif ($failed > 0) {
                 $batch->markFailed('All rows in dataset failed validation.');
             } else {
                 $batch->markCompleted();
