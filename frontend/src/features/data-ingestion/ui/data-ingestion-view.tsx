@@ -7,6 +7,7 @@ import { ImportBatchDetailSheet } from './import-batch-detail-sheet'
 import { importGateway } from '../api/import-gateway'
 import type { ImportBatchSummary, DatasetType, ImportStatus } from '../api/import-gateway'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { RefreshCw, Filter } from 'lucide-react'
 
 interface DataIngestionViewProps {
@@ -169,12 +170,23 @@ export function DataIngestionView({ userId, workspaceId }: DataIngestionViewProp
           </div>
         </div>
 
-        <ImportBatchList
-          batches={batches}
-          onSelectBatch={handleSelectBatch}
-          onRetryBatch={handleRetry}
-          retryingBatchId={retryingBatchId}
-        />
+        {isLoading && batches.length === 0 ? (
+          <div
+            data-testid="import-loading-skeleton"
+            className="rounded-xl border border-border/70 p-6 space-y-3 bg-card/60"
+          >
+            <Skeleton className="h-8 w-full" />
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-12 w-full" />
+          </div>
+        ) : (
+          <ImportBatchList
+            batches={batches}
+            onSelectBatch={handleSelectBatch}
+            onRetryBatch={handleRetry}
+            retryingBatchId={retryingBatchId}
+          />
+        )}
       </div>
 
       <ImportBatchDetailSheet

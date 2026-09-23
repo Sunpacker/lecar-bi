@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react'
+import React from 'react'
 import { redirect } from 'next/navigation'
 import { getSession } from '../../../src/features/auth/model/session'
 import {
@@ -6,7 +6,6 @@ import {
   type CurrentWorkspace,
 } from '../../../src/features/workspace/api/workspace-gateway'
 import { DataIngestionView } from '../../../src/features/data-ingestion/ui/data-ingestion-view'
-import { Skeleton } from '@/components/ui/skeleton'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,16 +42,7 @@ export default async function ImportsPage() {
         </p>
       </div>
 
-      <Suspense
-        fallback={
-          <div className="space-y-4 py-4">
-            <Skeleton className="h-48 w-full rounded-xl" />
-            <Skeleton className="h-64 w-full rounded-xl" />
-          </div>
-        }
-      >
-        <DataIngestionView userId={userId} workspaceId={workspaceId} />
-      </Suspense>
+      <DataIngestionView userId={userId} workspaceId={workspaceId} />
     </main>
   )
 }

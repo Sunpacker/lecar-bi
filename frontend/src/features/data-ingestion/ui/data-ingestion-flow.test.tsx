@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { DataIngestionView } from './data-ingestion-view'
 import { importGateway } from '../api/import-gateway'
 import type { ImportBatchSummary } from '../api/import-gateway'
@@ -46,6 +46,49 @@ describe('DataIngestionView E2E Flow', () => {
 
   afterEach(() => {
     vi.useRealTimers()
+  })
+
+  it('renders loading skeleton placeholder when isLoading and batches are empty', async () => {
+    let resolveBatches!: (value: {
+      items: ImportBatchSummary[]
+      total: number
+      page: number
+      per_page: number
+      total_pages: number
+    }) => void
+
+    const batchesPromise = new Promise<{
+      items: ImportBatchSummary[]
+      total: number
+      page: number
+      per_page: number
+      total_pages: number
+    }>((resolve) => {
+      resolveBatches = resolve
+    })
+
+    vi.mocked(importGateway.getBatches).mockReturnValue(batchesPromise)
+
+    render(<DataIngestionView userId="user-1" workspaceId="ws-1" />)
+
+    // While loading and batches.length === 0, skeleton should be rendered
+    expect(screen.getByTestId('import-loading-skeleton')).toBeDefined()
+    expect(screen.queryByText(/Нет загруженных наборов данных/i)).toBeNull()
+
+    // When batches resolve, skeleton should disappear and data should be shown
+    await act(async () => {
+      resolveBatches({
+        items: [completedBatch],
+        total: 1,
+        page: 1,
+        per_page: 20,
+        total_pages: 1,
+      })
+      await batchesPromise
+    })
+
+    expect(screen.queryByTestId('import-loading-skeleton')).toBeNull()
+    expect(screen.getByText('sales_running.csv')).toBeDefined()
   })
 
   it('loads batch list and polls until processing completes', async () => {
