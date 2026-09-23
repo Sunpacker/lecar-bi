@@ -353,4 +353,57 @@ if [ "$deleted_get_status" != "404" ]; then
     exit 1
 fi
 
-echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records, inventory intelligence, ABC/XYZ matrix, dashboard builder, and dashboard saved views CRUD lifecycle are verified."
+# 36. Alert Rules: Create alert rule via POST
+created_rule_json="$(curl --fail --silent --show-error -H "Content-Type: application/json" \
+    -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
+    -d '{"name":"Интеграционное правило","rule_type":"critical_stock","severity":"critical","metric":"days_of_stock","comparator":"lt","threshold_value":5,"is_enabled":true}' \
+    "$BACKEND_URL/api/v1/alert-rules")"
+assert_json_value_equals "$created_rule_json" '.rule.name' 'Интеграционное правило' "Alert rule creation"
+assert_json_value_equals "$created_rule_json" '.rule.severity' 'critical' "Alert rule severity"
+CUSTOM_RULE_ID="$(get_required_json_value "$created_rule_json" '.rule.id' "Alert rule creation")"
+
+# 37. Alert Rules: Toggle rule status
+toggled_rule_json="$(curl --fail --silent --show-error -X POST -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alert-rules/$CUSTOM_RULE_ID/toggle")"
+assert_json_value_equals "$toggled_rule_json" '.rule.is_enabled' 'false' "Alert rule toggle"
+
+# 38. Alert Rules: Evaluate rules endpoint
+eval_result_json="$(curl --fail --silent --show-error -X POST -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alert-rules/evaluate")"
+assert_response_contains "$eval_result_json" '"rules_evaluated"' "Alert rules evaluation"
+
+# 39. Alerts: Summary and list
+alerts_summary_json="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alerts/summary")"
+assert_response_contains "$alerts_summary_json" '"total_active"' "Alerts summary total_active"
+
+alerts_list_json="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alerts?status=active")"
+assert_response_contains "$alerts_list_json" '"items"' "Alerts list items"
+TEST_ALERT_ID="$(get_required_json_value "$alerts_list_json" '.items[0].id' "Alerts list first item")"
+
+# 40. Alerts: Acknowledge & Resolve lifecycle
+ack_alert_json="$(curl --fail --silent --show-error -X POST -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alerts/$TEST_ALERT_ID/acknowledge")"
+assert_json_value_equals "$ack_alert_json" '.alert.status' 'acknowledged' "Alert acknowledge"
+
+resolve_alert_json="$(curl --fail --silent --show-error -X POST -H "Content-Type: application/json" \
+    -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
+    -d '{"resolution_note":"Интеграционная проверка решения"}' \
+    "$BACKEND_URL/api/v1/alerts/$TEST_ALERT_ID/resolve")"
+assert_json_value_equals "$resolve_alert_json" '.alert.status' 'resolved' "Alert resolve"
+
+# 41. Cross-tenant isolation on alerts: user-2 accessing ws-1 alerts returns 403
+cross_alert_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-2" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alerts")"
+if [ "$cross_alert_status" != "403" ]; then
+    echo "Expected 403 for cross-workspace access to alerts, got $cross_alert_status" >&2
+    exit 1
+fi
+
+# 42. Delete test alert rule
+del_rule_status="$(curl --silent -o /dev/null -w "%{http_code}" -X DELETE -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alert-rules/$CUSTOM_RULE_ID")"
+if [ "$del_rule_status" != "204" ]; then
+    echo "Expected 204 for DELETE alert rule, got $del_rule_status" >&2
+    exit 1
+fi
+
+# 43. Frontend Alerts page
+frontend_alerts_page="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/alerts")"
+assert_response_contains "$frontend_alerts_page" 'Алерты и дефицит' "Frontend alerts page"
+
+echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records, inventory intelligence, ABC/XYZ matrix, dashboard builder, dashboard saved views, and alerting & incident management lifecycle are verified."
