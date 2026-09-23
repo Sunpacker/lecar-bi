@@ -2,6 +2,15 @@
 
 namespace App\Providers;
 
+use App\Modules\Alerting\Application\Contracts\InventoryAlertSourceInterface;
+use App\Modules\Alerting\Domain\Repositories\AlertRepositoryInterface;
+use App\Modules\Alerting\Domain\Repositories\AlertRuleRepositoryInterface;
+use App\Modules\Alerting\Infrastructure\Adapters\InMemoryInventoryAlertSource;
+use App\Modules\Alerting\Infrastructure\Adapters\PostgresInventoryAlertSource;
+use App\Modules\Alerting\Infrastructure\Repositories\EloquentAlertRepository;
+use App\Modules\Alerting\Infrastructure\Repositories\EloquentAlertRuleRepository;
+use App\Modules\Alerting\Infrastructure\Repositories\InMemoryAlertRepository;
+use App\Modules\Alerting\Infrastructure\Repositories\InMemoryAlertRuleRepository;
 use App\Modules\Dashboard\Domain\Repositories\DashboardRepositoryInterface;
 use App\Modules\Dashboard\Domain\Repositories\SavedViewRepositoryInterface;
 use App\Modules\Dashboard\Infrastructure\Persistence\Eloquent\Repositories\EloquentDashboardRepository;
@@ -138,6 +147,30 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->singleton(ImportJobDispatcherInterface::class, function () {
             return new QueueImportJobDispatcher;
+        });
+
+        $this->app->singleton(AlertRuleRepositoryInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new InMemoryAlertRuleRepository;
+            }
+
+            return new EloquentAlertRuleRepository;
+        });
+
+        $this->app->singleton(AlertRepositoryInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new InMemoryAlertRepository;
+            }
+
+            return new EloquentAlertRepository;
+        });
+
+        $this->app->singleton(InventoryAlertSourceInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new InMemoryInventoryAlertSource;
+            }
+
+            return new PostgresInventoryAlertSource;
         });
     }
 
