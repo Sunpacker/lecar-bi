@@ -8,22 +8,26 @@
 
 ## Базовые инфраструктурные компоненты
 
-На старте используются:
+В состав инфраструктуры входят:
 
-- Next.js;
-- Laravel;
-- PostgreSQL;
-- Redis.
+- `frontend` — Next.js UI / BFF;
+- `backend` — Laravel Analytics Service;
+- `postgres` (analytics) — хранилище аналитики и outbox;
+- `notification` — Laravel Notification Service (HTTP health/readiness endpoints);
+- `notification-worker` — процесс потребления событий `notifications:consume`;
+- `notification-postgres` — отдельная база данных PostgreSQL и volume для сервиса уведомлений;
+- `redis` — общий транспорт интеграционных событий (Streams), кэш и очереди.
 
-Дополнительные компоненты добавляются только при наличии реальной необходимости.
+Notification service не получает учетных данных от `postgres` аналитики и не имеет сетевой зависимости от нее.
 
 ## Независимый деплой
 
-Frontend и backend должны разворачиваться независимо.
+Frontend, Analytics и Notification разворачиваются независимо:
 
-Изменение web-сервиса не должно автоматически требовать пересборки analytics-сервиса.
-
-Изменение analytics-сервиса не должно требовать пересборки frontend при отсутствии изменений контракта.
+- Каждый сервис имеет собственный Dockerfile и build target.
+- Изменение Notification Service не требует пересборки Analytics или Frontend.
+- Остановка `notification` или `notification-worker` не влияет на readiness/liveness сервисов Analytics и Frontend.
+- Скрипты миграций выполняются независимо для каждой базы данных.
 
 ## Конфигурация
 
@@ -57,15 +61,13 @@ Frontend и backend должны разворачиваться независи
 
 ## Health Checks
 
-Каждый сервис должен предоставлять технические health checks.
+Каждый сервис предоставляет технические health checks:
 
-Необходимо различать:
-
-- готовность процесса;
-- доступность внешних зависимостей;
-- состояние базы данных;
-- состояние Redis;
-- состояние фоновых workers.
+- **Analytics Service:** `GET /api/v1/health` — проверка доступности HTTP API и готовности сервиса.
+- **Notification Service:**
+  - `GET /api/v1/health/live` — liveness probe: проверяет, что HTTP-процесс запущен и принимает запросы.
+  - `GET /api/v1/health/ready` — readiness probe: проверяет доступность локальной PostgreSQL notification service и Redis Stream транспорта. Analytics не является runtime-зависимостью и не опрашивается.
+- Состояние фоновых workers логируется структурно (heartbeat / processed count). Остановка worker не влияет на liveness веб-процессов.
 
 ## Будущие инструменты
 

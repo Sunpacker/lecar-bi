@@ -52,18 +52,28 @@ HTTP подходит для сценариев, где:
 - нужна слабая связанность;
 - обработка может выполняться независимо.
 
+### Интеграция Analytics → Notification
+
+Интеграция между сервисом аналитики и сервисом уведомлений построена на асинхронных событиях:
+
+1. **Транспорт:** Redis Stream `autobi.integration-events`.
+2. **Публикация:** Сервис аналитики регистрирует событие в PostgreSQL Outbox в той же транзакции, что и бизнес-изменение (Transactional Outbox). Фоновый worker публикует событие в Redis Stream через команду `XADD` с полями `event_id`, `event_type`, `event_version` и `payload` (JSON-сериализованный канонический envelope).
+3. **Потребление:** Сервис уведомлений читает поток через consumer group `notification-service-v1` с помощью `XREADGROUP` и `XAUTOCLAIM`.
+4. **Автономия:** Сервис уведомлений никогда не делает обратных синхронных HTTP-вызовов к analytics API и не обращается к analytics DB. Вся необходимая информация для формирования заголовка, тела и аналитического контекста уведомления содержится в каноническом payload события `alert.triggered.v1`.
+
 ## Anti-Corruption Layer
 
-При интеграции с внешними системами не следует напрямую переносить их модели в domain.
+При интеграции с внешними системами и при приёме событий не следует напрямую переносить внешние или транспортные структуры в Domain.
 
-Внешние данные должны преобразовываться во внутренние понятия через отдельный integration layer.
+В Notification Service:
+- транспортный Redis Stream envelope декодируется декодером `AlertTriggeredV1Decoder` в неизменяемый прикладной DTO `AlertTriggeredV1`;
+- Application use case `ConsumeAlertTriggered` преобразует DTO в локальную доменную сущность `Notification` и запись дедупликации `ConsumedEvent`;
+- Domain слой сервиса уведомлений ничего не знает о Redis, Eloquent или моделях сервиса аналитики.
 
-## Совместимость
+## Совместимость и версионирование
 
-При развитии API и event contracts необходимо учитывать:
+При развитии API и event contracts соблюдается строгая политика совместимости:
 
-- backward compatibility;
-- versioning;
-- deprecation;
-- migration period;
-- отсутствие скрытых breaking changes.
+- **OpenAPI HTTP API:** версионируется в URL (`/api/v1/...`). Несовместимые изменения оформляются через deprecation и новую версию API.
+- **Event Contracts:** схема `alert.triggered.v1` (`contracts/events/alert-triggered.v1.schema.json`) после публикации неизменна (`immutable`).
+- Любое изменение семантики или добавление обязательных полей требует новой версии события (например, `alert.triggered.v2`) с отдельным декодером и обработчиком. Неподдерживаемые версии событий отправляются в dead-letter stream и не приводят к сбою consumer group.

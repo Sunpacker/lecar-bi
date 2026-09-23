@@ -102,16 +102,17 @@ Backend использует контракт как формальное опи
 
 ## Почему папка находится отдельно
 
-`contracts/` не является третьим микросервисом. Это общий технический слой монорепозитория.
+`contracts/` не является самостоятельным сервисом. Это общий технический слой монорепозитория.
 
 ```text
 frontend/      # Next.js
-backend/       # Laravel
+backend/       # Laravel Analytics
+notification/  # Laravel Notification Service
 contracts/     # API и event contracts
 infra/         # Docker Compose, PostgreSQL, Redis
 ```
 
-Она не должна содержать бизнес-логику, Laravel-классы или React-компоненты.
+Она не содержит бизнес-логику, Laravel-классы или React-компоненты.
 
 ## Что ещё может находиться внутри
 
@@ -122,13 +123,14 @@ contracts/
 ├── openapi/
 │   └── analytics-v1.yaml
 ├── events/
+│   ├── alert-triggered.v1.schema.json
+│   ├── alert-triggered.v1.example.json
 │   ├── dataset-imported.v1.json
-│   ├── projection-built.v1.json
-│   └── alert-triggered.v1.json
+│   └── projection-built.v1.json
 └── README.md
 ```
 
 - `openapi/` — синхронные HTTP-контракты;
 - `events/` — контракты асинхронных интеграционных событий.
 
-Итого: **`contracts/` — это единый источник правды для взаимодействия между двумя независимыми микросервисами**.
+Итого: **`contracts/` — это единый источник правды для взаимодействия между независимыми сервисами**.
