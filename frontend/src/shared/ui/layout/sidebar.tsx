@@ -12,7 +12,10 @@ import {
   Settings,
   LayoutDashboard,
   UploadCloud,
+  ShieldCheck,
 } from 'lucide-react'
+import { useWorkspaceAccess } from '../../../features/workspace/ui/workspace-access-provider'
+import type { WorkspaceCapability } from '../../../features/workspace/model/workspace-access'
 
 export interface NavigationItem {
   name: string
@@ -20,6 +23,7 @@ export interface NavigationItem {
   icon: React.ComponentType<{ className?: string }>
   disabled?: boolean
   badge?: string
+  requiredCapability?: WorkspaceCapability
 }
 
 export const NAVIGATION_ITEMS: NavigationItem[] = [
@@ -29,15 +33,29 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { name: 'Импорт данных', href: '/imports', icon: UploadCloud },
   { name: 'Поставщики', href: '/suppliers', icon: Users },
   { name: 'Алерты', href: '/alerts', icon: Bell },
+  {
+    name: 'Доступ',
+    href: '/settings/access',
+    icon: ShieldCheck,
+    requiredCapability: 'workspace.members.manage',
+  },
   { name: 'Settings', href: '/settings', icon: Settings, disabled: true, badge: 'Скоро' },
 ]
 
 export function NavigationList({ onItemClick }: { onItemClick?: () => void }) {
   const pathname = usePathname()
+  const { hasCapability } = useWorkspaceAccess()
+
+  const visibleItems = NAVIGATION_ITEMS.filter((item) => {
+    if (!item.requiredCapability) {
+      return true
+    }
+    return hasCapability(item.requiredCapability)
+  })
 
   return (
     <div className="space-y-1">
-      {NAVIGATION_ITEMS.map((item) => {
+      {visibleItems.map((item) => {
         if (item.disabled) {
           return (
             <div

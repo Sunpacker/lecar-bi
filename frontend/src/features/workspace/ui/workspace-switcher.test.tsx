@@ -9,8 +9,15 @@ describe('WorkspaceSwitcher', () => {
       name: 'AutoParts Retail',
       slug: 'autoparts-retail',
       role: 'owner' as const,
+      capabilities: ['analytics.view' as const],
     },
-    { id: 'ws-2', name: 'Fleet Direct', slug: 'fleet-direct', role: 'member' as const },
+    {
+      id: 'ws-2',
+      name: 'Fleet Direct',
+      slug: 'fleet-direct',
+      role: 'member' as const,
+      capabilities: ['analytics.view' as const],
+    },
   ]
 
   it('renders available workspaces and triggers callback on change', () => {
