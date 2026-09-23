@@ -14,14 +14,17 @@ final readonly class GetWorkspaceByIdHandler
     {
         $workspace = $this->accessGuard->assertAccess($query->userId, $query->workspaceId);
         $userId = new UserId($query->userId);
-
         $role = $workspace->memberRole($userId);
+        $capabilities = $role !== null
+            ? array_map(fn ($cap) => $cap->value, $role->capabilities())
+            : [];
 
         return new WorkspaceDto(
             id: $workspace->id()->value(),
             name: $workspace->name(),
             slug: $workspace->slug(),
             role: $role !== null ? $role->value : 'member',
+            capabilities: $capabilities,
         );
     }
 }

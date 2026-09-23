@@ -24,6 +24,7 @@ final class WorkspaceController
                 'name' => $ws->name,
                 'slug' => $ws->slug,
                 'role' => $ws->role,
+                'capabilities' => $ws->capabilities,
             ], $workspaces),
         ]);
     }
@@ -40,6 +41,7 @@ final class WorkspaceController
                 'name' => $workspace->name,
                 'slug' => $workspace->slug,
                 'role' => $workspace->role,
+                'capabilities' => $workspace->capabilities,
             ]);
         } catch (UnauthorizedWorkspaceAccessException $e) {
             return response()->json([

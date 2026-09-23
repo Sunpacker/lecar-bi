@@ -2,6 +2,8 @@
 
 namespace Tests\Unit\Modules\Workspace\Application;
 
+use App\Modules\Workspace\Application\Commands\ChangeWorkspaceMemberRoleCommand;
+use App\Modules\Workspace\Application\Commands\ChangeWorkspaceMemberRoleHandler;
 use App\Modules\Workspace\Application\Guards\WorkspaceAccessGuard;
 use App\Modules\Workspace\Application\Queries\GetAccessibleWorkspacesHandler;
 use App\Modules\Workspace\Application\Queries\GetAccessibleWorkspacesQuery;
@@ -9,6 +11,8 @@ use App\Modules\Workspace\Application\Queries\GetCurrentWorkspaceHandler;
 use App\Modules\Workspace\Application\Queries\GetCurrentWorkspaceQuery;
 use App\Modules\Workspace\Application\Queries\GetWorkspaceByIdHandler;
 use App\Modules\Workspace\Application\Queries\GetWorkspaceByIdQuery;
+use App\Modules\Workspace\Application\Queries\GetWorkspaceMembersHandler;
+use App\Modules\Workspace\Application\Queries\GetWorkspaceMembersQuery;
 use App\Modules\Workspace\Domain\Exceptions\UnauthorizedWorkspaceAccessException;
 use App\Modules\Workspace\Domain\MembershipRole;
 use App\Modules\Workspace\Domain\Repositories\UserRepositoryInterface;
@@ -16,7 +20,10 @@ use App\Modules\Workspace\Domain\Repositories\WorkspaceRepositoryInterface;
 use App\Modules\Workspace\Domain\User;
 use App\Modules\Workspace\Domain\UserId;
 use App\Modules\Workspace\Domain\Workspace;
+use App\Modules\Workspace\Domain\WorkspaceCapability;
 use App\Modules\Workspace\Domain\WorkspaceId;
+use App\Modules\Workspace\Infrastructure\Persistence\InMemoryWorkspaceMemberReadModel;
+use App\Modules\Workspace\Infrastructure\Persistence\InMemoryWorkspaceTransactionManager;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
@@ -50,6 +57,11 @@ final class WorkspaceApplicationTest extends TestCase
             public function findById(WorkspaceId $id): ?Workspace
             {
                 return $this->items[$id->value()] ?? null;
+            }
+
+            public function findByIdForUpdate(WorkspaceId $id): ?Workspace
+            {
+                return $this->findById($id);
             }
 
             public function findByUserId(UserId $userId): array
@@ -140,5 +152,72 @@ final class WorkspaceApplicationTest extends TestCase
         $current = $handler->handle(new GetCurrentWorkspaceQuery('user-1', null));
         self::assertSame('ws-1', $current->workspace->id);
         self::assertSame('user-1', $current->user->id);
+        self::assertContains('workspace.members.manage', $current->workspace->capabilities);
+    }
+
+    #[Test]
+    public function assert_capability_enforces_required_permissions(): void
+    {
+        $guard = new WorkspaceAccessGuard($this->workspaceRepository);
+
+        // user-1 is owner of ws-1
+        $ws = $guard->assertCapability('user-1', 'ws-1', WorkspaceCapability::WORKSPACE_MEMBERS_MANAGE);
+        self::assertSame('ws-1', $ws->id()->value());
+
+        // user-2 is owner of ws-2, but not member of ws-1
+        $this->expectException(UnauthorizedWorkspaceAccessException::class);
+        $guard->assertCapability('user-2', 'ws-1', WorkspaceCapability::ANALYTICS_VIEW);
+    }
+
+    #[Test]
+    public function get_workspace_members_returns_members_for_authorized_actor(): void
+    {
+        $guard = new WorkspaceAccessGuard($this->workspaceRepository);
+        $readModel = new InMemoryWorkspaceMemberReadModel(
+            $this->workspaceRepository,
+            $this->userRepository,
+        );
+
+        $handler = new GetWorkspaceMembersHandler($guard, $readModel);
+        $members = $handler->handle(new GetWorkspaceMembersQuery(
+            actorUserId: 'user-1',
+            workspaceId: 'ws-1',
+        ));
+
+        self::assertCount(1, $members);
+        self::assertSame('user-1', $members[0]->user->id);
+        self::assertSame('owner', $members[0]->role);
+    }
+
+    #[Test]
+    public function change_member_role_updates_role_atomically(): void
+    {
+        $guard = new WorkspaceAccessGuard($this->workspaceRepository);
+        $txManager = new InMemoryWorkspaceTransactionManager;
+
+        // Add a second member to ws-1
+        $ws1 = $this->workspaceRepository->findById(new WorkspaceId('ws-1'));
+        $ws1->addMember(new UserId('user-2'), MembershipRole::MEMBER);
+        $this->workspaceRepository->save($ws1);
+
+        $handler = new ChangeWorkspaceMemberRoleHandler(
+            $guard,
+            $this->workspaceRepository,
+            $this->userRepository,
+            $txManager,
+        );
+
+        $result = $handler->handle(new ChangeWorkspaceMemberRoleCommand(
+            actorUserId: 'user-1',
+            workspaceId: 'ws-1',
+            targetUserId: 'user-2',
+            role: 'viewer',
+        ));
+
+        self::assertSame('viewer', $result->role);
+        self::assertSame('user-2', $result->user->id);
+
+        $updatedWs = $this->workspaceRepository->findById(new WorkspaceId('ws-1'));
+        self::assertSame(MembershipRole::VIEWER, $updatedWs->memberRole(new UserId('user-2')));
     }
 }

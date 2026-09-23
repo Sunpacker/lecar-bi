@@ -30,6 +30,7 @@ final class CurrentWorkspaceController
                     'name' => $current->workspace->name,
                     'slug' => $current->workspace->slug,
                     'role' => $current->workspace->role,
+                    'capabilities' => $current->workspace->capabilities,
                 ],
             ]);
         } catch (UnauthorizedWorkspaceAccessException $e) {

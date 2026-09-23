@@ -20,12 +20,16 @@ final readonly class GetAccessibleWorkspacesHandler
         return array_map(
             function (Workspace $ws) use ($userId): WorkspaceDto {
                 $role = $ws->memberRole($userId);
+                $capabilities = $role !== null
+                    ? array_map(fn ($cap) => $cap->value, $role->capabilities())
+                    : [];
 
                 return new WorkspaceDto(
                     id: $ws->id()->value(),
                     name: $ws->name(),
                     slug: $ws->slug(),
                     role: $role !== null ? $role->value : 'member',
+                    capabilities: $capabilities,
                 );
             },
             $workspaces,
