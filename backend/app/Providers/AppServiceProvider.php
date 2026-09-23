@@ -3,8 +3,11 @@
 namespace App\Providers;
 
 use App\Modules\Dashboard\Domain\Repositories\DashboardRepositoryInterface;
+use App\Modules\Dashboard\Domain\Repositories\SavedViewRepositoryInterface;
 use App\Modules\Dashboard\Infrastructure\Persistence\Eloquent\Repositories\EloquentDashboardRepository;
+use App\Modules\Dashboard\Infrastructure\Persistence\Eloquent\Repositories\EloquentSavedViewRepository;
 use App\Modules\Dashboard\Infrastructure\Persistence\InMemory\InMemoryDashboardRepository;
+use App\Modules\Dashboard\Infrastructure\Persistence\InMemory\InMemorySavedViewRepository;
 use App\Modules\InventoryAnalytics\Application\Contracts\InventoryAnalyticsReadModelInterface;
 use App\Modules\InventoryAnalytics\Infrastructure\Persistence\InMemoryInventoryAnalyticsReadModel;
 use App\Modules\InventoryAnalytics\Infrastructure\Persistence\PostgresInventoryAnalyticsReadModel;
@@ -61,6 +64,14 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return new EloquentDashboardRepository;
+        });
+
+        $this->app->singleton(SavedViewRepositoryInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new InMemorySavedViewRepository;
+            }
+
+            return new EloquentSavedViewRepository;
         });
     }
 

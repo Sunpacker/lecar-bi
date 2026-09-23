@@ -35,4 +35,13 @@ final class DashboardModel extends Model
             ->orderBy('grid_y')
             ->orderBy('grid_x');
     }
+
+    /**
+     * @return HasMany<DashboardSavedViewModel, $this>
+     */
+    public function savedViews(): HasMany
+    {
+        return $this->hasMany(DashboardSavedViewModel::class, 'dashboard_id')
+            ->orderBy('created_at', 'asc');
+    }
 }

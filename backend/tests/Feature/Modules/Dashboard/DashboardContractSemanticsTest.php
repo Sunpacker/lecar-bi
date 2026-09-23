@@ -51,7 +51,7 @@ final class DashboardContractSemanticsTest extends TestCase
         // Assert strictly semantic properties only
         $this->assertEqualsCanonicalizing(['id', 'title', 'type', 'position', 'query_config', 'options'], $widgetInputProps);
         $this->assertEqualsCanonicalizing(['x', 'y', 'w', 'h'], $gridPosProps);
-        $this->assertEqualsCanonicalizing(['dataset', 'metric', 'dimension', 'date_range'], $queryConfigProps);
+        $this->assertEqualsCanonicalizing(['dataset', 'metric', 'dimension', 'date_range', 'filters'], $queryConfigProps);
 
         // Assert forbidden frontend-specific terms do NOT exist in widget schemas
         $forbiddenTerms = ['className', 'style', 'pixelWidth', 'pixelHeight', 'domId', 'component', 'handler'];
