@@ -25,6 +25,10 @@
 | API / межсервисная интеграция | 01, 02, 07, 08                        |
 | Инфраструктура                | 02, 09, 10                            |
 | Аналитика                     | 05, 06, 08                            |
+| RAG / чат поддержки           | 00, 01, 03–10, 12, RAG Support Chat  |
+
+Для любой задачи, затрагивающей RAG, чат поддержки, базу знаний, retrieval, embeddings или AI-провайдеров,
+дополнительно обязательно читать [RAG Support Chat](docs/architecture/rag-support-chat.md).
 
 - [00 — Обзор продукта](docs/architecture/00-overview.md)
 - [01 — Архитектура системы](docs/architecture/01-system-architecture.md)
@@ -39,6 +43,7 @@
 - [10 — Тестирование и качество](docs/architecture/10-testing-and-quality.md)
 - [11 — Эволюция и roadmap](docs/architecture/11-evolution-and-roadmap.md)
 - [12 — Архитектурные решения](docs/architecture/12-architecture-decisions.md)
+- [RAG Support Chat — архитектура и порядок реализации](docs/architecture/rag-support-chat.md)
 
 ## Выбор агента
 
