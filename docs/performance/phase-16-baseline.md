@@ -64,7 +64,7 @@
 ### 4. Комплексные сценарии Dashboard Fan-out
 
 | ID | Сценарий | Состав запросов (Fan-out composition) | Модель исполнения | Допустимый Cache State | Бюджет p95 | Оракул корректности |
-|---|---|---|---|---|---:|---|
+|---|---|---|---|---|---|---:|---|
 | **DASH-01** | Executive Dashboard Fan-out | 4 параллельных/последовательных запроса:<br>1. `getSalesOverview` (Default)<br>2. `getInventorySummary` (Default)<br>3. `getSupplierOverview` (Default)<br>4. `getFilterOptions` (Sales) | 4 независимых запроса от клиентских виджетов в рамках одного экрана | `disabled`<br>`cold`<br>`warm` | **≤ 2 000 ms** (суммарно без Redis)<br>**≤ 400 ms** (Redis warm) | Данные каждого виджета идентичны изолированным вызовам. Общее время не превышает бюджет. |
 | **DASH-02** | Dashboard Duplicate Aggregates | 3 идентичных запроса `getSalesOverview` (Default) от разных виджетов одного экрана | Повторные запросы идентичных агрегатов в одном цикле отрисовки | `disabled`<br>`cold`<br>`warm` | **≤ 2 000 ms** (без Redis)<br>**≤ 200 ms** (Redis warm) | Все 3 ответа побитово идентичны. При теплом кэше повторные запросы отдаются за доли миллисекунд. |
 
@@ -82,75 +82,71 @@
    Выполнить SQL-запрос верификации row counts (см. `README.md`). Убедиться, что объёмы строго соответствуют целевым 100k / 300k / 500k / 200k / 10k.
 3. **Обновление статистики PostgreSQL:**
    ```sql
-   ANALYZE sales_orders;
-   ANALYZE sales_order_items;
-   ANALYZE inventory_snapshots;
-   ANALYZE supplier_deliveries;
-   ANALYZE products;
+   VACUUM ANALYZE;
    ```
 4. **Запуск бенчмаркинга в режиме `cache-disabled`:**
    ```bash
-   php artisan performance:benchmark --profile=large --runs=30 --warmup=5 --cache-state=disabled --format=json > docs/performance/plans/phase-16-before/baseline-disabled.json
+   php artisan performance:benchmark --profile=large --runs=30 --warmup=5 --cache-state=disabled --format=json --explain --output=storage/baseline.json
    ```
 5. **Сбор планов `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)`:**
-   Для каждого сценария, latency p95 которого превышает установленный бюджет, runner автоматически или через CLI собирает план выполнения и сохраняет его в `docs/performance/plans/phase-16-before/{scenario_id}.json`.
+   Для каждого сценария, latency p95 которого превышает установленный бюджет, runner автоматически собирает план выполнения и сохраняет его в `docs/performance/plans/phase-16-before/{scenario_id}.json`.
 
 ---
 
-## Формат фиксации свидетельств (Evidence Template)
+## Таблица Baseline замеров (Зафиксировано в Task 3)
 
-Для каждого сценария в Task 3 заполняется сводная карточка свидетельств:
-
-```markdown
-### Evidence Card: [SCENARIO-ID] — [Название сценария]
-
-- **Read Model Call:** `Module::method(criteria)`
-- **Cache State:** disabled / cold / warm
-- **Samples:** 5 warm-up + 30 measured runs
-- **Timestamp:** YYYY-MM-DD HH:MM:SS UTC
-
-| Метрика | Значение Before (Baseline) | Комментарий / Оценка |
-|---|---|---|
-| **Latency p50 / p95** | ... ms / ... ms | Соответствие бюджету (PASS / FAIL) |
-| **Min / Max / Avg Latency** | ... / ... / ... ms | Дисперсия и стабильность замера |
-| **SQL Query Count** | N запросов | Количество round-trips к PostgreSQL |
-| **Total Rows Examined** | N строк | Оценка избыточности сканирования |
-| **Rows Returned** | N строк | Полезный выход запроса |
-| **Shared Hit / Read Blocks** | N hit / N read | Попадание в буферный кэш vs чтение с диска |
-| **Temp Files & Temp Bytes** | N files / N MB | Сброс промежуточных данных сортировок на диск |
-| **Sort Method & Memory** | quicksort / external merge | Потребление `work_mem` |
-| **Dominant Plan Nodes** | Seq Scan / Hash Join / etc. | Архитектурные узкие места плана |
-| **Plan Artifact** | `docs/performance/plans/phase-16-before/{id}.json` | Ссылка на полный JSON план |
-```
-
----
-
-## Таблица Baseline замеров (Заполняется в Task 3)
-
-Ниже приведена структура таблицы для фиксации измеренных значений в Task 3:
+Замеры выполнены на эталонном окружении (PostgreSQL 16, Redis 7.2, профиль `large`: 100k заказов, 300k позиций, 500k остатков, 200k поставок, 10k товаров, workspace `perf-ws-1`, 5 warm-up + 30 measured runs, `cache_state=disabled`):
 
 | Scenario ID | Метод | Cache State | p50 (ms) | p95 (ms) | Min (ms) | Max (ms) | Queries | Rows Examined | Shared Reads | Temp Files | Статус бюджета |
 |---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---|
-| **SALES-01** | `getSalesOverview` | disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **SALES-02** | `getSalesOverview` (Sel) | disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **SALES-03** | `getFilterOptions` | disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **SALES-04** | `getSalesRecords` | disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **SALES-05** | `getSalesRecords` (Sel) | disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **INV-01** | `getInventorySummary` | disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **INV-02** | `getInventorySummary` (Sel)| disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **INV-03** | `getFilterOptions` | disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **INV-04** | `getInventoryItems` | disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **INV-05** | `getInventoryItems` (Sel) | disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **INV-06** | `getAbcXyzSummary` | disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **INV-07** | `getAbcXyzSummary` (Sel) | disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **INV-08** | `getAbcXyzItems` | disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **INV-09** | `getAbcXyzItems` (Sel) | disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **SUP-01** | `getSupplierOverview` | disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **SUP-02** | `getSupplierOverview` (Sel)| disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **SUP-03** | `getFilterOptions` | disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **SUP-04** | `getSupplierPerformance`| disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **SUP-05** | `getSupplierPerformance`(S)| disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **SUP-06** | `getSupplierDeliveries` | disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **SUP-07** | `getSupplierDeliveries` (S)| disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **DASH-01** | Fan-out Executive | disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
-| **DASH-02** | Fan-out Duplicate | disabled | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *T3* | *PENDING T3* |
+| **SALES-01** | `getSalesOverview` (Default) | disabled | 1807.0 | 1947.2 | 1727.8 | 2088.3 | 4 | 3,000,438 | 103,858 | 0 | **FAIL** (>1000ms) |
+| **SALES-02** | `getSalesOverview` (Selective) | disabled | 12.0 | 14.2 | 11.6 | 14.8 | 4 | 98,908 | 0 | 0 | PASS (≤1000ms) |
+| **SALES-03** | `getFilterOptions` | disabled | 1.1 | 1.3 | 0.9 | 1.3 | 3 | 42 | 0 | 0 | PASS (≤1000ms) |
+| **SALES-04** | `getSalesRecords` (Default) | disabled | 16.1 | 18.0 | 14.6 | 19.5 | 2 | 100,154 | 0 | 0 | PASS (≤1500ms) |
+| **SALES-05** | `getSalesRecords` (Selective) | disabled | 31.9 | 35.8 | 28.7 | 36.7 | 2 | 63,700 | 0 | 0 | PASS (≤1500ms) |
+| **INV-01** | `getInventorySummary` (Default) | disabled | 254.2 | 272.7 | 242.0 | 525.6 | 4 | 1,210,840 | 0 | 0 | PASS (≤1000ms) |
+| **INV-02** | `getInventorySummary` (Selective)| disabled | 180.4 | 195.2 | 174.7 | 203.5 | 3 | 917,589 | 0 | 0 | PASS (≤1000ms) |
+| **INV-03** | `getFilterOptions` | disabled | 1.1 | 1.2 | 1.1 | 1.3 | 4 | 133 | 0 | 0 | PASS (≤1000ms) |
+| **INV-04** | `getInventoryItems` (Default) | disabled | 193.6 | 210.8 | 180.9 | 215.8 | 2 | 417,359 | 0 | 0 | PASS (≤1500ms) |
+| **INV-05** | `getInventoryItems` (Selective) | disabled | 21.6 | 24.3 | 21.0 | 26.5 | 2 | 33,243 | 0 | 0 | PASS (≤1500ms) |
+| **INV-06** | `getAbcXyzSummary` (Default) | disabled | 284.8 | 301.0 | 263.9 | 316.3 | 6 | 1,035,543 | 23,364 | 0 | PASS (≤1000ms) |
+| **INV-07** | `getAbcXyzSummary` (Selective) | disabled | 115.0 | 119.5 | 111.9 | 136.3 | 6 | 442,164 | 16,452 | 0 | PASS (≤1000ms) |
+| **INV-08** | `getAbcXyzItems` (Default) | disabled | 288.9 | 303.9 | 277.2 | 320.8 | 5 | 1,035,540 | 9,540 | 0 | PASS (≤1500ms) |
+| **INV-09** | `getAbcXyzItems` (Selective) | disabled | 196.0 | 209.7 | 190.8 | 221.2 | 5 | 973,521 | 3,066 | 0 | PASS (≤1500ms) |
+| **SUP-01** | `getSupplierOverview` (Default) | disabled | 137.1 | 141.5 | 134.2 | 142.6 | 4 | 333,857 | 0 | 0 | PASS (≤1000ms) |
+| **SUP-02** | `getSupplierOverview` (Selective)| disabled | 10.8 | 11.0 | 10.7 | 11.1 | 4 | 16,003 | 0 | 0 | PASS (≤1000ms) |
+| **SUP-03** | `getFilterOptions` | disabled | 52.5 | 56.0 | 50.4 | 57.4 | 3 | 267,242 | 0 | 0 | PASS (≤1000ms) |
+| **SUP-04** | `getSupplierPerformance` (Default)| disabled | 44.5 | 47.5 | 42.5 | 49.8 | 1 | 133,750 | 0 | 0 | PASS (≤1500ms) |
+| **SUP-05** | `getSupplierPerformance` (Sel)| disabled | 16.0 | 17.2 | 14.9 | 18.2 | 1 | 12,749 | 0 | 0 | PASS (≤1500ms) |
+| **SUP-06** | `getSupplierDeliveries` (Default)| disabled | 35.6 | 37.5 | 34.5 | 39.4 | 2 | 287,017 | 0 | 0 | PASS (≤1500ms) |
+| **SUP-07** | `getSupplierDeliveries` (Sel) | disabled | 15.1 | 16.0 | 14.6 | 16.1 | 2 | 4,003 | 0 | 0 | PASS (≤1500ms) |
+| **DASH-01** | Fan-out Executive Dashboard | disabled | 2135.6 | 2181.2 | 2110.0 | 2203.9 | 15 | 4,545,177 | 26,814 | 0 | **FAIL** (>2000ms) |
+| **DASH-02** | Fan-out Duplicate Aggregates | disabled | 5260.0 | 5345.1 | 5201.5 | 5366.4 | 12 | 9,001,314 | 0 | 0 | **FAIL** (>2000ms) |
+
+---
+
+## Анализ и ранжирование узких мест (Bottleneck Localization & Ranking)
+
+### 1. Ранжирование по общему влиянию на систему (System Impact Ranking)
+
+1. **Bottleneck #1: Неиндексированная полная агрегация `fact_order_items` в `SALES-01` (Sales Overview Default):**
+   - **Симптом:** p95 = **1 947.2 ms** при бюджете 1 000 ms.
+   - **Причина в EXPLAIN:** 4 независимых последовательных запроса к `fact_order_items` (kpi summary, dynamics, categories, channels). Каждый выполняет `Seq Scan` по 300 000 строк с фильтром по `workspace_id`. Суммарно исследуется **3 000 438 строк** и считывается **103 858 shared read blocks** с диска.
+   - **План артефакт:** [`docs/performance/plans/phase-16-before/SALES-01.json`](plans/phase-16-before/SALES-01.json).
+   - **Каскадное влияние:** Именно этот сценарий вызывает сбои бюджетов в `DASH-01` (2 181 ms) и `DASH-02` (5 345 ms).
+
+2. **Bottleneck #2: Каскадный Fan-out и дублирование тяжелых агрегатов (`DASH-01`, `DASH-02`):**
+   - **Симптом:** `DASH-01` p95 = **2 181.2 ms** (бюджет 2 000 ms); `DASH-02` p95 = **5 345.1 ms** (бюджет 2 000 ms).
+   - **Причина:** Отрисовка дашборда запускает параллельные/последовательные HTTP-запросы от виджетов, повторяющие одни и те же тяжелые агрегаты (`getSalesOverview`).
+   - **План артефакты:** [`docs/performance/plans/phase-16-before/DASH-01.json`](plans/phase-16-before/DASH-01.json), [`docs/performance/plans/phase-16-before/DASH-02.json`](plans/phase-16-before/DASH-02.json).
+
+3. **Bottleneck #3: Избыточное сканирование строк при пагинации `INV-04` (`COUNT(*) OVER()`):**
+   - **Симптом:** Несмотря на попадание в бюджет (p95 = 210.8 ms ≤ 1 500 ms), исследуется **417 359 строк** для возврата 20 записей.
+   - **Причина в EXPLAIN:** Оконная функция `COUNT(*) OVER()` сканирует весь отфильтрованный срез снимка остатков.
+
+### 2. Сценарии, укладывающиеся в бюджет без изменений
+
+Из 23 сценариев **20 сценариев (87%)** уже полностью укладываются в бюджеты производительности:
+- Все селективные запросы Sales (`SALES-02`: 14.2 ms, `SALES-03`: 1.3 ms, `SALES-04`: 18.0 ms, `SALES-05`: 35.8 ms).
+- Все сценарии аналитики запасов (`INV-01`..`INV-09`), включая расчет ABC/XYZ за 90 дней (`INV-06`: 301.0 ms, `INV-08`: 303.9 ms при бюджете 1 000 / 1 500 ms).
+- Все сценарии поставщиков (`SUP-01`..`SUP-07`) с p95 от 11.0 ms до 141.5 ms.
