@@ -84,7 +84,7 @@ final class AlertingSeeder extends Seeder
             severity: AlertSeverity::WARNING,
             condition: new RuleCondition(
                 metric: RuleMetric::DAYS_OF_STOCK,
-                comparator: RuleComparator::GT,
+                comparator: RuleComparator::GREATER_THAN,
                 thresholdValue: 60.0,
             ),
             scope: new RuleScope,
@@ -232,7 +232,7 @@ final class AlertingSeeder extends Seeder
             severity: AlertSeverity::CRITICAL,
             condition: new RuleCondition(
                 metric: RuleMetric::DAYS_OF_STOCK,
-                comparator: RuleComparator::LT,
+                comparator: RuleComparator::LESS_THAN,
                 thresholdValue: 14.0,
             ),
             scope: new RuleScope,
