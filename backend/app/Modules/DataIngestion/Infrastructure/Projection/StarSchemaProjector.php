@@ -2,6 +2,7 @@
 
 namespace App\Modules\DataIngestion\Infrastructure\Projection;
 
+use App\Modules\DataIngestion\Application\Contracts\StarSchemaProjectorInterface;
 use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
 
@@ -20,7 +21,7 @@ use Illuminate\Support\Str;
  * Dependency: Illuminate\Database\ConnectionInterface is injected so the
  * class can be unit-tested with a mock (no Laravel service container needed).
  */
-final class StarSchemaProjector
+final class StarSchemaProjector implements StarSchemaProjectorInterface
 {
     public function __construct(
         private readonly ConnectionInterface $db

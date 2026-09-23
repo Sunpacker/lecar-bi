@@ -8,9 +8,14 @@ use App\Modules\Dashboard\Infrastructure\Persistence\Eloquent\Repositories\Eloqu
 use App\Modules\Dashboard\Infrastructure\Persistence\Eloquent\Repositories\EloquentSavedViewRepository;
 use App\Modules\Dashboard\Infrastructure\Persistence\InMemory\InMemoryDashboardRepository;
 use App\Modules\Dashboard\Infrastructure\Persistence\InMemory\InMemorySavedViewRepository;
+use App\Modules\DataIngestion\Application\Contracts\ImportJobDispatcherInterface;
+use App\Modules\DataIngestion\Application\Contracts\StarSchemaProjectorInterface;
 use App\Modules\DataIngestion\Domain\Repositories\ImportBatchRepositoryInterface;
 use App\Modules\DataIngestion\Domain\Repositories\ImportFailureRepositoryInterface;
 use App\Modules\DataIngestion\Domain\Repositories\StagingRecordRepositoryInterface;
+use App\Modules\DataIngestion\Infrastructure\Jobs\QueueImportJobDispatcher;
+use App\Modules\DataIngestion\Infrastructure\Projection\InMemoryStarSchemaProjector;
+use App\Modules\DataIngestion\Infrastructure\Projection\StarSchemaProjector;
 use App\Modules\DataIngestion\Infrastructure\Repositories\EloquentImportBatchRepository;
 use App\Modules\DataIngestion\Infrastructure\Repositories\EloquentImportFailureRepository;
 use App\Modules\DataIngestion\Infrastructure\Repositories\EloquentStagingRecordRepository;
@@ -29,6 +34,8 @@ use App\Modules\Workspace\Infrastructure\Persistence\Eloquent\Repositories\Eloqu
 use App\Modules\Workspace\Infrastructure\Persistence\Eloquent\Repositories\EloquentWorkspaceRepository;
 use App\Modules\Workspace\Infrastructure\Persistence\InMemory\InMemoryUserRepository;
 use App\Modules\Workspace\Infrastructure\Persistence\InMemory\InMemoryWorkspaceRepository;
+use Illuminate\Database\ConnectionInterface;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -105,6 +112,21 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return new EloquentStagingRecordRepository;
+        });
+
+        $this->app->singleton(StarSchemaProjectorInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new InMemoryStarSchemaProjector;
+            }
+
+            /** @var ConnectionInterface $connection */
+            $connection = DB::connection();
+
+            return new StarSchemaProjector($connection);
+        });
+
+        $this->app->singleton(ImportJobDispatcherInterface::class, function () {
+            return new QueueImportJobDispatcher;
         });
     }
 
