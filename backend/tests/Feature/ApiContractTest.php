@@ -128,6 +128,24 @@ final class ApiContractTest extends TestCase
         self::assertArrayHasKey('UpdateDashboardSavedViewRequest', $schemas);
     }
 
+    public function test_contract_contains_data_ingestion_endpoints(): void
+    {
+        $contract = $this->openApiContract();
+
+        self::assertArrayHasKey('/imports', $contract['paths']);
+        self::assertArrayHasKey('/imports/{id}', $contract['paths']);
+        self::assertArrayHasKey('/imports/{id}/failures', $contract['paths']);
+        self::assertArrayHasKey('/imports/{id}/retry', $contract['paths']);
+
+        $schemas = $contract['components']['schemas'];
+        self::assertArrayHasKey('ImportBatchSummary', $schemas);
+        self::assertArrayHasKey('ImportBatchListResponse', $schemas);
+        self::assertArrayHasKey('ImportBatchDetail', $schemas);
+        self::assertArrayHasKey('ImportBatchDetailResponse', $schemas);
+        self::assertArrayHasKey('ImportFailureItem', $schemas);
+        self::assertArrayHasKey('ImportFailureListResponse', $schemas);
+    }
+
     /** @return array<string, mixed> */
     private function openApiContract(): array
     {

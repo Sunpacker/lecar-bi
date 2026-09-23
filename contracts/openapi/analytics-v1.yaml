@@ -10,6 +10,119 @@ servers:
 security:
   - UserIdAuth: []
 paths:
+  /imports:
+    get:
+      operationId: getImportBatches
+      summary: List data ingestion batches for workspace
+      responses:
+        '200':
+          description: List of import batches
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatchListResponse'
+    post:
+      operationId: uploadImportBatch
+      summary: Upload data ingestion file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - dataset_type
+              properties:
+                file:
+                  type: string
+                  format: binary
+                dataset_type:
+                  type: string
+                  enum: [sales, inventory]
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatchDetailResponse'
+  /imports/{id}:
+    get:
+      operationId: getImportBatch
+      summary: Get import batch details and progress
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Import batch detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatchDetailResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /imports/{id}/failures:
+    get:
+      operationId: getImportFailures
+      summary: List validation failure rows for import batch
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: List of failures
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportFailureListResponse'
+  /imports/{id}/retry:
+    post:
+      operationId: retryImportBatch
+      summary: Retry failed or incomplete import batch
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatchDetailResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /health:
     get:
       operationId: getHealth
@@ -1182,6 +1295,151 @@ components:
       name: X-User-Id
       description: Authenticated user identifier
   schemas:
+
+    DatasetType:
+      type: string
+      enum: [sales, inventory]
+    ImportStatus:
+      type: string
+      enum: [pending, validating, processing, completed, completed_with_errors, failed]
+    SourceFormat:
+      type: string
+      enum: [csv, json]
+    ImportBatchSummary:
+      type: object
+      required: [id, workspace_id, dataset_type, source_format, original_filename, status, total_rows, processed_rows, successful_rows, failed_rows]
+      properties:
+        id:
+          type: string
+        workspace_id:
+          type: string
+        dataset_type:
+          $ref: '#/components/schemas/DatasetType'
+        source_format:
+          $ref: '#/components/schemas/SourceFormat'
+        original_filename:
+          type: string
+        status:
+          $ref: '#/components/schemas/ImportStatus'
+        total_rows:
+          type: integer
+        processed_rows:
+          type: integer
+        successful_rows:
+          type: integer
+        failed_rows:
+          type: integer
+        progress_percentage:
+          type: number
+        error_message:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+      additionalProperties: false
+    ImportBatchListResponse:
+      type: object
+      required: [items, total, page, per_page, total_pages]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportBatchSummary'
+        total:
+          type: integer
+        page:
+          type: integer
+        per_page:
+          type: integer
+        total_pages:
+          type: integer
+      additionalProperties: false
+    ImportBatchDetail:
+      type: object
+      required: [id, workspace_id, dataset_type, source_format, original_filename, status, total_rows, processed_rows, successful_rows, failed_rows, stored_file_path]
+      properties:
+        id:
+          type: string
+        workspace_id:
+          type: string
+        dataset_type:
+          $ref: '#/components/schemas/DatasetType'
+        source_format:
+          $ref: '#/components/schemas/SourceFormat'
+        original_filename:
+          type: string
+        status:
+          $ref: '#/components/schemas/ImportStatus'
+        total_rows:
+          type: integer
+        processed_rows:
+          type: integer
+        successful_rows:
+          type: integer
+        failed_rows:
+          type: integer
+        progress_percentage:
+          type: number
+        error_message:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        stored_file_path:
+          type: string
+      additionalProperties: false
+    ImportBatchDetailResponse:
+      type: object
+      required: [batch]
+      properties:
+        batch:
+          $ref: '#/components/schemas/ImportBatchDetail'
+      additionalProperties: false
+    ImportFailureItem:
+      type: object
+      required: [id, row_number, error_message]
+      properties:
+        id:
+          type: string
+        row_number:
+          type: integer
+        field:
+          type: string
+          nullable: true
+        value:
+          type: string
+          nullable: true
+        error_message:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      additionalProperties: false
+    ImportFailureListResponse:
+      type: object
+      required: [items, total, page, per_page]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportFailureItem'
+        total:
+          type: integer
+        page:
+          type: integer
+        per_page:
+          type: integer
+      additionalProperties: false
     LoginRequest:
       type: object
       additionalProperties: false

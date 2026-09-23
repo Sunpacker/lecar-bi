@@ -4,6 +4,75 @@
  */
 
 export interface paths {
+  '/imports': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List data ingestion batches for workspace */
+    get: operations['getImportBatches']
+    put?: never
+    /** Upload data ingestion file */
+    post: operations['uploadImportBatch']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/imports/{id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get import batch details and progress */
+    get: operations['getImportBatch']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/imports/{id}/failures': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List validation failure rows for import batch */
+    get: operations['getImportFailures']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/imports/{id}/retry': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Retry failed or incomplete import batch */
+    post: operations['retryImportBatch']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/health': {
     parameters: {
       query?: never
@@ -320,6 +389,80 @@ export interface paths {
 export type webhooks = Record<string, never>
 export interface components {
   schemas: {
+    /** @enum {string} */
+    DatasetType: 'sales' | 'inventory'
+    /** @enum {string} */
+    ImportStatus:
+      | 'pending'
+      | 'validating'
+      | 'processing'
+      | 'completed'
+      | 'completed_with_errors'
+      | 'failed'
+    /** @enum {string} */
+    SourceFormat: 'csv' | 'json'
+    ImportBatchSummary: {
+      id: string
+      workspace_id: string
+      dataset_type: components['schemas']['DatasetType']
+      source_format: components['schemas']['SourceFormat']
+      original_filename: string
+      status: components['schemas']['ImportStatus']
+      total_rows: number
+      processed_rows: number
+      successful_rows: number
+      failed_rows: number
+      progress_percentage?: number
+      error_message?: string | null
+      /** Format: date-time */
+      created_at?: string
+      /** Format: date-time */
+      completed_at?: string | null
+    }
+    ImportBatchListResponse: {
+      items: components['schemas']['ImportBatchSummary'][]
+      total: number
+      page: number
+      per_page: number
+      total_pages: number
+    }
+    ImportBatchDetail: {
+      id: string
+      workspace_id: string
+      dataset_type: components['schemas']['DatasetType']
+      source_format: components['schemas']['SourceFormat']
+      original_filename: string
+      status: components['schemas']['ImportStatus']
+      total_rows: number
+      processed_rows: number
+      successful_rows: number
+      failed_rows: number
+      progress_percentage?: number
+      error_message?: string | null
+      /** Format: date-time */
+      created_at?: string
+      /** Format: date-time */
+      completed_at?: string | null
+      stored_file_path: string
+    }
+    ImportBatchDetailResponse: {
+      batch: components['schemas']['ImportBatchDetail']
+    }
+    ImportFailureItem: {
+      id: string
+      row_number: number
+      field?: string | null
+      value?: string | null
+      error_message: string
+      /** Format: date-time */
+      created_at?: string
+    }
+    ImportFailureListResponse: {
+      items: components['schemas']['ImportFailureItem'][]
+      total: number
+      page: number
+      per_page: number
+    }
     LoginRequest: {
       /** Format: email */
       email: string
@@ -789,6 +932,142 @@ export interface components {
 }
 export type $defs = Record<string, never>
 export interface operations {
+  getImportBatches: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description List of import batches */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ImportBatchListResponse']
+        }
+      }
+    }
+  }
+  uploadImportBatch: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'multipart/form-data': {
+          /** Format: binary */
+          file: string
+          /** @enum {string} */
+          dataset_type: 'sales' | 'inventory'
+        }
+      }
+    }
+    responses: {
+      /** @description Accepted */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ImportBatchDetailResponse']
+        }
+      }
+    }
+  }
+  getImportBatch: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Import batch detail */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ImportBatchDetailResponse']
+        }
+      }
+      /** @description Not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getImportFailures: {
+    parameters: {
+      query?: {
+        page?: number
+        per_page?: number
+      }
+      header?: never
+      path: {
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description List of failures */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ImportFailureListResponse']
+        }
+      }
+    }
+  }
+  retryImportBatch: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Accepted */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ImportBatchDetailResponse']
+        }
+      }
+      /** @description Conflict */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
   getHealth: {
     parameters: {
       query?: never
