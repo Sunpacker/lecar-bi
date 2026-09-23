@@ -28,6 +28,7 @@ class ImportBatchModel extends Model
         'successful_rows',
         'failed_rows',
         'error_message',
+        'created_at',
         'completed_at',
     ];
 

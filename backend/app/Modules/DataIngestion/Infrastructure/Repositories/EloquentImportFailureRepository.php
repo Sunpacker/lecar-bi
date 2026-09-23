@@ -37,7 +37,7 @@ class EloquentImportFailureRepository implements ImportFailureRepositoryInterfac
             ->where('workspace_id', $workspaceId)
             ->orderBy('row_number')
             ->orderBy('id')
-            ->skip(($page - 1) * $perPage)
+            ->skip(max(0, ($page - 1) * $perPage))
             ->take($perPage)
             ->get();
 
@@ -53,8 +53,8 @@ class EloquentImportFailureRepository implements ImportFailureRepositoryInterfac
 
             return new RowError(
                 (int) $rowNumber,
-                $field ? (string) $field : null,
-                $value ? (string) $value : null,
+                $field !== null ? (string) $field : null,
+                $value !== null ? (string) $value : null,
                 (string) $errorMessage
             );
         })->all();

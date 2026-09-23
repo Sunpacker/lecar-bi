@@ -41,7 +41,7 @@ class InMemoryImportBatchRepository implements ImportBatchRepositoryInterface
 
         usort($filtered, fn ($a, $b) => $b->createdAt() <=> $a->createdAt());
 
-        return array_slice($filtered, ($page - 1) * $perPage, $perPage);
+        return array_slice($filtered, max(0, ($page - 1) * $perPage), $perPage);
     }
 
     public function countByWorkspace(string $workspaceId, ?ImportStatus $status = null): int

@@ -60,7 +60,7 @@ class EloquentImportBatchRepository implements ImportBatchRepositoryInterface
             $query->where('status', $status->value);
         }
 
-        $models = $query->skip(($page - 1) * $perPage)
+        $models = $query->skip(max(0, ($page - 1) * $perPage))
             ->take($perPage)
             ->get();
 

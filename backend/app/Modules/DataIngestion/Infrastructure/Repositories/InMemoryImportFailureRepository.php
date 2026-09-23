@@ -28,7 +28,7 @@ class InMemoryImportFailureRepository implements ImportFailureRepositoryInterfac
 
         usort($items, fn ($a, $b) => $a->rowNumber <=> $b->rowNumber);
 
-        return array_slice($items, ($page - 1) * $perPage, $perPage);
+        return array_slice($items, max(0, ($page - 1) * $perPage), $perPage);
     }
 
     public function countByBatchId(ImportBatchId $batchId, string $workspaceId): int
