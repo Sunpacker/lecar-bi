@@ -1,5 +1,7 @@
 <?php
 
+use App\Modules\Alerting\Presentation\Controllers\AlertController;
+use App\Modules\Alerting\Presentation\Controllers\AlertRuleController;
 use App\Modules\Dashboard\Presentation\Controllers\DashboardController;
 use App\Modules\Dashboard\Presentation\Controllers\DashboardSavedViewController;
 use App\Modules\DataIngestion\Presentation\Controllers\ImportBatchController;
@@ -55,5 +57,19 @@ Route::prefix('v1')->group(function () {
         Route::get('/analytics/suppliers/filters', [SupplierAnalyticsController::class, 'filters']);
         Route::get('/analytics/suppliers/performance', [SupplierAnalyticsController::class, 'performance']);
         Route::get('/analytics/suppliers/deliveries', [SupplierAnalyticsController::class, 'deliveries']);
+
+        Route::get('/alert-rules', [AlertRuleController::class, 'index']);
+        Route::post('/alert-rules', [AlertRuleController::class, 'store']);
+        Route::post('/alert-rules/evaluate', [AlertRuleController::class, 'evaluate']);
+        Route::get('/alert-rules/{id}', [AlertRuleController::class, 'show']);
+        Route::put('/alert-rules/{id}', [AlertRuleController::class, 'update']);
+        Route::delete('/alert-rules/{id}', [AlertRuleController::class, 'destroy']);
+        Route::post('/alert-rules/{id}/toggle', [AlertRuleController::class, 'toggle']);
+
+        Route::get('/alerts', [AlertController::class, 'index']);
+        Route::get('/alerts/summary', [AlertController::class, 'summary']);
+        Route::get('/alerts/{id}', [AlertController::class, 'show']);
+        Route::post('/alerts/{id}/acknowledge', [AlertController::class, 'acknowledge']);
+        Route::post('/alerts/{id}/resolve', [AlertController::class, 'resolve']);
     });
 });

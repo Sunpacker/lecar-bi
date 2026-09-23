@@ -11,5 +11,6 @@ final class DatabaseSeeder extends Seeder
         $this->call(WorkspaceDatabaseSeeder::class);
         $this->call(DemoDataSeeder::class);
         $this->call(DashboardDatabaseSeeder::class);
+        $this->call(AlertingSeeder::class);
     }
 }
