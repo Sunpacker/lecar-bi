@@ -51,8 +51,7 @@ export function SupplierStatusBreakdown({
     partial: {
       label: 'Частично',
       color: 'text-blue-500',
-      badgeClass:
-        'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+      badgeClass: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
       progressClass: 'bg-blue-500',
       icon: AlertCircle,
     },
@@ -86,10 +85,11 @@ export function SupplierStatusBreakdown({
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-1.5">
                   <Icon className={`h-3.5 w-3.5 ${meta.color}`} />
-                  <span className="font-medium text-foreground">
-                    {meta.label}
-                  </span>
-                  <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${meta.badgeClass}`}>
+                  <span className="font-medium text-foreground">{meta.label}</span>
+                  <Badge
+                    variant="outline"
+                    className={`text-[10px] px-1.5 py-0 ${meta.badgeClass}`}
+                  >
                     {item.count} заказов ({item.share_percentage}%)
                   </Badge>
                 </div>
@@ -97,10 +97,7 @@ export function SupplierStatusBreakdown({
                   {numberFormatter.format(item.quantity)} шт.
                 </span>
               </div>
-              <Progress
-                value={item.share_percentage}
-                className="h-2 bg-muted"
-              />
+              <Progress value={item.share_percentage} className="h-2 bg-muted" />
             </div>
           )
         })}

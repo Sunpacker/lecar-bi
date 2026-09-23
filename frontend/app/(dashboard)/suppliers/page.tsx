@@ -38,9 +38,9 @@ export default async function SuppliersPage() {
           Аналитика поставщиков
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground max-w-2xl leading-relaxed">
-          Мониторинг дисциплины и надежности поставок: соблюдение сроков (On-Time Delivery),
-          полнота выполнения заказов (Fill Rate), уровень дефектности и рейтинг надежности
-          контрагентов.
+          Мониторинг дисциплины и надежности поставок: соблюдение сроков (On-Time
+          Delivery), полнота выполнения заказов (Fill Rate), уровень дефектности и рейтинг
+          надежности контрагентов.
         </p>
       </div>
 

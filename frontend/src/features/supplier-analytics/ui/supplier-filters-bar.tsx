@@ -84,18 +84,23 @@ export function SupplierFiltersBar({
       {/* Period Selector */}
       <div className="flex items-center gap-1.5">
         <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-        <Select
-          defaultValue="2025"
-          onValueChange={handlePeriodPreset}
-        >
+        <Select defaultValue="2025" onValueChange={handlePeriodPreset}>
           <SelectTrigger className="w-[145px] h-9 text-xs">
             <SelectValue placeholder="Период" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="2025" className="text-xs">2025 год (Все)</SelectItem>
-            <SelectItem value="90d" className="text-xs">Q4 2025 (90 дн.)</SelectItem>
-            <SelectItem value="30d" className="text-xs">Дек 2025 (30 дн.)</SelectItem>
-            <SelectItem value="all" className="text-xs">Весь диапазон</SelectItem>
+            <SelectItem value="2025" className="text-xs">
+              2025 год (Все)
+            </SelectItem>
+            <SelectItem value="90d" className="text-xs">
+              Q4 2025 (90 дн.)
+            </SelectItem>
+            <SelectItem value="30d" className="text-xs">
+              Дек 2025 (30 дн.)
+            </SelectItem>
+            <SelectItem value="all" className="text-xs">
+              Весь диапазон
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -103,15 +108,14 @@ export function SupplierFiltersBar({
       {/* Supplier Selector */}
       <div className="flex items-center gap-1.5">
         <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-        <Select
-          value={filters.supplierId}
-          onValueChange={handleSupplierChange}
-        >
+        <Select value={filters.supplierId} onValueChange={handleSupplierChange}>
           <SelectTrigger className="w-[190px] h-9 text-xs">
             <SelectValue placeholder="Все поставщики" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all" className="text-xs">Все поставщики</SelectItem>
+            <SelectItem value="all" className="text-xs">
+              Все поставщики
+            </SelectItem>
             {options?.suppliers?.map((s) => (
               <SelectItem key={s.id} value={s.id} className="text-xs">
                 {s.name}
@@ -124,15 +128,14 @@ export function SupplierFiltersBar({
       {/* Warehouse Selector */}
       <div className="flex items-center gap-1.5">
         <Warehouse className="h-4 w-4 text-muted-foreground shrink-0" />
-        <Select
-          value={filters.warehouseId}
-          onValueChange={handleWarehouseChange}
-        >
+        <Select value={filters.warehouseId} onValueChange={handleWarehouseChange}>
           <SelectTrigger className="w-[190px] h-9 text-xs">
             <SelectValue placeholder="Все склады" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all" className="text-xs">Все склады</SelectItem>
+            <SelectItem value="all" className="text-xs">
+              Все склады
+            </SelectItem>
             {options?.warehouses?.map((w) => (
               <SelectItem key={w.id} value={w.id} className="text-xs">
                 {w.name}

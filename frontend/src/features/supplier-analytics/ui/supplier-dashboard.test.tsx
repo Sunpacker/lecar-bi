@@ -5,7 +5,10 @@ import { SupplierPerformanceTable } from './supplier-performance-table'
 import { SupplierDeliveriesTable } from './supplier-deliveries-table'
 import { SupplierTabsContainer } from './supplier-tabs-container'
 import { supplierGateway } from '../api/supplier-gateway'
-import type { SupplierPerformanceItem, SupplierDeliveryItem } from '../api/supplier-gateway'
+import type {
+  SupplierPerformanceItem,
+  SupplierDeliveryItem,
+} from '../api/supplier-gateway'
 
 vi.mock('../api/supplier-gateway', () => ({
   supplierGateway: {
@@ -83,7 +86,7 @@ describe('Supplier Dashboard Tables & Container', () => {
         onSort={onSort}
         onPageChange={onPageChange}
         onSearchChange={onSearchChange}
-      />
+      />,
     )
 
     expect(screen.getByText('Bosch Automotive')).toBeDefined()
@@ -110,7 +113,7 @@ describe('Supplier Dashboard Tables & Container', () => {
         onPageChange={onPageChange}
         onSearchChange={onSearchChange}
         onStatusChange={onStatusChange}
-      />
+      />,
     )
 
     expect(screen.getByText('Свеча Platinum')).toBeDefined()

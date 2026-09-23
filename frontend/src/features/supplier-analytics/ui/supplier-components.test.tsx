@@ -5,7 +5,11 @@ import { SupplierKpiCards } from './supplier-kpi-cards'
 import { SupplierStatusBreakdown } from './supplier-status-breakdown'
 import { SupplierFiltersBar } from './supplier-filters-bar'
 import { SupplierTrendsChart } from './supplier-trends-chart'
-import type { SupplierSummary, DeliveryStatusBreakdownItem, SupplierTrendPoint } from '../api/supplier-gateway'
+import type {
+  SupplierSummary,
+  DeliveryStatusBreakdownItem,
+  SupplierTrendPoint,
+} from '../api/supplier-gateway'
 
 describe('Supplier Analytics UI Components', () => {
   const mockSummary: SupplierSummary = {
@@ -88,12 +92,8 @@ describe('Supplier Analytics UI Components', () => {
         { id: 'sup-1', name: 'Bosch' },
         { id: 'sup-2', name: 'Brembo' },
       ],
-      warehouses: [
-        { id: 'wh-1', name: 'Центральный' },
-      ],
-      statuses: [
-        { value: 'on_time', label: 'В срок' },
-      ],
+      warehouses: [{ id: 'wh-1', name: 'Центральный' }],
+      statuses: [{ value: 'on_time', label: 'В срок' }],
       min_date: '2025-01-01',
       max_date: '2025-12-31',
     }
@@ -103,7 +103,7 @@ describe('Supplier Analytics UI Components', () => {
         options={options}
         filters={{ dateFrom: '2025-01-01', dateTo: '2025-12-31' }}
         onFilterChange={onFilterChange}
-      />
+      />,
     )
 
     expect(screen.getByText('Все поставщики')).toBeDefined()

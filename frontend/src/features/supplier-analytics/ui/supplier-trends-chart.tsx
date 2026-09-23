@@ -74,7 +74,10 @@ export function SupplierTrendsChart({ trends }: SupplierTrendsChartProps) {
         ) : (
           <div className="h-72 w-full pt-2">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={trends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <ComposedChart
+                data={trends}
+                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border/40" />
                 <XAxis
                   dataKey="period"
@@ -109,7 +112,10 @@ export function SupplierTrendsChart({ trends }: SupplierTrendsChartProps) {
                       <div className="rounded-lg border border-border bg-popover p-2.5 shadow-md text-xs space-y-1.5">
                         <div className="font-semibold text-foreground">{label}</div>
                         {payload.map((item) => (
-                          <div key={item.name} className="flex items-center justify-between gap-4">
+                          <div
+                            key={item.name}
+                            className="flex items-center justify-between gap-4"
+                          >
                             <span className="text-muted-foreground flex items-center gap-1.5">
                               <span
                                 className="h-2 w-2 rounded-full"
@@ -125,8 +131,8 @@ export function SupplierTrendsChart({ trends }: SupplierTrendsChartProps) {
                                     maximumFractionDigits: 0,
                                   }).format(Number(item.value))
                                 : typeof item.value === 'number' &&
-                                  typeof item.name === 'string' &&
-                                  item.name.includes('%')
+                                    typeof item.name === 'string' &&
+                                    item.name.includes('%')
                                   ? `${item.value}%`
                                   : item.value}
                             </span>
@@ -138,7 +144,9 @@ export function SupplierTrendsChart({ trends }: SupplierTrendsChartProps) {
                 />
                 <Legend
                   wrapperStyle={{ paddingTop: 8, fontSize: 12 }}
-                  formatter={(val) => <span className="text-muted-foreground">{val}</span>}
+                  formatter={(val) => (
+                    <span className="text-muted-foreground">{val}</span>
+                  )}
                 />
                 <Bar
                   yAxisId="left"

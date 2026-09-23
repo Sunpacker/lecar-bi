@@ -66,8 +66,7 @@ export function SupplierPerformanceTable({
     },
     good: {
       label: 'Хорошая',
-      badgeClass:
-        'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20',
+      badgeClass: 'bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-500/20',
     },
     acceptable: {
       label: 'Средняя',
@@ -76,8 +75,7 @@ export function SupplierPerformanceTable({
     },
     poor: {
       label: 'Низкая',
-      badgeClass:
-        'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
+      badgeClass: 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20',
     },
   }
 
@@ -123,12 +121,24 @@ export function SupplierPerformanceTable({
             <TableRow className="hover:bg-transparent border-border">
               <TableHead>{renderSortHeader('supplier_name', 'Поставщик')}</TableHead>
               <TableHead>{renderSortHeader('total_deliveries', 'Заказов')}</TableHead>
-              <TableHead className="text-right">{renderSortHeader('total_spend', 'Сумма закупок')}</TableHead>
-              <TableHead className="text-right">{renderSortHeader('on_time_rate', 'В срок (OTD)')}</TableHead>
-              <TableHead className="text-right">{renderSortHeader('fulfillment_rate', 'Полнота')}</TableHead>
-              <TableHead className="text-right">{renderSortHeader('defect_rate', 'Брак %')}</TableHead>
-              <TableHead className="text-right">{renderSortHeader('avg_lead_time_days', 'Ср. срок')}</TableHead>
-              <TableHead className="text-center">{renderSortHeader('reliability_score', 'Надежность')}</TableHead>
+              <TableHead className="text-right">
+                {renderSortHeader('total_spend', 'Сумма закупок')}
+              </TableHead>
+              <TableHead className="text-right">
+                {renderSortHeader('on_time_rate', 'В срок (OTD)')}
+              </TableHead>
+              <TableHead className="text-right">
+                {renderSortHeader('fulfillment_rate', 'Полнота')}
+              </TableHead>
+              <TableHead className="text-right">
+                {renderSortHeader('defect_rate', 'Брак %')}
+              </TableHead>
+              <TableHead className="text-right">
+                {renderSortHeader('avg_lead_time_days', 'Ср. срок')}
+              </TableHead>
+              <TableHead className="text-center">
+                {renderSortHeader('reliability_score', 'Надежность')}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -139,7 +149,10 @@ export function SupplierPerformanceTable({
               }
 
               return (
-                <TableRow key={item.supplier_id} className="border-border hover:bg-muted/40 text-xs">
+                <TableRow
+                  key={item.supplier_id}
+                  className="border-border hover:bg-muted/40 text-xs"
+                >
                   <TableCell className="font-medium text-foreground py-3">
                     <div>{item.supplier_name}</div>
                     <div className="text-[10px] text-muted-foreground">
@@ -169,7 +182,13 @@ export function SupplierPerformanceTable({
                     {item.fulfillment_rate}%
                   </TableCell>
                   <TableCell className="text-right py-3">
-                    <span className={item.defect_rate > 1 ? 'text-amber-600 font-semibold' : 'text-muted-foreground'}>
+                    <span
+                      className={
+                        item.defect_rate > 1
+                          ? 'text-amber-600 font-semibold'
+                          : 'text-muted-foreground'
+                      }
+                    >
                       {item.defect_rate}%
                     </span>
                   </TableCell>
@@ -179,7 +198,10 @@ export function SupplierPerformanceTable({
                   <TableCell className="text-center py-3">
                     <div className="flex items-center justify-center gap-1.5">
                       <span className="font-mono text-xs">{item.reliability_score}</span>
-                      <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${tier.badgeClass}`}>
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] px-1.5 py-0 ${tier.badgeClass}`}
+                      >
                         {tier.label}
                       </Badge>
                     </div>
@@ -190,7 +212,10 @@ export function SupplierPerformanceTable({
 
             {items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="h-32 text-center text-xs text-muted-foreground">
+                <TableCell
+                  colSpan={8}
+                  className="h-32 text-center text-xs text-muted-foreground"
+                >
                   Поставщики не найдены
                 </TableCell>
               </TableRow>

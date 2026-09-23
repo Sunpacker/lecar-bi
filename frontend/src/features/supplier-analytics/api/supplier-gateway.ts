@@ -15,8 +15,7 @@ export type SupplierDeliveryItem = components['schemas']['SupplierDeliveryItem']
 export type SupplierFilterOptionsResponse =
   components['schemas']['SupplierFilterOptionsResponse']
 export type DeliveryStatus = components['schemas']['DeliveryStatus']
-export type SupplierReliabilityTier =
-  components['schemas']['SupplierReliabilityTier']
+export type SupplierReliabilityTier = components['schemas']['SupplierReliabilityTier']
 
 export interface SupplierOverviewParams {
   dateFrom?: string
@@ -69,28 +68,24 @@ export const supplierGateway = {
     workspaceId: string,
     params?: SupplierOverviewParams,
   ): Promise<SupplierOverviewResponse> {
-    const { data, error } = await analyticsClient.GET(
-      '/analytics/suppliers/overview',
-      {
-        headers: {
-          'X-User-Id': userId,
-          'X-Workspace-Id': workspaceId,
-        },
-        params: {
-          query: {
-            date_from: params?.dateFrom,
-            date_to: params?.dateTo,
-            supplier_id: params?.supplierId,
-            warehouse_id: params?.warehouseId,
-          },
+    const { data, error } = await analyticsClient.GET('/analytics/suppliers/overview', {
+      headers: {
+        'X-User-Id': userId,
+        'X-Workspace-Id': workspaceId,
+      },
+      params: {
+        query: {
+          date_from: params?.dateFrom,
+          date_to: params?.dateTo,
+          supplier_id: params?.supplierId,
+          warehouse_id: params?.warehouseId,
         },
       },
-    )
+    })
 
     if (error || !data) {
       throw new Error(
-        (error as { message?: string })?.message ??
-          'Failed to load supplier overview',
+        (error as { message?: string })?.message ?? 'Failed to load supplier overview',
       )
     }
 
@@ -126,8 +121,7 @@ export const supplierGateway = {
 
     if (error || !data) {
       throw new Error(
-        (error as { message?: string })?.message ??
-          'Failed to load supplier performance',
+        (error as { message?: string })?.message ?? 'Failed to load supplier performance',
       )
     }
 
@@ -139,34 +133,30 @@ export const supplierGateway = {
     workspaceId: string,
     params?: SupplierDeliveriesParams,
   ): Promise<SupplierDeliveriesResponse> {
-    const { data, error } = await analyticsClient.GET(
-      '/analytics/suppliers/deliveries',
-      {
-        headers: {
-          'X-User-Id': userId,
-          'X-Workspace-Id': workspaceId,
-        },
-        params: {
-          query: {
-            supplier_id: params?.supplierId,
-            warehouse_id: params?.warehouseId,
-            status: params?.status,
-            date_from: params?.dateFrom,
-            date_to: params?.dateTo,
-            search: params?.search,
-            page: params?.page,
-            per_page: params?.perPage,
-            sort_by: params?.sortBy,
-            sort_direction: params?.sortDirection,
-          },
+    const { data, error } = await analyticsClient.GET('/analytics/suppliers/deliveries', {
+      headers: {
+        'X-User-Id': userId,
+        'X-Workspace-Id': workspaceId,
+      },
+      params: {
+        query: {
+          supplier_id: params?.supplierId,
+          warehouse_id: params?.warehouseId,
+          status: params?.status,
+          date_from: params?.dateFrom,
+          date_to: params?.dateTo,
+          search: params?.search,
+          page: params?.page,
+          per_page: params?.perPage,
+          sort_by: params?.sortBy,
+          sort_direction: params?.sortDirection,
         },
       },
-    )
+    })
 
     if (error || !data) {
       throw new Error(
-        (error as { message?: string })?.message ??
-          'Failed to load supplier deliveries',
+        (error as { message?: string })?.message ?? 'Failed to load supplier deliveries',
       )
     }
 
@@ -177,20 +167,16 @@ export const supplierGateway = {
     userId: string,
     workspaceId: string,
   ): Promise<SupplierFilterOptionsResponse> {
-    const { data, error } = await analyticsClient.GET(
-      '/analytics/suppliers/filters',
-      {
-        headers: {
-          'X-User-Id': userId,
-          'X-Workspace-Id': workspaceId,
-        },
+    const { data, error } = await analyticsClient.GET('/analytics/suppliers/filters', {
+      headers: {
+        'X-User-Id': userId,
+        'X-Workspace-Id': workspaceId,
       },
-    )
+    })
 
     if (error || !data) {
       throw new Error(
-        (error as { message?: string })?.message ??
-          'Failed to load supplier filters',
+        (error as { message?: string })?.message ?? 'Failed to load supplier filters',
       )
     }
 

@@ -85,8 +85,7 @@ export function SupplierDeliveriesTable({
     },
     partial: {
       label: 'Частично',
-      badgeClass:
-        'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
+      badgeClass: 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20',
       icon: AlertCircle,
     },
   }
@@ -164,14 +163,20 @@ export function SupplierDeliveriesTable({
           <TableHeader>
             <TableRow className="hover:bg-transparent border-border">
               <TableHead>{renderSortHeader('order_date', 'Дата заказа')}</TableHead>
-              <TableHead>{renderSortHeader('expected_delivery_date', 'План / Факт')}</TableHead>
+              <TableHead>
+                {renderSortHeader('expected_delivery_date', 'План / Факт')}
+              </TableHead>
               <TableHead>Поставщик</TableHead>
               <TableHead>Товар / Артикул</TableHead>
               <TableHead>Склад</TableHead>
               <TableHead className="text-right">Кол-во (зак/факт)</TableHead>
-              <TableHead className="text-right">{renderSortHeader('total_purchase_cost', 'Сумма')}</TableHead>
+              <TableHead className="text-right">
+                {renderSortHeader('total_purchase_cost', 'Сумма')}
+              </TableHead>
               <TableHead className="text-center">Статус</TableHead>
-              <TableHead className="text-right">{renderSortHeader('lead_time_days', 'Срок / Задержка')}</TableHead>
+              <TableHead className="text-right">
+                {renderSortHeader('lead_time_days', 'Срок / Задержка')}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -184,12 +189,17 @@ export function SupplierDeliveriesTable({
               const Icon = meta.icon
 
               return (
-                <TableRow key={del.id} className="border-border hover:bg-muted/40 text-xs">
+                <TableRow
+                  key={del.id}
+                  className="border-border hover:bg-muted/40 text-xs"
+                >
                   <TableCell className="font-mono text-muted-foreground py-3">
                     {del.order_date}
                   </TableCell>
                   <TableCell className="py-3">
-                    <div className="font-mono text-foreground">{del.expected_delivery_date}</div>
+                    <div className="font-mono text-foreground">
+                      {del.expected_delivery_date}
+                    </div>
                     <div className="text-[10px] text-muted-foreground">
                       факт: {del.actual_delivery_date ?? '—'}
                     </div>
@@ -208,7 +218,8 @@ export function SupplierDeliveriesTable({
                   </TableCell>
                   <TableCell className="text-right font-mono py-3">
                     <div>
-                      {numberFormatter.format(del.received_quantity)} / {numberFormatter.format(del.ordered_quantity)}
+                      {numberFormatter.format(del.received_quantity)} /{' '}
+                      {numberFormatter.format(del.ordered_quantity)}
                     </div>
                     {del.defect_quantity > 0 && (
                       <div className="text-[10px] text-amber-600">
@@ -220,13 +231,18 @@ export function SupplierDeliveriesTable({
                     {currencyFormatter.format(del.total_purchase_cost)}
                   </TableCell>
                   <TableCell className="text-center py-3">
-                    <Badge variant="outline" className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 ${meta.badgeClass}`}>
+                    <Badge
+                      variant="outline"
+                      className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 ${meta.badgeClass}`}
+                    >
                       <Icon className="h-3 w-3" />
                       {meta.label}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right py-3">
-                    <span className="font-mono text-foreground">{del.lead_time_days} дн.</span>
+                    <span className="font-mono text-foreground">
+                      {del.lead_time_days} дн.
+                    </span>
                     {del.delay_days > 0 && (
                       <span className="text-[10px] text-amber-600 block">
                         +{del.delay_days} дн.
@@ -239,7 +255,10 @@ export function SupplierDeliveriesTable({
 
             {items.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="h-32 text-center text-xs text-muted-foreground">
+                <TableCell
+                  colSpan={9}
+                  className="h-32 text-center text-xs text-muted-foreground"
+                >
                   Записи о поставках не найдены
                 </TableCell>
               </TableRow>
@@ -252,7 +271,8 @@ export function SupplierDeliveriesTable({
       {pagination.total_pages > 1 && (
         <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
           <div>
-            Страница {pagination.page} из {pagination.total_pages} (всего {pagination.total} записей)
+            Страница {pagination.page} из {pagination.total_pages} (всего{' '}
+            {pagination.total} записей)
           </div>
           <div className="flex items-center gap-1">
             <Button

@@ -46,8 +46,7 @@ export function SupplierTabsContainer({
   const [overviewError, setOverviewError] = useState<string | null>(null)
 
   // Performance table state
-  const [performance, setPerformance] =
-    useState<SupplierPerformanceResponse | null>(null)
+  const [performance, setPerformance] = useState<SupplierPerformanceResponse | null>(null)
   const [isPerformanceLoading, setIsPerformanceLoading] = useState(false)
   const [performanceSearch, setPerformanceSearch] = useState('')
   const [performanceSortBy, setPerformanceSortBy] = useState('total_spend')
@@ -55,8 +54,7 @@ export function SupplierTabsContainer({
   const [performancePage, setPerformancePage] = useState(1)
 
   // Deliveries table state
-  const [deliveries, setDeliveries] =
-    useState<SupplierDeliveriesResponse | null>(null)
+  const [deliveries, setDeliveries] = useState<SupplierDeliveriesResponse | null>(null)
   const [isDeliveriesLoading, setIsDeliveriesLoading] = useState(false)
   const [deliveriesSearch, setDeliveriesSearch] = useState('')
   const [deliveriesStatus, setDeliveriesStatus] = useState<DeliveryStatus | undefined>()

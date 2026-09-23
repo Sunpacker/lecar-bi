@@ -68,7 +68,9 @@ describe('SuppliersPage', () => {
     const ui = await SuppliersPage()
     render(ui)
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Аналитика поставщиков' })).toBeDefined()
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Аналитика поставщиков' }),
+    ).toBeDefined()
     expect(screen.getByTestId('supplier-tabs-container')).toBeDefined()
     expect(screen.getByText('Supplier Tabs: user-77 - ws-77')).toBeDefined()
   })

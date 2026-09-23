@@ -50,7 +50,10 @@ export function SupplierKpiCards({ summary }: SupplierKpiCardsProps) {
         </CardContent>
       </Card>
 
-      <Card data-testid="kpi-total-deliveries" className="border-border bg-card shadow-xs">
+      <Card
+        data-testid="kpi-total-deliveries"
+        className="border-border bg-card shadow-xs"
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-1 space-y-0">
           <CardTitle className="text-xs uppercase text-muted-foreground font-medium tracking-wider">
             Всего поставок
@@ -84,7 +87,10 @@ export function SupplierKpiCards({ summary }: SupplierKpiCardsProps) {
         </CardContent>
       </Card>
 
-      <Card data-testid="kpi-fulfillment-rate" className="border-border bg-card shadow-xs">
+      <Card
+        data-testid="kpi-fulfillment-rate"
+        className="border-border bg-card shadow-xs"
+      >
         <CardHeader className="flex flex-row items-center justify-between pb-1 space-y-0">
           <CardTitle className="text-xs uppercase text-muted-foreground font-medium tracking-wider">
             Полнота (Fill Rate)
