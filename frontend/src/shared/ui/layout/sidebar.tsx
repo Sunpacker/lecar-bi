@@ -28,7 +28,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { name: 'Dashboards', href: '/dashboards', icon: LayoutDashboard },
   { name: 'Импорт данных', href: '/imports', icon: UploadCloud },
   { name: 'Поставщики', href: '/suppliers', icon: Users },
-  { name: 'Alerts', href: '/alerts', icon: Bell, disabled: true, badge: 'Скоро' },
+  { name: 'Алерты', href: '/alerts', icon: Bell },
   { name: 'Settings', href: '/settings', icon: Settings, disabled: true, badge: 'Скоро' },
 ]
 
