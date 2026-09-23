@@ -50,12 +50,25 @@ class EloquentImportFailureRepository implements ImportFailureRepositoryInterfac
             $value = $model->getAttribute('value');
             /** @var mixed $errorMessage */
             $errorMessage = $model->getAttribute('error_message');
+            /** @var mixed $id */
+            $id = $model->getAttribute('id');
+            /** @var mixed $createdAt */
+            $createdAt = $model->getAttribute('created_at');
+
+            $createdDate = null;
+            if ($createdAt instanceof \DateTimeInterface) {
+                $createdDate = new \DateTimeImmutable($createdAt->format(\DateTimeInterface::ATOM));
+            } elseif (is_string($createdAt)) {
+                $createdDate = new \DateTimeImmutable($createdAt);
+            }
 
             return new RowError(
-                (int) $rowNumber,
-                $field !== null ? (string) $field : null,
-                $value !== null ? (string) $value : null,
-                (string) $errorMessage
+                rowNumber: (int) $rowNumber,
+                field: $field !== null ? (string) $field : null,
+                value: $value !== null ? (string) $value : null,
+                message: (string) $errorMessage,
+                id: $id !== null ? (string) $id : null,
+                createdAt: $createdDate,
             );
         })->all();
     }
