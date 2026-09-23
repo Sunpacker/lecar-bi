@@ -24,7 +24,7 @@
 - [x] [Phase 5 — Sales Drill-Down and BI Interaction Model](05-sales-drill-down.md)
 - [x] [Phase 6 — Inventory Intelligence](06-inventory-intelligence.md)
 - [x] [Phase 7 — ABC/XYZ Analysis](07-abc-xyz-analysis.md)
-- [ ] [Phase 8 — Dashboard Builder](08-dashboard-builder.md)
+- [x] [Phase 8 — Dashboard Builder](08-dashboard-builder.md)
 - [ ] [Phase 9 — Shared Filters and Saved Views](09-shared-filters-saved-views.md)
 - [ ] [Phase 10 — Data Ingestion](10-data-ingestion.md)
 - [ ] [Phase 11 — Supplier Analytics](11-supplier-analytics.md)

@@ -102,14 +102,62 @@ Dashboard собирается и восстанавливается, ownership 
      - Полный прогон фронтенд-тестов: 26 файлов, 100 тестов проходят без ошибок, `typecheck`, `lint` и `format:check` чистые (0 ошибок);
      - Backend-тесты: 114 тестов (27997 assertions) и Pint/PHPStan без ошибок.
 
+10. **E2E тестирование и финальный Integration Checkpoint:**
+    - Разработан сквозной E2E integration test пользовательских сценариев редактора `DashboardViewer` (`frontend/src/features/dashboard/ui/dashboard-builder-flow.test.tsx`):
+      - Полный цикл редактирования: переключение в режим редактирования, изменение метаданных (заголовок, описание), добавление семантического виджета через `WidgetConfigSheet`, сдвиг виджета по 12-колоночной сетке и изменение размеров, сохранение через `dashboardGateway.update` с валидацией чистоты отправляемого контракта;
+      - Сценарий отмены и сброса изменений без модификации исходного состояния дашборда.
+    - Разработан сквозной integration test управления списком дашбордов (`frontend/src/features/dashboard/ui/dashboard-list-flow.test.tsx`):
+      - Создание нового дашборда через форму в Sheet с валидацией вызова `dashboardGateway.create` и добавлением карточки в DOM;
+      - Удаление дашборда с подтверждением в диалоговом окне браузера и вызовом `dashboardGateway.delete`.
+    - Разработан тест чистоты семантического контракта и защиты от утечки frontend-состояний (`backend/tests/Feature/Modules/Dashboard/DashboardContractSemanticsTest.php`):
+      - Проверка OpenAPI-схем `WidgetInput`, `WidgetGridPosition`, `WidgetQueryConfig` на отсутствие UI-специфичных полей (`className`, `style`, `pixelWidth`, `domId` и т.д.);
+      - Проверка API на очистку и отсечение лишних frontend-свойств при обновлении и получении дашбордов;
+      - Проверка изоляции тенантов и защиты владения (cross-workspace update / delete возвращает 403 Forbidden).
+    - Расширен интеграционный скрипт `scripts/verify-integration.sh` проверками полного жизненного цикла CRUD для дашбордов:
+      - Создание пользовательского дашборда через `POST /api/v1/dashboards`;
+      - Чтение и восстановление через `GET /api/v1/dashboards/{id}`;
+      - Обновление конфигурации виджетов и перемещение через `PUT /api/v1/dashboards/{id}`;
+      - Проверка изоляции прав доступа (попытка доступа от `user-2` возвращает 403 Forbidden);
+      - Аутентифицированная проверка рендеринга страниц `/dashboards` и `/dashboards/{id}` на фронтенде;
+      - Удаление через `DELETE /api/v1/dashboards/{id}` и проверка 404 Not Found при повторном чтении.
+
 ### Что осталось в текущей фазе
 
-1. **E2E тестирование и финальный Integration Checkpoint:**
-   - Покрытие builder flows сквозными тестами;
-   - Подтверждение всех exit criteria Phase 8.
+Все запланированные задачи фазы 8 успешно выполнены.
 
 ### Блокеры
 - Отсутствуют.
 
 ### Следующий шаг
-- Реализация задачи: E2E тестирование builder flows и прохождение интеграционного чекпоинта Phase 8.
+- Фаза 8 завершена. Переход к Phase 9 (Shared Filters and Saved Views) в соответствии с Roadmap.
+
+---
+
+## Проверка завершения
+
+- **Дата завершения:** 2026-09-23
+- **Статус:** Выполнено (все exit criteria подтверждены).
+
+### Подтверждение Exit Criteria
+1. **Dashboard собирается и восстанавливается:**
+   Подтверждено юнит-, компонентными, интеграционными и сквозными тестами. Пользователь может создавать дашборды, добавлять любые семантические типы виджетов (`kpi_card`, `line_chart`, `bar_chart`, `donut_chart`, `table`), настраивать их источники (`sales`, `inventory`), метрики, временные диапазоны, свободно перемещать и масштабировать блоки в 12-колоночной сетке (`x, y, w, h`), сохранять состояние на бэкенде и восстанавливать при загрузке.
+2. **Ownership enforced:**
+   Подтверждено тестами `DashboardApiTest`, `DashboardContractSemanticsTest` и скриптом `scripts/verify-integration.sh`. Дашборды строго привязаны к `workspace_id` и `user_id`. Межпространственные запросы чтения, обновления и удаления немедленно пресекаются со статусом `403 Forbidden`.
+3. **Frontend-specific state не протекает в public contract без причины:**
+   Подтверждено автоматическим тестом `DashboardContractSemanticsTest::test_openapi_contract_does_not_leak_frontend_state` и валидацией схем `WidgetInput`, `WidgetGridPosition`, `WidgetQueryConfig`. Контракт оперирует исключительно доменными концептами без примеси React-специфики, CSS-стилей или пиксельной разметки.
+4. **Основные builder flows покрыты E2E:**
+   Разработан комплекс сквозных тестов:
+   - `dashboard-builder-flow.test.tsx` (полный цикл View/Edit режимов, создание, позиционирование, ресайз, сохранение, сброс);
+   - `dashboard-list-flow.test.tsx` (создание и удаление дашбордов из каталога);
+   - `scripts/verify-integration.sh` (сквозной цикл создания, чтения, модификации, изоляции и удаления через HTTP API и Next.js SSR).
+
+### Результаты автоматических проверок (`make check`)
+- `npm --prefix frontend run contracts:validate`: OK (OpenAPI 3.0.3 valid)
+- `npm --prefix frontend run format:check`: OK (Prettier — all files formatted)
+- `npm --prefix frontend run lint`: OK (ESLint 0 errors)
+- `npm --prefix frontend run typecheck`: OK (TypeScript 0 errors)
+- `npm --prefix frontend test`: OK (28 test files, 104 tests passed)
+- `npm --prefix frontend run build`: OK (Next.js 16 production build succeeded, all static and dynamic routes compiled)
+- `composer --working-dir=backend validate --strict`: OK (composer.json valid)
+- `composer --working-dir=backend lint`: OK (Pint + PHPStan level max 0 errors)
+- `composer --working-dir=backend test`: OK (117 tests, 28,037 assertions passed)
