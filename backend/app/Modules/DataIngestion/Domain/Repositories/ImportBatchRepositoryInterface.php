@@ -18,4 +18,6 @@ interface ImportBatchRepositoryInterface
     public function listByWorkspace(string $workspaceId, ?ImportStatus $status, int $page, int $perPage): array;
 
     public function countByWorkspace(string $workspaceId, ?ImportStatus $status = null): int;
+
+    public function delete(ImportBatchId $id, string $workspaceId): void;
 }

@@ -97,4 +97,11 @@ class EloquentImportBatchRepository implements ImportBatchRepositoryInterface
             $model->completed_at ? new DateTimeImmutable($model->completed_at->toIso8601String()) : null
         );
     }
+
+    public function delete(ImportBatchId $id, string $workspaceId): void
+    {
+        ImportBatchModel::where('id', $id->toString())
+            ->where('workspace_id', $workspaceId)
+            ->delete();
+    }
 }

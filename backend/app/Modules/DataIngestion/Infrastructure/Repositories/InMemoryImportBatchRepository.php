@@ -59,4 +59,11 @@ class InMemoryImportBatchRepository implements ImportBatchRepositoryInterface
 
         return count($filtered);
     }
+
+    public function delete(ImportBatchId $id, string $workspaceId): void
+    {
+        if (isset($this->batches[$id->toString()]) && $this->batches[$id->toString()]->workspaceId() === $workspaceId) {
+            unset($this->batches[$id->toString()]);
+        }
+    }
 }

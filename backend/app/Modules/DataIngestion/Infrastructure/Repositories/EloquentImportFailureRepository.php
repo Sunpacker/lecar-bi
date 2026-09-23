@@ -42,11 +42,20 @@ class EloquentImportFailureRepository implements ImportFailureRepositoryInterfac
             ->get();
 
         return $models->map(function (ImportFailureModel $model) {
+            /** @var mixed $rowNumber */
+            $rowNumber = $model->getAttribute('row_number');
+            /** @var mixed $field */
+            $field = $model->getAttribute('field');
+            /** @var mixed $value */
+            $value = $model->getAttribute('value');
+            /** @var mixed $errorMessage */
+            $errorMessage = $model->getAttribute('error_message');
+
             return new RowError(
-                $model->row_number,
-                $model->field,
-                $model->value,
-                $model->error_message
+                (int) $rowNumber,
+                $field ? (string) $field : null,
+                $value ? (string) $value : null,
+                (string) $errorMessage
             );
         })->all();
     }
@@ -56,5 +65,12 @@ class EloquentImportFailureRepository implements ImportFailureRepositoryInterfac
         return ImportFailureModel::where('batch_id', $batchId->toString())
             ->where('workspace_id', $workspaceId)
             ->count();
+    }
+
+    public function deleteByBatchId(ImportBatchId $batchId, string $workspaceId): void
+    {
+        ImportFailureModel::where('batch_id', $batchId->toString())
+            ->where('workspace_id', $workspaceId)
+            ->delete();
     }
 }

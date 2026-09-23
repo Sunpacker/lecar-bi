@@ -4,9 +4,11 @@ namespace App\Modules\DataIngestion\Infrastructure\Repositories;
 
 use App\Modules\DataIngestion\Domain\ImportBatchId;
 use App\Modules\DataIngestion\Domain\Repositories\ImportFailureRepositoryInterface;
+use App\Modules\DataIngestion\Domain\RowError;
 
 class InMemoryImportFailureRepository implements ImportFailureRepositoryInterface
 {
+    /** @var array<string, RowError[]> */
     private array $failures = [];
 
     public function recordFailures(ImportBatchId $batchId, string $workspaceId, array $rowErrors): void
@@ -34,5 +36,13 @@ class InMemoryImportFailureRepository implements ImportFailureRepositoryInterfac
         $key = $batchId->toString().'_'.$workspaceId;
 
         return count($this->failures[$key] ?? []);
+    }
+
+    public function deleteByBatchId(ImportBatchId $batchId, string $workspaceId): void
+    {
+        $key = $batchId->toString().'_'.$workspaceId;
+        if (isset($this->failures[$key])) {
+            unset($this->failures[$key]);
+        }
     }
 }

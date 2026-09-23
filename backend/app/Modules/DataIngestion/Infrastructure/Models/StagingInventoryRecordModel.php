@@ -33,11 +33,17 @@ class StagingInventoryRecordModel extends Model
         'created_at' => 'datetime',
     ];
 
+    /**
+     * @return BelongsTo<ImportBatchModel, $this>
+     */
     public function batch(): BelongsTo
     {
         return $this->belongsTo(ImportBatchModel::class, 'batch_id');
     }
 
+    /**
+     * @return BelongsTo<WorkspaceModel, $this>
+     */
     public function workspace(): BelongsTo
     {
         return $this->belongsTo(WorkspaceModel::class, 'workspace_id');

@@ -1,8 +1,9 @@
 INFRA_ENV_FILE ?= $(if $(wildcard infra/.env),infra/.env,infra/.env.example)
 COMPOSE = docker compose --env-file $(INFRA_ENV_FILE) -f infra/docker-compose.yml
 DEV_COMPOSE = $(COMPOSE) -f infra/docker-compose.dev.yml
+VPS_COMPOSE = docker compose --env-file $(INFRA_ENV_FILE) -f infra/docker-compose.vps.yml
 
-.PHONY: install install-frontend install-backend dev dev-down dev-frontend infra-up infra-down build check check-frontend check-backend check-contracts test integration migrate migrate-seed migrate-fresh seed artisan
+.PHONY: install install-frontend install-backend dev dev-down dev-frontend infra-up infra-down build build-vps vps-up check check-frontend check-backend check-contracts test integration migrate migrate-seed migrate-fresh seed artisan
 install: install-frontend install-backend
 
 install-frontend:
@@ -31,8 +32,11 @@ build:
 	docker compose --env-file $(INFRA_ENV_FILE) -f infra/docker-compose.yml build backend
 
 build-vps:
-	npm --prefix frontend run build
-	docker compose --env-file $(INFRA_ENV_FILE) -f infra/docker-compose.vps.yml build backend
+	$(VPS_COMPOSE) build backend
+
+vps-up:
+	$(VPS_COMPOSE) up --build --detach --wait
+	$(VPS_COMPOSE) exec -T backend php artisan migrate --force
 
 check: check-contracts check-frontend check-backend
 

@@ -18,4 +18,6 @@ interface ImportFailureRepositoryInterface
     public function listByBatchId(ImportBatchId $batchId, string $workspaceId, int $page, int $perPage): array;
 
     public function countByBatchId(ImportBatchId $batchId, string $workspaceId): int;
+
+    public function deleteByBatchId(ImportBatchId $batchId, string $workspaceId): void;
 }

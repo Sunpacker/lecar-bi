@@ -35,21 +35,33 @@ class ImportBatchModel extends Model
         'completed_at' => 'datetime',
     ];
 
+    /**
+     * @return BelongsTo<WorkspaceModel, $this>
+     */
     public function workspace(): BelongsTo
     {
         return $this->belongsTo(WorkspaceModel::class, 'workspace_id');
     }
 
+    /**
+     * @return HasMany<StagingSalesRecordModel, $this>
+     */
     public function salesRecords(): HasMany
     {
         return $this->hasMany(StagingSalesRecordModel::class, 'batch_id');
     }
 
+    /**
+     * @return HasMany<StagingInventoryRecordModel, $this>
+     */
     public function inventoryRecords(): HasMany
     {
         return $this->hasMany(StagingInventoryRecordModel::class, 'batch_id');
     }
 
+    /**
+     * @return HasMany<ImportFailureModel, $this>
+     */
     public function failures(): HasMany
     {
         return $this->hasMany(ImportFailureModel::class, 'batch_id');

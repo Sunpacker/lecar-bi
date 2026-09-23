@@ -32,9 +32,10 @@ handle_path /lecar-bi/* {
 Запускать из корня репозитория:
 
 ```bash
-docker compose --env-file infra/.env -f infra/docker-compose.vps.yml up --build -d
-docker compose --env-file infra/.env -f infra/docker-compose.vps.yml exec backend php artisan migrate --force
+make vps-up
 curl --fail --show-error https://api.veloza.ru/lecar-bi/api/v1/health
 ```
+
+`make vps-up` собирает и запускает сервисы, ждёт успешных health checks и применяет production-миграции.
 
 `infra/.env` не хранится в Git. Перед первым запуском его нужно безопасно передать на VPS; `APP_KEY` и `POSTGRES_PASSWORD` должны оставаться секретными.
