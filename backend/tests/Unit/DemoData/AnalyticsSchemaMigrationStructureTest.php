@@ -40,4 +40,17 @@ final class AnalyticsSchemaMigrationStructureTest extends TestCase
         self::assertStringContainsString("references('id')->on('workspaces')->cascadeOnDelete()", $dimensionsContent);
         self::assertStringContainsString("references('id')->on('workspaces')->cascadeOnDelete()", $factsContent);
     }
+
+    #[Test]
+    public function defect_quantity_migration_exists_and_modifies_fact_supplier_deliveries(): void
+    {
+        $baseDir = dirname(__DIR__, 3).'/database/migrations';
+        $defectMigration = $baseDir.'/2026_09_23_000040_add_defect_quantity_to_fact_supplier_deliveries.php';
+
+        self::assertFileExists($defectMigration);
+        $content = (string) file_get_contents($defectMigration);
+
+        self::assertStringContainsString("'fact_supplier_deliveries'", $content);
+        self::assertStringContainsString("'defect_quantity'", $content);
+    }
 }

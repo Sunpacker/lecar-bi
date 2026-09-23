@@ -5,6 +5,7 @@ use App\Modules\Dashboard\Presentation\Controllers\DashboardSavedViewController;
 use App\Modules\DataIngestion\Presentation\Controllers\ImportBatchController;
 use App\Modules\InventoryAnalytics\Presentation\Controllers\InventoryAnalyticsController;
 use App\Modules\SalesAnalytics\Presentation\Controllers\SalesAnalyticsController;
+use App\Modules\SupplierAnalytics\Presentation\Controllers\SupplierAnalyticsController;
 use App\Modules\Workspace\Presentation\Controllers\AuthController;
 use App\Modules\Workspace\Presentation\Controllers\CurrentWorkspaceController;
 use App\Modules\Workspace\Presentation\Controllers\ProfileController;
@@ -49,5 +50,10 @@ Route::prefix('v1')->group(function () {
         Route::get('/analytics/inventory/filters', [InventoryAnalyticsController::class, 'filters']);
         Route::get('/analytics/inventory/abc-xyz/summary', [InventoryAnalyticsController::class, 'abcXyzSummary']);
         Route::get('/analytics/inventory/abc-xyz/items', [InventoryAnalyticsController::class, 'abcXyzItems']);
+
+        Route::get('/analytics/suppliers/overview', [SupplierAnalyticsController::class, 'overview']);
+        Route::get('/analytics/suppliers/filters', [SupplierAnalyticsController::class, 'filters']);
+        Route::get('/analytics/suppliers/performance', [SupplierAnalyticsController::class, 'performance']);
+        Route::get('/analytics/suppliers/deliveries', [SupplierAnalyticsController::class, 'deliveries']);
     });
 });

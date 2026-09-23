@@ -146,6 +146,29 @@ final class ApiContractTest extends TestCase
         self::assertArrayHasKey('ImportFailureListResponse', $schemas);
     }
 
+    public function test_contract_contains_supplier_analytics_endpoints(): void
+    {
+        $contract = $this->openApiContract();
+
+        self::assertArrayHasKey('/analytics/suppliers/overview', $contract['paths']);
+        self::assertArrayHasKey('/analytics/suppliers/filters', $contract['paths']);
+        self::assertArrayHasKey('/analytics/suppliers/performance', $contract['paths']);
+        self::assertArrayHasKey('/analytics/suppliers/deliveries', $contract['paths']);
+
+        $schemas = $contract['components']['schemas'];
+        self::assertArrayHasKey('SupplierOverviewResponse', $schemas);
+        self::assertArrayHasKey('SupplierSummary', $schemas);
+        self::assertArrayHasKey('DeliveryStatusBreakdownItem', $schemas);
+        self::assertArrayHasKey('SupplierTrendPoint', $schemas);
+        self::assertArrayHasKey('SupplierPerformanceResponse', $schemas);
+        self::assertArrayHasKey('SupplierPerformanceItem', $schemas);
+        self::assertArrayHasKey('SupplierDeliveriesResponse', $schemas);
+        self::assertArrayHasKey('SupplierDeliveryItem', $schemas);
+        self::assertArrayHasKey('SupplierFilterOptionsResponse', $schemas);
+        self::assertArrayHasKey('DeliveryStatus', $schemas);
+        self::assertArrayHasKey('SupplierReliabilityTier', $schemas);
+    }
+
     /** @return array<string, mixed> */
     private function openApiContract(): array
     {

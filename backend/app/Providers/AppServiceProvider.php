@@ -28,6 +28,9 @@ use App\Modules\InventoryAnalytics\Infrastructure\Persistence\PostgresInventoryA
 use App\Modules\SalesAnalytics\Application\Contracts\SalesAnalyticsReadModelInterface;
 use App\Modules\SalesAnalytics\Infrastructure\Persistence\InMemorySalesAnalyticsReadModel;
 use App\Modules\SalesAnalytics\Infrastructure\Persistence\PostgresSalesAnalyticsReadModel;
+use App\Modules\SupplierAnalytics\Application\Contracts\SupplierAnalyticsReadModelInterface;
+use App\Modules\SupplierAnalytics\Infrastructure\Persistence\InMemorySupplierAnalyticsReadModel;
+use App\Modules\SupplierAnalytics\Infrastructure\Persistence\PostgresSupplierAnalyticsReadModel;
 use App\Modules\Workspace\Domain\Repositories\UserRepositoryInterface;
 use App\Modules\Workspace\Domain\Repositories\WorkspaceRepositoryInterface;
 use App\Modules\Workspace\Infrastructure\Persistence\Eloquent\Repositories\EloquentUserRepository;
@@ -72,6 +75,14 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return new PostgresInventoryAnalyticsReadModel;
+        });
+
+        $this->app->singleton(SupplierAnalyticsReadModelInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new InMemorySupplierAnalyticsReadModel;
+            }
+
+            return new PostgresSupplierAnalyticsReadModel;
         });
 
         $this->app->singleton(DashboardRepositoryInterface::class, function () {

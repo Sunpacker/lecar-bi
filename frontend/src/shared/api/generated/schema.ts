@@ -311,6 +311,74 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/analytics/suppliers/overview': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get aggregated supplier metrics overview, delivery trends, and status breakdown */
+    get: operations['getSupplierOverview']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/analytics/suppliers/filters': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get available suppliers, warehouses, statuses, and date bounds */
+    get: operations['getSupplierFilterOptions']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/analytics/suppliers/performance': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get comparative performance ranking of suppliers with sorting and pagination */
+    get: operations['getSupplierPerformance']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/analytics/suppliers/deliveries': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get granular delivery records journal with sorting, filtering, and pagination */
+    get: operations['getSupplierDeliveries']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/dashboards': {
     parameters: {
       query?: never
@@ -923,6 +991,140 @@ export interface components {
       filters: components['schemas']['DashboardFilterValues']
       /** @default false */
       is_default: boolean
+    }
+    /** @enum {string} */
+    DeliveryStatus: 'on_time' | 'delayed' | 'partial'
+    /** @enum {string} */
+    SupplierReliabilityTier: 'excellent' | 'good' | 'acceptable' | 'poor'
+    SupplierSummary: {
+      total_deliveries: number
+      on_time_deliveries: number
+      delayed_deliveries: number
+      partial_deliveries: number
+      /** Format: float */
+      total_spend: number
+      total_ordered_quantity: number
+      total_received_quantity: number
+      total_defect_quantity: number
+      /** Format: float */
+      on_time_rate: number
+      /** Format: float */
+      delay_rate: number
+      /** Format: float */
+      fulfillment_rate: number
+      /** Format: float */
+      defect_rate: number
+      /** Format: float */
+      average_lead_time_days: number
+      /** Format: float */
+      average_delay_days: number
+    }
+    DeliveryStatusBreakdownItem: {
+      status: components['schemas']['DeliveryStatus']
+      count: number
+      /** Format: float */
+      share_percentage: number
+      quantity: number
+    }
+    SupplierTrendPoint: {
+      /** @description Year-Month period (YYYY-MM) */
+      period: string
+      deliveries_count: number
+      on_time_deliveries: number
+      /** Format: float */
+      total_spend: number
+      /** Format: float */
+      on_time_rate: number
+      /** Format: float */
+      fulfillment_rate: number
+      /** Format: float */
+      avg_lead_time_days: number
+    }
+    SupplierPerformanceItem: {
+      supplier_id: string
+      supplier_name: string
+      total_deliveries: number
+      on_time_deliveries: number
+      delayed_deliveries: number
+      partial_deliveries: number
+      /** Format: float */
+      total_spend: number
+      ordered_quantity: number
+      received_quantity: number
+      defect_quantity: number
+      /** Format: float */
+      on_time_rate: number
+      /** Format: float */
+      delay_rate: number
+      /** Format: float */
+      fulfillment_rate: number
+      /** Format: float */
+      defect_rate: number
+      /** Format: float */
+      avg_lead_time_days: number
+      /** Format: float */
+      avg_delay_days: number
+      /** Format: float */
+      reliability_score: number
+      reliability_tier: components['schemas']['SupplierReliabilityTier']
+    }
+    SupplierOverviewResponse: {
+      summary: components['schemas']['SupplierSummary']
+      status_breakdown: components['schemas']['DeliveryStatusBreakdownItem'][]
+      trends: components['schemas']['SupplierTrendPoint'][]
+      top_suppliers: components['schemas']['SupplierPerformanceItem'][]
+    }
+    SupplierPerformanceResponse: {
+      items: components['schemas']['SupplierPerformanceItem'][]
+      pagination: components['schemas']['PaginationMetadata']
+    }
+    SupplierDeliveryItem: {
+      id: string
+      /** Format: date */
+      order_date: string
+      /** Format: date */
+      expected_delivery_date: string
+      /** Format: date */
+      actual_delivery_date?: string | null
+      supplier_id: string
+      supplier_name: string
+      product_id: string
+      product_name: string
+      product_sku: string
+      warehouse_id: string
+      warehouse_name: string
+      ordered_quantity: number
+      received_quantity: number
+      defect_quantity: number
+      /** Format: float */
+      unit_purchase_cost: number
+      /** Format: float */
+      total_purchase_cost: number
+      delivery_status: components['schemas']['DeliveryStatus']
+      lead_time_days: number
+      delay_days: number
+    }
+    SupplierDeliveriesResponse: {
+      items: components['schemas']['SupplierDeliveryItem'][]
+      pagination: components['schemas']['PaginationMetadata']
+    }
+    SupplierFilterOptionsResponse: {
+      suppliers: {
+        id: string
+        name: string
+      }[]
+      warehouses: {
+        id: string
+        name: string
+      }[]
+      statuses: {
+        value: string
+        label: string
+      }[]
+      /** Format: date */
+      min_date: string
+      /** Format: date */
+      max_date: string
     }
   }
   responses: never
@@ -1843,6 +2045,294 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['AbcXyzItemsResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Workspace not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getSupplierOverview: {
+    parameters: {
+      query?: {
+        /** @description Start of date filter range (YYYY-MM-DD) */
+        date_from?: string
+        /** @description End of date filter range (YYYY-MM-DD) */
+        date_to?: string
+        /** @description Filter by supplier ID */
+        supplier_id?: string
+        /** @description Filter by warehouse ID */
+        warehouse_id?: string
+      }
+      header?: {
+        /** @description Optional requested workspace identifier */
+        'X-Workspace-Id'?: string
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Aggregated supplier metrics overview */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SupplierOverviewResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Workspace not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getSupplierFilterOptions: {
+    parameters: {
+      query?: never
+      header?: {
+        /** @description Optional requested workspace identifier */
+        'X-Workspace-Id'?: string
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Available filter options */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SupplierFilterOptionsResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Workspace not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getSupplierPerformance: {
+    parameters: {
+      query?: {
+        /** @description Start of date filter range (YYYY-MM-DD) */
+        date_from?: string
+        /** @description End of date filter range (YYYY-MM-DD) */
+        date_to?: string
+        /** @description Filter by warehouse ID */
+        warehouse_id?: string
+        /** @description Search by supplier name */
+        search?: string
+        /** @description Page number */
+        page?: number
+        /** @description Items per page */
+        per_page?: number
+        /** @description Sort column */
+        sort_by?:
+          | 'supplier_name'
+          | 'total_deliveries'
+          | 'total_spend'
+          | 'on_time_rate'
+          | 'fulfillment_rate'
+          | 'defect_rate'
+          | 'avg_lead_time_days'
+          | 'reliability_score'
+        /** @description Sort direction */
+        sort_direction?: 'asc' | 'desc'
+      }
+      header?: {
+        /** @description Optional requested workspace identifier */
+        'X-Workspace-Id'?: string
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Paginated supplier performance ranking */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SupplierPerformanceResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Workspace not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getSupplierDeliveries: {
+    parameters: {
+      query?: {
+        /** @description Filter by supplier ID */
+        supplier_id?: string
+        /** @description Filter by warehouse ID */
+        warehouse_id?: string
+        /** @description Filter by delivery status */
+        status?: components['schemas']['DeliveryStatus']
+        /** @description Start of date filter range (YYYY-MM-DD) */
+        date_from?: string
+        /** @description End of date filter range (YYYY-MM-DD) */
+        date_to?: string
+        /** @description Search by product name, SKU or supplier name */
+        search?: string
+        /** @description Page number */
+        page?: number
+        /** @description Items per page */
+        per_page?: number
+        /** @description Sort column */
+        sort_by?:
+          | 'order_date'
+          | 'expected_delivery_date'
+          | 'actual_delivery_date'
+          | 'lead_time_days'
+          | 'delay_days'
+          | 'total_purchase_cost'
+        /** @description Sort direction */
+        sort_direction?: 'asc' | 'desc'
+      }
+      header?: {
+        /** @description Optional requested workspace identifier */
+        'X-Workspace-Id'?: string
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Paginated delivery records */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SupplierDeliveriesResponse']
         }
       }
       /** @description Unauthenticated */

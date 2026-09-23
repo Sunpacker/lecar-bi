@@ -903,6 +903,324 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /analytics/suppliers/overview:
+    get:
+      operationId: getSupplierOverview
+      summary: Get aggregated supplier metrics overview, delivery trends, and status breakdown
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+        - in: query
+          name: date_from
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Start of date filter range (YYYY-MM-DD)
+        - in: query
+          name: date_to
+          required: false
+          schema:
+            type: string
+            format: date
+          description: End of date filter range (YYYY-MM-DD)
+        - in: query
+          name: supplier_id
+          required: false
+          schema:
+            type: string
+          description: Filter by supplier ID
+        - in: query
+          name: warehouse_id
+          required: false
+          schema:
+            type: string
+          description: Filter by warehouse ID
+      responses:
+        '200':
+          description: Aggregated supplier metrics overview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplierOverviewResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/suppliers/filters:
+    get:
+      operationId: getSupplierFilterOptions
+      summary: Get available suppliers, warehouses, statuses, and date bounds
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+      responses:
+        '200':
+          description: Available filter options
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplierFilterOptionsResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/suppliers/performance:
+    get:
+      operationId: getSupplierPerformance
+      summary: Get comparative performance ranking of suppliers with sorting and pagination
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+        - in: query
+          name: date_from
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Start of date filter range (YYYY-MM-DD)
+        - in: query
+          name: date_to
+          required: false
+          schema:
+            type: string
+            format: date
+          description: End of date filter range (YYYY-MM-DD)
+        - in: query
+          name: warehouse_id
+          required: false
+          schema:
+            type: string
+          description: Filter by warehouse ID
+        - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+          description: Search by supplier name
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Items per page
+        - in: query
+          name: sort_by
+          required: false
+          schema:
+            type: string
+            enum: [supplier_name, total_deliveries, total_spend, on_time_rate, fulfillment_rate, defect_rate, avg_lead_time_days, reliability_score]
+            default: total_spend
+          description: Sort column
+        - in: query
+          name: sort_direction
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort direction
+      responses:
+        '200':
+          description: Paginated supplier performance ranking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplierPerformanceResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/suppliers/deliveries:
+    get:
+      operationId: getSupplierDeliveries
+      summary: Get granular delivery records journal with sorting, filtering, and pagination
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+        - in: query
+          name: supplier_id
+          required: false
+          schema:
+            type: string
+          description: Filter by supplier ID
+        - in: query
+          name: warehouse_id
+          required: false
+          schema:
+            type: string
+          description: Filter by warehouse ID
+        - in: query
+          name: status
+          required: false
+          schema:
+            $ref: '#/components/schemas/DeliveryStatus'
+          description: Filter by delivery status
+        - in: query
+          name: date_from
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Start of date filter range (YYYY-MM-DD)
+        - in: query
+          name: date_to
+          required: false
+          schema:
+            type: string
+            format: date
+          description: End of date filter range (YYYY-MM-DD)
+        - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+          description: Search by product name, SKU or supplier name
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Items per page
+        - in: query
+          name: sort_by
+          required: false
+          schema:
+            type: string
+            enum: [order_date, expected_delivery_date, actual_delivery_date, lead_time_days, delay_days, total_purchase_cost]
+            default: order_date
+          description: Sort column
+        - in: query
+          name: sort_direction
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort direction
+      responses:
+        '200':
+          description: Paginated delivery records
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplierDeliveriesResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /dashboards:
     get:
       operationId: getDashboards
@@ -2524,4 +2842,340 @@ components:
         is_default:
           type: boolean
           default: false
+    DeliveryStatus:
+      type: string
+      enum: [on_time, delayed, partial]
+    SupplierReliabilityTier:
+      type: string
+      enum: [excellent, good, acceptable, poor]
+    SupplierSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - total_deliveries
+        - on_time_deliveries
+        - delayed_deliveries
+        - partial_deliveries
+        - total_spend
+        - total_ordered_quantity
+        - total_received_quantity
+        - total_defect_quantity
+        - on_time_rate
+        - delay_rate
+        - fulfillment_rate
+        - defect_rate
+        - average_lead_time_days
+        - average_delay_days
+      properties:
+        total_deliveries:
+          type: integer
+        on_time_deliveries:
+          type: integer
+        delayed_deliveries:
+          type: integer
+        partial_deliveries:
+          type: integer
+        total_spend:
+          type: number
+          format: float
+        total_ordered_quantity:
+          type: integer
+        total_received_quantity:
+          type: integer
+        total_defect_quantity:
+          type: integer
+        on_time_rate:
+          type: number
+          format: float
+        delay_rate:
+          type: number
+          format: float
+        fulfillment_rate:
+          type: number
+          format: float
+        defect_rate:
+          type: number
+          format: float
+        average_lead_time_days:
+          type: number
+          format: float
+        average_delay_days:
+          type: number
+          format: float
+    DeliveryStatusBreakdownItem:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - count
+        - share_percentage
+        - quantity
+      properties:
+        status:
+          $ref: '#/components/schemas/DeliveryStatus'
+        count:
+          type: integer
+        share_percentage:
+          type: number
+          format: float
+        quantity:
+          type: integer
+    SupplierTrendPoint:
+      type: object
+      additionalProperties: false
+      required:
+        - period
+        - deliveries_count
+        - on_time_deliveries
+        - total_spend
+        - on_time_rate
+        - fulfillment_rate
+        - avg_lead_time_days
+      properties:
+        period:
+          type: string
+          description: Year-Month period (YYYY-MM)
+        deliveries_count:
+          type: integer
+        on_time_deliveries:
+          type: integer
+        total_spend:
+          type: number
+          format: float
+        on_time_rate:
+          type: number
+          format: float
+        fulfillment_rate:
+          type: number
+          format: float
+        avg_lead_time_days:
+          type: number
+          format: float
+    SupplierPerformanceItem:
+      type: object
+      additionalProperties: false
+      required:
+        - supplier_id
+        - supplier_name
+        - total_deliveries
+        - on_time_deliveries
+        - delayed_deliveries
+        - partial_deliveries
+        - total_spend
+        - ordered_quantity
+        - received_quantity
+        - defect_quantity
+        - on_time_rate
+        - delay_rate
+        - fulfillment_rate
+        - defect_rate
+        - avg_lead_time_days
+        - avg_delay_days
+        - reliability_score
+        - reliability_tier
+      properties:
+        supplier_id:
+          type: string
+        supplier_name:
+          type: string
+        total_deliveries:
+          type: integer
+        on_time_deliveries:
+          type: integer
+        delayed_deliveries:
+          type: integer
+        partial_deliveries:
+          type: integer
+        total_spend:
+          type: number
+          format: float
+        ordered_quantity:
+          type: integer
+        received_quantity:
+          type: integer
+        defect_quantity:
+          type: integer
+        on_time_rate:
+          type: number
+          format: float
+        delay_rate:
+          type: number
+          format: float
+        fulfillment_rate:
+          type: number
+          format: float
+        defect_rate:
+          type: number
+          format: float
+        avg_lead_time_days:
+          type: number
+          format: float
+        avg_delay_days:
+          type: number
+          format: float
+        reliability_score:
+          type: number
+          format: float
+        reliability_tier:
+          $ref: '#/components/schemas/SupplierReliabilityTier'
+    SupplierOverviewResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - summary
+        - status_breakdown
+        - trends
+        - top_suppliers
+      properties:
+        summary:
+          $ref: '#/components/schemas/SupplierSummary'
+        status_breakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeliveryStatusBreakdownItem'
+        trends:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupplierTrendPoint'
+        top_suppliers:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupplierPerformanceItem'
+    SupplierPerformanceResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupplierPerformanceItem'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+    SupplierDeliveryItem:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - order_date
+        - expected_delivery_date
+        - supplier_id
+        - supplier_name
+        - product_id
+        - product_name
+        - product_sku
+        - warehouse_id
+        - warehouse_name
+        - ordered_quantity
+        - received_quantity
+        - defect_quantity
+        - unit_purchase_cost
+        - total_purchase_cost
+        - delivery_status
+        - lead_time_days
+        - delay_days
+      properties:
+        id:
+          type: string
+        order_date:
+          type: string
+          format: date
+        expected_delivery_date:
+          type: string
+          format: date
+        actual_delivery_date:
+          type: string
+          format: date
+          nullable: true
+        supplier_id:
+          type: string
+        supplier_name:
+          type: string
+        product_id:
+          type: string
+        product_name:
+          type: string
+        product_sku:
+          type: string
+        warehouse_id:
+          type: string
+        warehouse_name:
+          type: string
+        ordered_quantity:
+          type: integer
+        received_quantity:
+          type: integer
+        defect_quantity:
+          type: integer
+        unit_purchase_cost:
+          type: number
+          format: float
+        total_purchase_cost:
+          type: number
+          format: float
+        delivery_status:
+          $ref: '#/components/schemas/DeliveryStatus'
+        lead_time_days:
+          type: integer
+        delay_days:
+          type: integer
+    SupplierDeliveriesResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupplierDeliveryItem'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+    SupplierFilterOptionsResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - suppliers
+        - warehouses
+        - statuses
+        - min_date
+        - max_date
+      properties:
+        suppliers:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, name]
+            properties:
+              id: { type: string }
+              name: { type: string }
+        warehouses:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, name]
+            properties:
+              id: { type: string }
+              name: { type: string }
+        statuses:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [value, label]
+            properties:
+              value: { type: string }
+              label: { type: string }
+        min_date:
+          type: string
+          format: date
+        max_date:
+          type: string
+          format: date
+
 

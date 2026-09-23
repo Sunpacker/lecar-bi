@@ -432,6 +432,10 @@ final class DemoDatasetGenerator
                 default => 'on_time',
             };
 
+            $defectQty = ($status !== 'on_time' && $this->randomFloat() < 0.35)
+                ? (int) min($receivedQty, max(1, round($receivedQty * $this->randomFloat(0.01, 0.04))))
+                : 0;
+
             $unitCost = (float) $product['cost_price'];
             $totalCost = round($unitCost * $receivedQty, 2);
 
@@ -446,6 +450,7 @@ final class DemoDatasetGenerator
                 'actual_delivery_date' => $actualDate,
                 'ordered_quantity' => $orderedQty,
                 'received_quantity' => $receivedQty,
+                'defect_quantity' => $defectQty,
                 'unit_purchase_cost' => $unitCost,
                 'total_purchase_cost' => $totalCost,
                 'delivery_status' => $status,
