@@ -15,10 +15,21 @@ describe('Sidebar navigation', () => {
     expect(importItem?.disabled).toBeUndefined()
   })
 
-  it('renders active Импорт данных navigation link', () => {
+  it('includes Поставщики with href /suppliers in NAVIGATION_ITEMS as enabled', () => {
+    const suppliersItem = NAVIGATION_ITEMS.find((item) => item.href === '/suppliers')
+    expect(suppliersItem).toBeDefined()
+    expect(suppliersItem?.name).toBe('Поставщики')
+    expect(suppliersItem?.disabled).toBeUndefined()
+  })
+
+  it('renders active Импорт данных navigation link and enabled Поставщики link', () => {
     render(<Sidebar />)
     const link = screen.getByRole('link', { name: /Импорт данных/i })
     expect(link).toBeDefined()
     expect(link.getAttribute('href')).toBe('/imports')
+
+    const suppliersLink = screen.getByRole('link', { name: /Поставщики/i })
+    expect(suppliersLink).toBeDefined()
+    expect(suppliersLink.getAttribute('href')).toBe('/suppliers')
   })
 })

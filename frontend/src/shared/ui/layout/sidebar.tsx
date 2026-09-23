@@ -27,7 +27,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { name: 'Inventory', href: '/inventory', icon: Package },
   { name: 'Dashboards', href: '/dashboards', icon: LayoutDashboard },
   { name: 'Импорт данных', href: '/imports', icon: UploadCloud },
-  { name: 'Suppliers', href: '/suppliers', icon: Users, disabled: true, badge: 'Скоро' },
+  { name: 'Поставщики', href: '/suppliers', icon: Users },
   { name: 'Alerts', href: '/alerts', icon: Bell, disabled: true, badge: 'Скоро' },
   { name: 'Settings', href: '/settings', icon: Settings, disabled: true, badge: 'Скоро' },
 ]

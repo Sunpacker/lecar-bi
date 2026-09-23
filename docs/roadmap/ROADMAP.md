@@ -27,7 +27,7 @@
 - [x] [Phase 8 — Dashboard Builder](08-dashboard-builder.md)
 - [x] [Phase 9 — Shared Filters and Saved Views](09-shared-filters-saved-views.md)
 - [ ] [Phase 10 — Data Ingestion](10-data-ingestion.md)
-- [ ] [Phase 11 — Supplier Analytics](11-supplier-analytics.md)
+- [x] [Phase 11 — Supplier Analytics](11-supplier-analytics.md)
 - [ ] [Phase 12 — Alerting](12-alerting.md)
 - [ ] [Phase 13 — Domain Events and Transactional Outbox](13-events-outbox.md)
 - [ ] [Phase 14 — Notification Service Extraction Exercise](14-notification-service.md)
