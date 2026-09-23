@@ -1,5 +1,8 @@
 # 12. Architecture Decisions
 
+Статус отдельных планируемых расширений указан в соответствующем ADR; такой ADR не означает,
+что реализация уже существует или что порядок roadmap изменён.
+
 ## ADR-001 — Monorepo
 
 Решение: хранить frontend, backend, contracts, infrastructure и docs в одном Git-репозитории.
@@ -105,6 +108,7 @@
 Причина: на текущем этапе полноценный message broker (RabbitMQ, Kafka) не нужен. Redis уже является обязательной инфраструктурной зависимостью. Транспорт инкапсулирован за портом, поэтому его замена не затронет Domain или Application.
 
 Ограничения:
+
 - Семантика доставки: at-least-once. Consumers обязаны дедуплицировать по `event_id`.
 - Глобальный порядок событий не гарантируется.
 - PostgreSQL outbox является источником истины; Redis Stream — только канал доставки.
@@ -118,9 +122,41 @@
 Причина: подтвердить возможность масштабирования и модульного расширения системы отдельным сервисом без создания общей базы данных (ADR-008) и без преждевременного усложнения инфраструктуры (ADR-012, ADR-015).
 
 Правила и ограничения:
+
 - **Database per Service:** Notification Service владеет собственной базой данных PostgreSQL (`notification-postgres`). Никаких foreign keys, shared tables или доступа к analytics PostgreSQL.
 - **Event-Driven Integration:** Сервисы обмениваются данными исключительно через асинхронные события. Нет прямых HTTP-вызовов из analytics в notification и обратно для обогащения данных.
 - **Self-contained Contract:** Каноническое событие `alert.triggered.v1` содержит все данные (rule, severity, threshold, current value, analytical context), достаточные для формирования заголовка, текста и контекста уведомления.
 - **At-Least-Once Delivery и Дедупликация:** Сервис гарантирует корректность при повторной доставке через таблицу `consumed_events` с уникальным первичным ключом `event_id`. Вставка проекции `notifications` и `consumed_events` выполняется в единой локальной транзакции.
 - **Подтверждение (XACK) и Poison Messages:** `XACK` выполняется строго после коммита в БД или обнаружения дубликата. Невалидные сообщения и неподдерживаемые версии событий отправляются в dead-letter stream `autobi.integration-events.dead-letter` с последующим XACK.
 - **Независимость жизненного цикла:** Временная недоступность или падение Notification Service не влияет на работу сервиса аналитики, HTTP API и публикацию Outbox. Накопленные события обрабатываются после восстановления работы consumer group.
+
+## ADR-019 — RAG Support Chat
+
+Статус: целевой дизайн планируемого расширения, 2026-09-23. Реализация начинается по отдельной
+задаче в рамках согласованного roadmap; существующие фазы и runtime этим ADR не изменяются.
+
+Решение: реализовать поддержку по документации в contexts `Support` и `KnowledgeBase` внутри
+analytics-service. Использовать PostgreSQL/pgvector + FTS, Laravel Queue и существующую
+Workspace/auth boundary. Next.js отображает чат и передаёт API/SSE, RAG orchestration принадлежит Laravel.
+
+Причина: переиспользовать инфраструктуру и авторизацию платформы, сохранить DDD-границы
+и измерять качество на небольшом корпусе до усложнения retrieval или выделения сервиса.
+
+Основные ограничения:
+
+- MVP работает только с явно опубликованной общей документацией/FAQ, без доступа к фактическим
+  BI-данным и без tool calling. Приватные знания workspace — последующее расширение.
+- Диалоги приватны по паре workspace/user; планируемая capability `support.use` не заменяет ownership.
+- `KnowledgeBase` предоставляет публичный retrieval contract; SQL обеих поисковых веток ограничивает
+  доступные документы до `LIMIT`. Начальный baseline — exact vector search и объединение рангов с FTS.
+- Версии индекса публикуются атомарно; embedding profiles не смешиваются. Удалённые/отозванные
+  материалы исключаются независимо от переиндексации.
+- Создание generation выполняется идемпотентно через HTTP JSON; worker сохраняет состояние в PostgreSQL.
+  SSE наблюдает за generation и восстанавливается полным snapshot без повторного запуска модели.
+- Ошибки, бюджеты, citations, retention и измеримые evaluation gates входят в MVP.
+
+Последствия: нужны pgvector в dev/test/deploy, отдельные очереди/worker capacity, диспетчер сохранённых
+generation-задач и проверка streaming через proxy/BFF. Новые сервисы, broker и vector DB не требуются.
+Расширение capabilities и API выполняется contract-first при реализации, вместе с generated client и тестами.
+
+Подробное поведение, критерии приёмки и порядок работ: [RAG Support Chat](rag-support-chat.md).
