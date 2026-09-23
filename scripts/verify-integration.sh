@@ -36,6 +36,41 @@ assert_response_contains() {
     return 1
 }
 
+assert_json_value_equals() {
+    response="$1"
+    selector="$2"
+    expected="$3"
+    check_name="$4"
+
+    if ! actual="$(printf '%s' "$response" | jq --raw-output "$selector" 2>/dev/null)"; then
+        echo "$check_name response was not valid JSON" >&2
+        return 1
+    fi
+
+    if [ "$actual" = "$expected" ]; then return 0; fi
+
+    echo "$check_name returned unexpected value at $selector: expected '$expected', got '$actual'" >&2
+    return 1
+}
+
+get_required_json_value() {
+    response="$1"
+    selector="$2"
+    check_name="$3"
+
+    if ! value="$(printf '%s' "$response" | jq --exit-status --raw-output "$selector | select(. != null and . != \"\")" 2>/dev/null)"; then
+        echo "$check_name response did not contain a value at $selector" >&2
+        return 1
+    fi
+
+    printf '%s' "$value"
+}
+
+if ! command -v jq >/dev/null 2>&1; then
+    echo "jq is required to verify JSON API responses" >&2
+    exit 1
+fi
+
 wait_for_service "analytics" "$BACKEND_URL/api/v1/health"
 wait_for_service "web" "$FRONTEND_URL/api/health"
 
@@ -225,18 +260,13 @@ created_dash_json="$(curl --fail --silent --show-error -H "Content-Type: applica
     -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
     -d '{"title":"Интеграционный дашборд","description":"Создан для проверки жизненного цикла"}' \
     "$BACKEND_URL/api/v1/dashboards")"
-assert_response_contains "$created_dash_json" '"title":"Интеграционный дашборд"' "Dashboard creation"
-CUSTOM_DASH_ID="$(printf '%s' "$created_dash_json" | grep -o '"id":"[^"]*"' | head -n 1 | cut -d'"' -f4)"
-
-if [ -z "$CUSTOM_DASH_ID" ]; then
-    echo "Failed to extract created dashboard ID from response" >&2
-    exit 1
-fi
+assert_json_value_equals "$created_dash_json" '.dashboard.title' 'Интеграционный дашборд' "Dashboard creation"
+CUSTOM_DASH_ID="$(get_required_json_value "$created_dash_json" '.dashboard.id' "Dashboard creation")"
 
 # 25. Dashboard Builder: Restore dashboard via GET
 restored_dash_json="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID")"
-assert_response_contains "$restored_dash_json" '"id":"'"$CUSTOM_DASH_ID"'"' "Dashboard restore"
-assert_response_contains "$restored_dash_json" '"title":"Интеграционный дашборд"' "Dashboard restore title"
+assert_json_value_equals "$restored_dash_json" '.dashboard.id' "$CUSTOM_DASH_ID" "Dashboard restore"
+assert_json_value_equals "$restored_dash_json" '.dashboard.title' 'Интеграционный дашборд' "Dashboard restore title"
 
 # 26. Dashboard Builder: Update dashboard via PUT (reposition & add widget)
 updated_dash_json="$(curl --fail --silent --show-error -X PUT -H "Content-Type: application/json" \
@@ -256,8 +286,8 @@ updated_dash_json="$(curl --fail --silent --show-error -X PUT -H "Content-Type: 
       ]
     }' \
     "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID")"
-assert_response_contains "$updated_dash_json" '"title":"Обновленный дашборд"' "Dashboard update"
-assert_response_contains "$updated_dash_json" '"x":4' "Widget reposition"
+assert_json_value_equals "$updated_dash_json" '.dashboard.title' 'Обновленный дашборд' "Dashboard update"
+assert_json_value_equals "$updated_dash_json" '.dashboard.widgets[0].position.x' '4' "Widget reposition"
 
 # 27. Cross-tenant isolation on custom dashboard
 cross_custom_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-2" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID")"
@@ -278,27 +308,22 @@ created_view_json="$(curl --fail --silent --show-error -H "Content-Type: applica
     -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
     -d '{"name":"Интеграционный пресет","filters":{"date_range":"30d","region_id":"reg-1"},"is_default":true}' \
     "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID/views")"
-assert_response_contains "$created_view_json" '"name":"Интеграционный пресет"' "Saved view creation"
-assert_response_contains "$created_view_json" '"is_default":true' "Saved view default flag"
-CUSTOM_VIEW_ID="$(printf '%s' "$created_view_json" | grep -o '"id":"[^"]*"' | head -n 1 | cut -d'"' -f4)"
-
-if [ -z "$CUSTOM_VIEW_ID" ]; then
-    echo "Failed to extract created saved view ID from response" >&2
-    exit 1
-fi
+assert_json_value_equals "$created_view_json" '.view.name' 'Интеграционный пресет' "Saved view creation"
+assert_json_value_equals "$created_view_json" '.view.is_default' 'true' "Saved view default flag"
+CUSTOM_VIEW_ID="$(get_required_json_value "$created_view_json" '.view.id' "Saved view creation")"
 
 # 30. Dashboard Saved Views: List and read saved view
 views_list_json="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID/views")"
-assert_response_contains "$views_list_json" '"items":[' "Saved views list"
-assert_response_contains "$views_list_json" '"Интеграционный пресет"' "Saved view list content"
+assert_json_value_equals "$views_list_json" '.items | length' '1' "Saved views list"
+assert_json_value_equals "$views_list_json" '.items[0].name' 'Интеграционный пресет' "Saved view list content"
 
 # 31. Dashboard Saved Views: Update saved view via PUT
 updated_view_json="$(curl --fail --silent --show-error -X PUT -H "Content-Type: application/json" \
     -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
     -d '{"name":"Обновленный пресет","filters":{"date_range":"90d"},"is_default":false}' \
     "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID/views/$CUSTOM_VIEW_ID")"
-assert_response_contains "$updated_view_json" '"name":"Обновленный пресет"' "Saved view update"
-assert_response_contains "$updated_view_json" '"date_range":"90d"' "Saved view filter update"
+assert_json_value_equals "$updated_view_json" '.view.name' 'Обновленный пресет' "Saved view update"
+assert_json_value_equals "$updated_view_json" '.view.filters.date_range' '90d' "Saved view filter update"
 
 # 32. Cross-tenant isolation on saved views: user-2 accessing ws-1 views returns 403
 cross_view_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-2" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID/views")"
@@ -329,4 +354,3 @@ if [ "$deleted_get_status" != "404" ]; then
 fi
 
 echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records, inventory intelligence, ABC/XYZ matrix, dashboard builder, and dashboard saved views CRUD lifecycle are verified."
-
