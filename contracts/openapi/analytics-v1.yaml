@@ -917,6 +917,263 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /dashboards/{dashboardId}/views:
+    get:
+      tags:
+        - Dashboards
+      summary: List saved views and filter presets for a dashboard
+      operationId: getDashboardSavedViews
+      security:
+        - UserIdAuth: []
+      parameters:
+        - name: dashboardId
+          in: path
+          required: true
+          description: Dashboard identifier
+          schema:
+            type: string
+        - name: X-Workspace-Id
+          in: header
+          required: false
+          description: Active workspace identifier override
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of saved views for the dashboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSavedViewListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Dashboard not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Dashboards
+      summary: Create a saved view or filter preset for a dashboard
+      operationId: createDashboardSavedView
+      security:
+        - UserIdAuth: []
+      parameters:
+        - name: dashboardId
+          in: path
+          required: true
+          description: Dashboard identifier
+          schema:
+            type: string
+        - name: X-Workspace-Id
+          in: header
+          required: false
+          description: Active workspace identifier override
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDashboardSavedViewRequest'
+      responses:
+        '201':
+          description: Saved view created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSavedViewResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Dashboard not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /dashboards/{dashboardId}/views/{viewId}:
+    get:
+      tags:
+        - Dashboards
+      summary: Get a specific saved view
+      operationId: getDashboardSavedViewById
+      security:
+        - UserIdAuth: []
+      parameters:
+        - name: dashboardId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: viewId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Workspace-Id
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Saved view details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSavedViewResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Saved view or dashboard not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Dashboards
+      summary: Update a saved view
+      operationId: updateDashboardSavedView
+      security:
+        - UserIdAuth: []
+      parameters:
+        - name: dashboardId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: viewId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Workspace-Id
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDashboardSavedViewRequest'
+      responses:
+        '200':
+          description: Saved view updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSavedViewResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Saved view or dashboard not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Dashboards
+      summary: Delete a saved view
+      operationId: deleteDashboardSavedView
+      security:
+        - UserIdAuth: []
+      parameters:
+        - name: dashboardId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: viewId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Workspace-Id
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Saved view deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Saved view or dashboard not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     UserIdAuth:
@@ -1692,6 +1949,8 @@ components:
           type: string
           nullable: true
           enum: ['30d', '90d', '180d', '365d', 'all']
+        filters:
+          $ref: '#/components/schemas/DashboardFilterValues'
     WidgetDetail:
       type: object
       additionalProperties: false
@@ -1816,3 +2075,111 @@ components:
       properties:
         dashboard:
           $ref: '#/components/schemas/DashboardDetail'
+    DashboardFilterValues:
+      type: object
+      additionalProperties: false
+      properties:
+        date_range:
+          type: string
+          nullable: true
+          enum: ['30d', '90d', '180d', '365d', 'all', 'custom']
+        date_from:
+          type: string
+          format: date
+          nullable: true
+        date_to:
+          type: string
+          format: date
+          nullable: true
+        category_id:
+          type: string
+          nullable: true
+        region_id:
+          type: string
+          nullable: true
+        warehouse_id:
+          type: string
+          nullable: true
+        stock_health:
+          type: string
+          nullable: true
+          enum: [in_stock, low_stock, out_of_stock, overstock]
+    DashboardSavedView:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - dashboard_id
+        - name
+        - filters
+        - is_default
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        dashboard_id:
+          type: string
+        name:
+          type: string
+        filters:
+          $ref: '#/components/schemas/DashboardFilterValues'
+        is_default:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    DashboardSavedViewListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardSavedView'
+    DashboardSavedViewResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - view
+      properties:
+        view:
+          $ref: '#/components/schemas/DashboardSavedView'
+    CreateDashboardSavedViewRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - filters
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        filters:
+          $ref: '#/components/schemas/DashboardFilterValues'
+        is_default:
+          type: boolean
+          default: false
+    UpdateDashboardSavedViewRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - filters
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        filters:
+          $ref: '#/components/schemas/DashboardFilterValues'
+        is_default:
+          type: boolean
+          default: false
+

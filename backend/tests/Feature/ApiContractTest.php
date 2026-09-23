@@ -112,6 +112,22 @@ final class ApiContractTest extends TestCase
         self::assertArrayHasKey('UpdateDashboardRequest', $schemas);
     }
 
+    public function test_contract_contains_saved_views_endpoints(): void
+    {
+        $contract = $this->openApiContract();
+
+        self::assertArrayHasKey('/dashboards/{dashboardId}/views', $contract['paths']);
+        self::assertArrayHasKey('/dashboards/{dashboardId}/views/{viewId}', $contract['paths']);
+
+        $schemas = $contract['components']['schemas'];
+        self::assertArrayHasKey('DashboardFilterValues', $schemas);
+        self::assertArrayHasKey('DashboardSavedView', $schemas);
+        self::assertArrayHasKey('DashboardSavedViewListResponse', $schemas);
+        self::assertArrayHasKey('DashboardSavedViewResponse', $schemas);
+        self::assertArrayHasKey('CreateDashboardSavedViewRequest', $schemas);
+        self::assertArrayHasKey('UpdateDashboardSavedViewRequest', $schemas);
+    }
+
     /** @return array<string, mixed> */
     private function openApiContract(): array
     {

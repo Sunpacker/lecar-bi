@@ -279,6 +279,43 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/dashboards/{dashboardId}/views': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List saved views and filter presets for a dashboard */
+    get: operations['getDashboardSavedViews']
+    put?: never
+    /** Create a saved view or filter preset for a dashboard */
+    post: operations['createDashboardSavedView']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/dashboards/{dashboardId}/views/{viewId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get a specific saved view */
+    get: operations['getDashboardSavedViewById']
+    /** Update a saved view */
+    put: operations['updateDashboardSavedView']
+    post?: never
+    /** Delete a saved view */
+    delete: operations['deleteDashboardSavedView']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
 }
 export type webhooks = Record<string, never>
 export interface components {
@@ -653,6 +690,7 @@ export interface components {
         | null
       /** @enum {string|null} */
       date_range?: '30d' | '90d' | '180d' | '365d' | 'all' | null
+      filters?: components['schemas']['DashboardFilterValues']
     }
     WidgetDetail: {
       id: string
@@ -699,6 +737,48 @@ export interface components {
     }
     DashboardDetailResponse: {
       dashboard: components['schemas']['DashboardDetail']
+    }
+    DashboardFilterValues: {
+      /** @enum {string|null} */
+      date_range?: '30d' | '90d' | '180d' | '365d' | 'all' | 'custom' | null
+      /** Format: date */
+      date_from?: string | null
+      /** Format: date */
+      date_to?: string | null
+      category_id?: string | null
+      region_id?: string | null
+      warehouse_id?: string | null
+      /** @enum {string|null} */
+      stock_health?: 'in_stock' | 'low_stock' | 'out_of_stock' | 'overstock' | null
+    }
+    DashboardSavedView: {
+      id: string
+      dashboard_id: string
+      name: string
+      filters: components['schemas']['DashboardFilterValues']
+      is_default: boolean
+      /** Format: date-time */
+      created_at: string
+      /** Format: date-time */
+      updated_at: string
+    }
+    DashboardSavedViewListResponse: {
+      items: components['schemas']['DashboardSavedView'][]
+    }
+    DashboardSavedViewResponse: {
+      view: components['schemas']['DashboardSavedView']
+    }
+    CreateDashboardSavedViewRequest: {
+      name: string
+      filters: components['schemas']['DashboardFilterValues']
+      /** @default false */
+      is_default: boolean
+    }
+    UpdateDashboardSavedViewRequest: {
+      name: string
+      filters: components['schemas']['DashboardFilterValues']
+      /** @default false */
+      is_default: boolean
     }
   }
   responses: never
@@ -1693,6 +1773,292 @@ export interface operations {
         }
       }
       /** @description Dashboard not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getDashboardSavedViews: {
+    parameters: {
+      query?: never
+      header?: {
+        /** @description Active workspace identifier override */
+        'X-Workspace-Id'?: string
+      }
+      path: {
+        /** @description Dashboard identifier */
+        dashboardId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description List of saved views for the dashboard */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['DashboardSavedViewListResponse']
+        }
+      }
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Dashboard not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  createDashboardSavedView: {
+    parameters: {
+      query?: never
+      header?: {
+        /** @description Active workspace identifier override */
+        'X-Workspace-Id'?: string
+      }
+      path: {
+        /** @description Dashboard identifier */
+        dashboardId: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateDashboardSavedViewRequest']
+      }
+    }
+    responses: {
+      /** @description Saved view created successfully */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['DashboardSavedViewResponse']
+        }
+      }
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Dashboard not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getDashboardSavedViewById: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-Workspace-Id'?: string
+      }
+      path: {
+        dashboardId: string
+        viewId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Saved view details */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['DashboardSavedViewResponse']
+        }
+      }
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Saved view or dashboard not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  updateDashboardSavedView: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-Workspace-Id'?: string
+      }
+      path: {
+        dashboardId: string
+        viewId: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateDashboardSavedViewRequest']
+      }
+    }
+    responses: {
+      /** @description Saved view updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['DashboardSavedViewResponse']
+        }
+      }
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Saved view or dashboard not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  deleteDashboardSavedView: {
+    parameters: {
+      query?: never
+      header?: {
+        'X-Workspace-Id'?: string
+      }
+      path: {
+        dashboardId: string
+        viewId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Saved view deleted successfully */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Unauthorized */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Saved view or dashboard not found */
       404: {
         headers: {
           [name: string]: unknown
