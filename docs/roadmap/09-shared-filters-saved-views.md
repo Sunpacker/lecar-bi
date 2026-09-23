@@ -109,10 +109,51 @@ Filtered view сохраняется/восстанавливается, filter 
 
 ### Что осталось в текущей фазе
 
-1. Прохождение обязательного интеграционного чекпоинта Phase 9 (`ROADMAP.md#integration-checkpoints` / `scripts/verify-integration.sh`) и закрытие фазы.
+Все запланированные задачи фазы 9 успешно выполнены.
 
 ### Блокеры
 - Отсутствуют.
 
 ### Следующий шаг
-- Прохождение интеграционного чекпоинта Phase 9 и подтверждение закрытия фазы в `ROADMAP.md`.
+- Фаза 9 завершена. Переход к Phase 10 (Data Ingestion) в соответствии с Roadmap.
+
+---
+
+## Проверка завершения
+
+- **Дата завершения:** 2026-09-23
+- **Статус:** Выполнено (все exit criteria подтверждены).
+
+### Подтверждение Exit Criteria
+
+1. **Filtered view сохраняется/восстанавливается:**
+   - Подтверждено бэкенд-тестами: `DashboardSavedViewApiTest.php` (сохранение через POST, чтение списка через GET, восстановление по ID, обновление через PUT, удаление через DELETE);
+   - Подтверждено фронтенд-тестами: `dashboard-saved-views-flow.test.tsx` (сохранение пресета из активных фильтров через меню, восстановление дефолтного пресета при монтировании дашборда);
+   - Подтверждено интеграционным скриптом: `scripts/verify-integration.sh` (шаги 29–33).
+
+2. **Filter semantics едина:**
+   - Единый контракт `DashboardFilterValues` зафиксирован в OpenAPI 3.0.3 (`date_range`, `date_from`, `date_to`, `category_id`, `region_id`, `warehouse_id`, `stock_health`);
+   - Подтверждено бэкенд-тестами семантики: `DashboardFilterSemanticsTest.php` (строгая валидация периодов, проверка `date_from <= date_to`);
+   - Подтверждено фронтенд-тестами: `filter-resolver.test.ts` (вычисление дат по пресетам `30d`, `90d`, `180d`, `365d`, `all`, `custom`).
+
+3. **Ownership соблюдается:**
+   - Строгая изоляция по `workspace_id` и `user_id` реализована в `DashboardSavedViewController` и `WorkspaceAccessGuard`;
+   - Попытки доступа пользователя к чужим представлениям возвращают `403 Forbidden` (`SavedViewApplicationTest.php`, `DashboardSavedViewApiTest.php`, `scripts/verify-integration.sh` шаг 32).
+
+4. **Несовместимые combinations обрабатываются явно:**
+   - Реализована проекция параметров по наборам данных:
+     - Sales Dataset: отсекаются `warehouse_id` и `stock_health`;
+     - Inventory Dataset: отсекается `region_id`;
+   - Подтверждено domain-тестами бэкенда (`DashboardFilters::forSalesDataset()`, `DashboardFilters::forInventoryDataset()`);
+   - Подтверждено фронтенд-моделью (`filter-resolver.ts: sanitizeFiltersForDataset`).
+
+### Выполненные проверки
+
+- `npm run contracts:validate` — OpenAPI валиден (0 ошибок).
+- `npm run lint`, `format:check`, `typecheck` — Frontend статический анализ чист (0 ошибок).
+- `npm test` — 33 тестовых файла, 134 теста Vitest успешно пройдены.
+- `npm run build` — Production сборка Next.js 16 собрана без ошибок.
+- `composer validate --strict` — `composer.json` валиден.
+- `composer lint` — Pint и Larastan (максимальный уровень) без замечаний.
+- `composer test` — 134 теста PHPUnit (28141 assertions) успешно пройдены.
+- `scripts/verify-integration.sh` — Все 35 сквозных шагов интеграции пройдены успешно.
