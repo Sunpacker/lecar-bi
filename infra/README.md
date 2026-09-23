@@ -14,3 +14,27 @@ Development entrypoint синхронизирует `node_modules` с `package-l
 ```bash
 make integration
 ```
+
+## VPS: публикация backend через Caddy
+
+`docker-compose.vps.yml` запускает только Laravel backend, PostgreSQL и Redis. Backend не публикует порт хоста: Caddy обращается к нему по имени `lecar-bi-backend:8080` через существующую внешнюю Docker-сеть `proxy`. Имя сети можно изменить через `CADDY_NETWORK` в `infra/.env`.
+
+Конфигурация Caddy для `api.veloza.ru`:
+
+```caddyfile
+handle_path /lecar-bi/* {
+    reverse_proxy lecar-bi-backend:8080
+}
+```
+
+`handle_path` удаляет префикс `/lecar-bi`, поэтому Laravel получает исходные маршруты `/api/v1/*`.
+
+Запускать из корня репозитория:
+
+```bash
+docker compose --env-file infra/.env -f infra/docker-compose.vps.yml up --build -d
+docker compose --env-file infra/.env -f infra/docker-compose.vps.yml exec backend php artisan migrate --force
+curl --fail --show-error https://api.veloza.ru/lecar-bi/api/v1/health
+```
+
+`infra/.env` не хранится в Git. Перед первым запуском его нужно безопасно передать на VPS; `APP_KEY` и `POSTGRES_PASSWORD` должны оставаться секретными.
