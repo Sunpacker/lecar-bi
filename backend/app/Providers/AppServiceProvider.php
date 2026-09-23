@@ -8,6 +8,12 @@ use App\Modules\Dashboard\Infrastructure\Persistence\Eloquent\Repositories\Eloqu
 use App\Modules\Dashboard\Infrastructure\Persistence\Eloquent\Repositories\EloquentSavedViewRepository;
 use App\Modules\Dashboard\Infrastructure\Persistence\InMemory\InMemoryDashboardRepository;
 use App\Modules\Dashboard\Infrastructure\Persistence\InMemory\InMemorySavedViewRepository;
+use App\Modules\DataIngestion\Domain\Repositories\ImportBatchRepositoryInterface;
+use App\Modules\DataIngestion\Domain\Repositories\ImportFailureRepositoryInterface;
+use App\Modules\DataIngestion\Infrastructure\Repositories\EloquentImportBatchRepository;
+use App\Modules\DataIngestion\Infrastructure\Repositories\EloquentImportFailureRepository;
+use App\Modules\DataIngestion\Infrastructure\Repositories\InMemoryImportBatchRepository;
+use App\Modules\DataIngestion\Infrastructure\Repositories\InMemoryImportFailureRepository;
 use App\Modules\InventoryAnalytics\Application\Contracts\InventoryAnalyticsReadModelInterface;
 use App\Modules\InventoryAnalytics\Infrastructure\Persistence\InMemoryInventoryAnalyticsReadModel;
 use App\Modules\InventoryAnalytics\Infrastructure\Persistence\PostgresInventoryAnalyticsReadModel;
@@ -72,6 +78,22 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return new EloquentSavedViewRepository;
+        });
+
+        $this->app->singleton(ImportBatchRepositoryInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new InMemoryImportBatchRepository;
+            }
+
+            return new EloquentImportBatchRepository;
+        });
+
+        $this->app->singleton(ImportFailureRepositoryInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new InMemoryImportFailureRepository;
+            }
+
+            return new EloquentImportFailureRepository;
         });
     }
 
