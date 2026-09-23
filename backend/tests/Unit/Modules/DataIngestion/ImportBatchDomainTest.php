@@ -222,4 +222,39 @@ final class ImportBatchDomainTest extends TestCase
         self::assertSame('UNKNOWN', $error->value);
         self::assertSame('SKU not found', $error->message);
     }
+
+    #[Test]
+    public function cannot_mark_terminal_batch_as_failed(): void
+    {
+        $batch = ImportBatch::create(
+            id: ImportBatchId::generate(),
+            workspaceId: 'ws-1',
+            datasetType: DatasetType::SALES,
+            sourceFormat: SourceFormat::CSV,
+            originalFilename: 'test.csv',
+            storedFilePath: 'test.csv',
+        );
+        $batch->startValidation();
+        $batch->startProcessing(10);
+        $batch->markCompleted();
+
+        $this->expectException(\DomainException::class);
+        $batch->markFailed('Another failure');
+    }
+
+    #[Test]
+    public function mark_failed_requires_non_empty_reason(): void
+    {
+        $batch = ImportBatch::create(
+            id: ImportBatchId::generate(),
+            workspaceId: 'ws-1',
+            datasetType: DatasetType::SALES,
+            sourceFormat: SourceFormat::CSV,
+            originalFilename: 'test.csv',
+            storedFilePath: 'test.csv',
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $batch->markFailed('   ');
+    }
 }

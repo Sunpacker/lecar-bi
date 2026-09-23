@@ -182,6 +182,12 @@ final class ImportBatch
 
     public function markFailed(string $reason): void
     {
+        if ($this->isCompleted()) {
+            throw new \DomainException("Cannot mark batch in terminal status '{$this->status->value}' as failed.");
+        }
+        if (trim($reason) === '') {
+            throw new \InvalidArgumentException('Failure reason cannot be empty.');
+        }
         $this->status = ImportStatus::FAILED;
         $this->errorMessage = $reason;
         $this->completedAt = new DateTimeImmutable;
