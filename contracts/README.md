@@ -4,8 +4,11 @@
 
 ```text
 contracts/
-└── openapi/
-    └── analytics-v1.yaml
+├── openapi/
+│   └── analytics-v1.yaml
+└── events/
+    ├── alert-triggered.v1.schema.json   # JSON Schema для integration event
+    └── alert-triggered.v1.example.json  # Canonical example (используется в contract tests)
 ```
 
 ## Что такое контракт
