@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Workspace\Infrastructure\Persistence\Eloquent\Repositories;
 
 use App\Modules\Workspace\Domain\MembershipRole;
@@ -9,6 +11,7 @@ use App\Modules\Workspace\Domain\Workspace;
 use App\Modules\Workspace\Domain\WorkspaceId;
 use App\Modules\Workspace\Infrastructure\Persistence\Eloquent\Models\WorkspaceMemberModel;
 use App\Modules\Workspace\Infrastructure\Persistence\Eloquent\Models\WorkspaceModel;
+use UnexpectedValueException;
 
 final class EloquentWorkspaceRepository implements WorkspaceRepositoryInterface
 {
@@ -20,6 +23,27 @@ final class EloquentWorkspaceRepository implements WorkspaceRepositoryInterface
         if ($record === null) {
             return null;
         }
+
+        return $this->toDomain($record);
+    }
+
+    public function findByIdForUpdate(WorkspaceId $id): ?Workspace
+    {
+        /** @var WorkspaceModel|null $record */
+        $record = WorkspaceModel::query()
+            ->lockForUpdate()
+            ->find($id->value());
+
+        if ($record === null) {
+            return null;
+        }
+
+        $members = WorkspaceMemberModel::query()
+            ->where('workspace_id', $id->value())
+            ->lockForUpdate()
+            ->get();
+
+        $record->setRelation('members', $members);
 
         return $this->toDomain($record);
     }
@@ -76,7 +100,10 @@ final class EloquentWorkspaceRepository implements WorkspaceRepositoryInterface
         );
 
         foreach ($model->members as $member) {
-            $role = MembershipRole::tryFrom((string) $member->role) ?? MembershipRole::MEMBER;
+            $role = MembershipRole::tryFrom((string) $member->role);
+            if ($role === null) {
+                throw new UnexpectedValueException("Invalid membership role '{$member->role}' for user '{$member->user_id}' in workspace '{$model->id}'.");
+            }
             $workspace->addMember(new UserId((string) $member->user_id), $role);
         }
 

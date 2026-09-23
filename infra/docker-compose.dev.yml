@@ -11,6 +11,16 @@ services:
       - frontend-node-modules:/app/node_modules
       - frontend-next-cache:/app/.next
 
+  notification:
+    volumes:
+      - ../notification:/var/www/html
+      - ../notification/vendor:/var/www/html/vendor
+
+  notification-worker:
+    volumes:
+      - ../notification:/var/www/html
+      - ../notification/vendor:/var/www/html/vendor
+
 volumes:
   frontend-node-modules:
   frontend-next-cache:

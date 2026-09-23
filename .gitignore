@@ -1,5 +1,6 @@
 # host machine
 .DS_Store
+.composer
 
 # environment
 .env

@@ -110,3 +110,17 @@
 - PostgreSQL outbox является источником истины; Redis Stream — только канал доставки.
 - Retention Stream не управляется в Phase 13 — будет добавлен после появления consumer и observability.
 - Consumer group будет создана в Phase 14.
+
+## ADR-018 — Notification Service Extraction and Autonomous Bounded Context
+
+Решение: выделить `notification/` как третий независимый deployable-сервис (Laravel 13, PHP 8.3) с собственной базой данных PostgreSQL, читающий `alert.triggered.v1` из Redis Stream `autobi.integration-events` через consumer group `notification-service-v1`.
+
+Причина: подтвердить возможность масштабирования и модульного расширения системы отдельным сервисом без создания общей базы данных (ADR-008) и без преждевременного усложнения инфраструктуры (ADR-012, ADR-015).
+
+Правила и ограничения:
+- **Database per Service:** Notification Service владеет собственной базой данных PostgreSQL (`notification-postgres`). Никаких foreign keys, shared tables или доступа к analytics PostgreSQL.
+- **Event-Driven Integration:** Сервисы обмениваются данными исключительно через асинхронные события. Нет прямых HTTP-вызовов из analytics в notification и обратно для обогащения данных.
+- **Self-contained Contract:** Каноническое событие `alert.triggered.v1` содержит все данные (rule, severity, threshold, current value, analytical context), достаточные для формирования заголовка, текста и контекста уведомления.
+- **At-Least-Once Delivery и Дедупликация:** Сервис гарантирует корректность при повторной доставке через таблицу `consumed_events` с уникальным первичным ключом `event_id`. Вставка проекции `notifications` и `consumed_events` выполняется в единой локальной транзакции.
+- **Подтверждение (XACK) и Poison Messages:** `XACK` выполняется строго после коммита в БД или обнаружения дубликата. Невалидные сообщения и неподдерживаемые версии событий отправляются в dead-letter stream `autobi.integration-events.dead-letter` с последующим XACK.
+- **Независимость жизненного цикла:** Временная недоступность или падение Notification Service не влияет на работу сервиса аналитики, HTTP API и публикацию Outbox. Накопленные события обрабатываются после восстановления работы consumer group.

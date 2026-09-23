@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Workspace\Domain\Repositories;
 
 use App\Modules\Workspace\Domain\UserId;
@@ -9,6 +11,8 @@ use App\Modules\Workspace\Domain\WorkspaceId;
 interface WorkspaceRepositoryInterface
 {
     public function findById(WorkspaceId $id): ?Workspace;
+
+    public function findByIdForUpdate(WorkspaceId $id): ?Workspace;
 
     /** @return list<Workspace> */
     public function findByUserId(UserId $userId): array;

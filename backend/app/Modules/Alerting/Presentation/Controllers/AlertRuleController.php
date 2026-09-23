@@ -40,8 +40,7 @@ final class AlertRuleController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $isEnabled = $request->has('is_enabled') ? $request->boolean('is_enabled') : null;
             $rules = $handler->handle(new GetAlertRulesQuery($workspaceId, $isEnabled));
@@ -65,8 +64,7 @@ final class AlertRuleController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $rule = $handler->handle(new CreateAlertRuleCommand(
                 workspaceId: $workspaceId,
@@ -101,8 +99,7 @@ final class AlertRuleController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $rule = $handler->handle(new GetAlertRuleByIdQuery($workspaceId, $id));
 
@@ -124,8 +121,7 @@ final class AlertRuleController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $rule = $handler->handle(new UpdateAlertRuleCommand(
                 workspaceId: $workspaceId,
@@ -160,8 +156,7 @@ final class AlertRuleController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $handler->handle(new DeleteAlertRuleCommand($workspaceId, $id));
 
@@ -183,8 +178,7 @@ final class AlertRuleController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $rule = $handler->handle(new ToggleAlertRuleCommand($workspaceId, $id));
 
@@ -205,8 +199,7 @@ final class AlertRuleController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $result = $handler->handle(new EvaluateAlertRulesCommand(
                 workspaceId: $workspaceId,
@@ -225,5 +218,19 @@ final class AlertRuleController
         } catch (WorkspaceNotFoundException $e) {
             return response()->json(['message' => $e->getMessage(), 'code' => 'NOT_FOUND'], 404);
         }
+    }
+
+    private function resolveWorkspaceId(Request $request, GetCurrentWorkspaceHandler $workspaceHandler): string
+    {
+        $workspaceId = (string) $request->attributes->get('current_workspace_id');
+        if ($workspaceId !== '') {
+            return $workspaceId;
+        }
+
+        $userId = (string) $request->attributes->get('authenticated_user_id');
+        $requestedWs = $request->header('X-Workspace-Id');
+        $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
+
+        return $currentWorkspace->workspace->id;
     }
 }

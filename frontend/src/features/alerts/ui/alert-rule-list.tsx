@@ -22,6 +22,7 @@ interface AlertRuleListProps {
   onDeleteRule: (ruleId: string) => Promise<void>
   onEvaluate: () => Promise<void>
   onOpenCreate: () => void
+  canManageRules?: boolean
 }
 
 export function AlertRuleList({
@@ -32,6 +33,7 @@ export function AlertRuleList({
   onDeleteRule,
   onEvaluate,
   onOpenCreate,
+  canManageRules = true,
 }: AlertRuleListProps) {
   const getRuleTypeLabel = (type: string) => {
     switch (type) {
@@ -88,24 +90,26 @@ export function AlertRuleList({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onEvaluate}
-            disabled={isEvaluating}
-            className="text-xs"
-          >
-            <Play
-              className={`h-3.5 w-3.5 mr-1.5 ${isEvaluating ? 'animate-spin' : ''}`}
-            />
-            {isEvaluating ? 'Оценка...' : 'Запустить оценку'}
-          </Button>
+        {canManageRules && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onEvaluate}
+              disabled={isEvaluating}
+              className="text-xs"
+            >
+              <Play
+                className={`h-3.5 w-3.5 mr-1.5 ${isEvaluating ? 'animate-spin' : ''}`}
+              />
+              {isEvaluating ? 'Оценка...' : 'Запустить оценку'}
+            </Button>
 
-          <Button size="sm" onClick={onOpenCreate} className="text-xs">
-            + Создать правило
-          </Button>
-        </div>
+            <Button size="sm" onClick={onOpenCreate} className="text-xs">
+              + Создать правило
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="rounded-md border border-border bg-card overflow-hidden">
@@ -196,32 +200,38 @@ export function AlertRuleList({
                     )}
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1.5">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onToggleRule(rule.id)}
-                        title={rule.is_enabled ? 'Отключить правило' : 'Включить правило'}
-                        className={`h-8 px-2 text-xs ${
-                          rule.is_enabled
-                            ? 'text-emerald-500 hover:text-emerald-600'
-                            : 'text-muted-foreground'
-                        }`}
-                      >
-                        <Power className="h-3.5 w-3.5 mr-1" />
-                        {rule.is_enabled ? 'Вкл' : 'Выкл'}
-                      </Button>
+                    {canManageRules ? (
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onToggleRule(rule.id)}
+                          title={
+                            rule.is_enabled ? 'Отключить правило' : 'Включить правило'
+                          }
+                          className={`h-8 px-2 text-xs ${
+                            rule.is_enabled
+                              ? 'text-emerald-500 hover:text-emerald-600'
+                              : 'text-muted-foreground'
+                          }`}
+                        >
+                          <Power className="h-3.5 w-3.5 mr-1" />
+                          {rule.is_enabled ? 'Вкл' : 'Выкл'}
+                        </Button>
 
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onDeleteRule(rule.id)}
-                        title="Удалить правило"
-                        className="h-8 px-2 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => onDeleteRule(rule.id)}
+                          title="Удалить правило"
+                          className="h-8 px-2 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">—</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))

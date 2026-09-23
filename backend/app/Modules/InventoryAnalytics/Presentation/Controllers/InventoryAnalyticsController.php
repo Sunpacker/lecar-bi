@@ -36,8 +36,7 @@ final class InventoryAnalyticsController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $warehouseId = $request->query('warehouse_id');
             $asOfDate = $request->query('as_of_date');
@@ -102,8 +101,7 @@ final class InventoryAnalyticsController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $warehouseId = $request->query('warehouse_id');
             $stockHealth = $request->query('stock_health');
@@ -176,8 +174,7 @@ final class InventoryAnalyticsController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $filters = $filterHandler->handle(new GetInventoryFilterOptionsQuery($workspaceId));
 
@@ -210,8 +207,7 @@ final class InventoryAnalyticsController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $criteria = $request->toCriteria();
             $summary = $handler->handle(new GetAbcXyzSummaryQuery($workspaceId, $criteria));
@@ -276,8 +272,7 @@ final class InventoryAnalyticsController
         $requestedWs = $request->header('X-Workspace-Id');
 
         try {
-            $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
-            $workspaceId = $currentWorkspace->workspace->id;
+            $workspaceId = $this->resolveWorkspaceId($request, $workspaceHandler);
 
             $criteria = $request->toCriteria();
             $result = $handler->handle(new GetAbcXyzItemsQuery($workspaceId, $criteria));
@@ -325,5 +320,19 @@ final class InventoryAnalyticsController
                 'code' => 'NOT_FOUND',
             ], 404);
         }
+    }
+
+    private function resolveWorkspaceId(Request $request, GetCurrentWorkspaceHandler $workspaceHandler): string
+    {
+        $workspaceId = (string) $request->attributes->get('current_workspace_id');
+        if ($workspaceId !== '') {
+            return $workspaceId;
+        }
+
+        $userId = (string) $request->attributes->get('authenticated_user_id');
+        $requestedWs = $request->header('X-Workspace-Id');
+        $currentWorkspace = $workspaceHandler->handle(new GetCurrentWorkspaceQuery($userId, $requestedWs));
+
+        return $currentWorkspace->workspace->id;
     }
 }

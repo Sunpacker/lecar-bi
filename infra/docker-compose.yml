@@ -95,6 +95,100 @@ services:
       retries: 10
     restart: unless-stopped
 
+  notification:
+    image: ${NOTIFICATION_IMAGE:-autobi/notification:latest}
+    build:
+      context: ../notification
+      dockerfile: Dockerfile
+    environment:
+      APP_NAME: ${NOTIFICATION_APP_NAME:-NotificationService}
+      APP_ENV: ${APP_ENV:-local}
+      APP_KEY: ${NOTIFICATION_APP_KEY:-base64:6Wf3dY1v8s4p2n0m9k7j5h3g1f0d8c6b4a2z1x0w=}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_URL: ${NOTIFICATION_APP_URL:-http://localhost:8081}
+      LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      DB_CONNECTION: pgsql
+      DB_HOST: notification-postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${NOTIFICATION_POSTGRES_DB:-notification}
+      DB_USERNAME: ${NOTIFICATION_POSTGRES_USER:-notification}
+      DB_PASSWORD: ${NOTIFICATION_POSTGRES_PASSWORD:-notification}
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      INTEGRATION_EVENTS_REDIS_DB: ${INTEGRATION_EVENTS_REDIS_DB:-2}
+      INTEGRATION_STREAM_NAME: ${INTEGRATION_STREAM_NAME:-autobi.integration-events}
+      INTEGRATION_GROUP_NAME: ${INTEGRATION_GROUP_NAME:-notification-service-v1}
+      INTEGRATION_CONSUMER_NAME: notification-http
+      INTEGRATION_DEAD_LETTER_STREAM: ${INTEGRATION_DEAD_LETTER_STREAM:-autobi.integration-events.dead-letter}
+    ports:
+      - "${NOTIFICATION_PORT:-8081}:8081"
+    depends_on:
+      notification-postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        ["CMD-SHELL", "curl -fsS http://localhost:8081/api/v1/health/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  notification-worker:
+    image: ${NOTIFICATION_IMAGE:-autobi/notification:latest}
+    command: ["php", "artisan", "notifications:consume"]
+    environment:
+      APP_NAME: ${NOTIFICATION_APP_NAME:-NotificationService}
+      APP_ENV: ${APP_ENV:-local}
+      APP_KEY: ${NOTIFICATION_APP_KEY:-base64:6Wf3dY1v8s4p2n0m9k7j5h3g1f0d8c6b4a2z1x0w=}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_URL: ${NOTIFICATION_APP_URL:-http://localhost:8081}
+      LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      DB_CONNECTION: pgsql
+      DB_HOST: notification-postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${NOTIFICATION_POSTGRES_DB:-notification}
+      DB_USERNAME: ${NOTIFICATION_POSTGRES_USER:-notification}
+      DB_PASSWORD: ${NOTIFICATION_POSTGRES_PASSWORD:-notification}
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      INTEGRATION_EVENTS_REDIS_DB: ${INTEGRATION_EVENTS_REDIS_DB:-2}
+      INTEGRATION_STREAM_NAME: ${INTEGRATION_STREAM_NAME:-autobi.integration-events}
+      INTEGRATION_GROUP_NAME: ${INTEGRATION_GROUP_NAME:-notification-service-v1}
+      INTEGRATION_CONSUMER_NAME: notification-worker-1
+      INTEGRATION_DEAD_LETTER_STREAM: ${INTEGRATION_DEAD_LETTER_STREAM:-autobi.integration-events.dead-letter}
+    depends_on:
+      notification-postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  notification-postgres:
+    image: ${POSTGRES_IMAGE:-postgres:16-alpine}
+    environment:
+      POSTGRES_DB: ${NOTIFICATION_POSTGRES_DB:-notification}
+      POSTGRES_USER: ${NOTIFICATION_POSTGRES_USER:-notification}
+      POSTGRES_PASSWORD: ${NOTIFICATION_POSTGRES_PASSWORD:-notification}
+    ports:
+      - "${NOTIFICATION_POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - notification-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
 volumes:
   postgres-data:
+  notification-postgres-data:
   redis-data:

@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { DashboardSavedViewsMenu } from './dashboard-saved-views-menu'
 import { dashboardGateway, type DashboardSavedView } from '../api/dashboard-gateway'
+import { WorkspaceAccessProvider } from '../../workspace/ui/workspace-access-provider'
 
 vi.mock('../api/dashboard-gateway', () => ({
   dashboardGateway: {
@@ -43,22 +44,43 @@ describe('DashboardSavedViewsMenu', () => {
 
   it('renders active view name and lists saved views', () => {
     render(
-      <DashboardSavedViewsMenu
-        dashboardId="dash-1"
-        userId="user-1"
-        workspaceId="ws-1"
-        currentFilters={{ date_range: '30d' }}
-        activeView={mockViews[0]}
-        savedViews={mockViews}
-        onSelectView={onSelectView}
-        onViewsUpdated={onViewsUpdated}
-      />,
+      <WorkspaceAccessProvider capabilities={['dashboards.view']}>
+        <DashboardSavedViewsMenu
+          dashboardId="dash-1"
+          userId="user-1"
+          workspaceId="ws-1"
+          currentFilters={{ date_range: '30d' }}
+          activeView={mockViews[0]}
+          savedViews={mockViews}
+          onSelectView={onSelectView}
+          onViewsUpdated={onViewsUpdated}
+        />
+      </WorkspaceAccessProvider>,
     )
 
     expect(screen.getByText('Основной обзор')).toBeInTheDocument()
   })
 
-  it('allows saving current filters as a new saved view', async () => {
+  it('hides save view button when user lacks dashboards.manage capability (viewer)', () => {
+    render(
+      <WorkspaceAccessProvider capabilities={['dashboards.view']}>
+        <DashboardSavedViewsMenu
+          dashboardId="dash-1"
+          userId="user-1"
+          workspaceId="ws-1"
+          currentFilters={{ date_range: '30d' }}
+          activeView={mockViews[0]}
+          savedViews={mockViews}
+          onSelectView={onSelectView}
+          onViewsUpdated={onViewsUpdated}
+        />
+      </WorkspaceAccessProvider>,
+    )
+
+    expect(screen.queryByRole('button', { name: /Сохранить представление/i })).toBeNull()
+  })
+
+  it('allows saving current filters as a new saved view when user has dashboards.manage capability', async () => {
     vi.mocked(dashboardGateway.createSavedView).mockResolvedValueOnce({
       id: 'view-3',
       dashboard_id: 'dash-1',
@@ -70,16 +92,18 @@ describe('DashboardSavedViewsMenu', () => {
     })
 
     render(
-      <DashboardSavedViewsMenu
-        dashboardId="dash-1"
-        userId="user-1"
-        workspaceId="ws-1"
-        currentFilters={{ date_range: '180d' }}
-        activeView={null}
-        savedViews={mockViews}
-        onSelectView={onSelectView}
-        onViewsUpdated={onViewsUpdated}
-      />,
+      <WorkspaceAccessProvider capabilities={['dashboards.view', 'dashboards.manage']}>
+        <DashboardSavedViewsMenu
+          dashboardId="dash-1"
+          userId="user-1"
+          workspaceId="ws-1"
+          currentFilters={{ date_range: '180d' }}
+          activeView={null}
+          savedViews={mockViews}
+          onSelectView={onSelectView}
+          onViewsUpdated={onViewsUpdated}
+        />
+      </WorkspaceAccessProvider>,
     )
 
     // Open save modal / form

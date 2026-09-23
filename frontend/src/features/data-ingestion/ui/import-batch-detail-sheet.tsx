@@ -39,6 +39,7 @@ interface ImportBatchDetailSheetProps {
   workspaceId: string
   onRetryBatch: (batchId: string) => Promise<void>
   isRetrying: boolean
+  canRetry?: boolean
 }
 
 export function ImportBatchDetailSheet({
@@ -49,6 +50,7 @@ export function ImportBatchDetailSheet({
   workspaceId,
   onRetryBatch,
   isRetrying,
+  canRetry: canRetryAllowed = true,
 }: ImportBatchDetailSheetProps) {
   const [failures, setFailures] = useState<ImportFailureItem[]>([])
   const [isLoadingFailures, setIsLoadingFailures] = useState(false)
@@ -110,7 +112,9 @@ export function ImportBatchDetailSheet({
 
   if (!batch) return null
 
-  const canRetry = batch.status === 'failed' || batch.status === 'completed_with_errors'
+  const canRetry =
+    canRetryAllowed &&
+    (batch.status === 'failed' || batch.status === 'completed_with_errors')
 
   return (
     <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>

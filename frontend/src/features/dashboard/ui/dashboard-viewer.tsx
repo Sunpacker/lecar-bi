@@ -28,6 +28,7 @@ import { DashboardGridEditor } from './dashboard-grid-editor'
 import { WidgetConfigSheet } from './widget-config-sheet'
 import { DashboardFilterBar } from './dashboard-filter-bar'
 import { DashboardSavedViewsMenu } from './dashboard-saved-views-menu'
+import { useWorkspaceAccess } from '../../workspace/ui/workspace-access-provider'
 
 interface DashboardViewerProps {
   dashboard: DashboardDetail
@@ -40,6 +41,9 @@ export function DashboardViewer({
   userId,
   workspaceId,
 }: DashboardViewerProps) {
+  const { hasCapability } = useWorkspaceAccess()
+  const canManageDashboards = hasCapability('dashboards.manage')
+
   const [refreshKey, setRefreshKey] = useState(0)
   const [saveSuccessMsg, setSaveSuccessMsg] = useState(false)
   const [savedViews, setSavedViews] = useState<DashboardSavedView[]>([])
@@ -188,14 +192,16 @@ export function DashboardViewer({
                 <RefreshCw className="size-3.5" />
                 <span>Обновить данные</span>
               </Button>
-              <Button
-                size="sm"
-                onClick={() => setMode('edit')}
-                className="h-9 gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 text-white"
-              >
-                <Pencil className="size-3.5" />
-                <span>Редактировать</span>
-              </Button>
+              {canManageDashboards && (
+                <Button
+                  size="sm"
+                  onClick={() => setMode('edit')}
+                  className="h-9 gap-1.5 text-xs bg-emerald-600 hover:bg-emerald-500 text-white"
+                >
+                  <Pencil className="size-3.5" />
+                  <span>Редактировать</span>
+                </Button>
+              )}
             </>
           ) : (
             <>

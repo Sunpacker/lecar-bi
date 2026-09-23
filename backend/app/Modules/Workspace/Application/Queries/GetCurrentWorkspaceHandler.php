@@ -39,8 +39,10 @@ final readonly class GetCurrentWorkspaceHandler
         }
 
         $userId = new UserId($query->userId);
-
         $role = $workspace->memberRole($userId);
+        $capabilities = $role !== null
+            ? array_map(fn ($cap) => $cap->value, $role->capabilities())
+            : [];
 
         return new CurrentWorkspaceDto(
             user: new UserDto($user->id()->value(), $user->email(), $user->name()),
@@ -49,6 +51,7 @@ final readonly class GetCurrentWorkspaceHandler
                 name: $workspace->name(),
                 slug: $workspace->slug(),
                 role: $role !== null ? $role->value : 'member',
+                capabilities: $capabilities,
             ),
         );
     }

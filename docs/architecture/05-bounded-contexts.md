@@ -16,14 +16,21 @@ Bounded context должен иметь:
 
 ### Workspace
 
-Отвечает за организационную область пользователя и владение ресурсами.
+Отвечает за организационную область пользователя, владение ресурсами и разграничение доступа (RBAC).
 
-В перспективе может включать:
+Основные концепции:
 
-- рабочие пространства;
-- принадлежность пользователей;
-- настройки организации;
-- ограничения доступа.
+- **Рабочие пространства:** изолированные тенанты (`WorkspaceId`, `slug`, `name`).
+- **Ролевая модель:** фиксированный набор ролей (`owner`, `member`, `viewer`), хранящийся в таблице `workspace_members`.
+- **Инвариант агрегата Workspace:** в рабочем пространстве обязан оставаться хотя бы один активный владелец (`owner`). Попытка понизить роль последнего владельца блокируется на уровне доменной логики и транзакционной блокировки агрегата (`LastWorkspaceOwnerException` → HTTP `409 LAST_WORKSPACE_OWNER`).
+- **Система возможностей (Capabilities):** чистое доменное сопоставление роли замкнутому набору из 8 атомарных прав:
+  - `owner`: все 8 прав, включая `workspace.members.manage`;
+  - `member`: операционные права (`analytics.view`, `dashboards.view`, `dashboards.manage`, `imports.view`, `imports.manage`, `alerts.view`, `alerts.manage`), без управления участниками;
+  - `viewer`: только права на чтение (`analytics.view`, `dashboards.view`, `imports.view`, `alerts.view`).
+- **CQRS-операции:**
+  - Commands: `ChangeWorkspaceMemberRoleCommand` (с транзакционным локом строки воркспейса для предотвращения race condition).
+  - Queries: `GetWorkspaceMembersQuery`, `GetCurrentWorkspaceQuery`, `GetAccessibleWorkspacesQuery`.
+- **Централизованный Guard:** `WorkspaceAccessGuard` проверяет членство и наличие требуемой capability для входящего запроса.
 
 ### Data Ingestion
 

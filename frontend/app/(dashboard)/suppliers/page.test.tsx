@@ -62,6 +62,7 @@ describe('SuppliersPage', () => {
         name: 'Supplier Test Workspace',
         slug: 'supplier-test',
         role: 'owner',
+        capabilities: ['analytics.view'],
       },
     })
 

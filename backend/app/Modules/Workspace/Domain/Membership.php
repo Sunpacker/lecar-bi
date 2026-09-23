@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Workspace\Domain;
 
 final readonly class Membership
@@ -23,5 +25,14 @@ final readonly class Membership
     public function role(): MembershipRole
     {
         return $this->role;
+    }
+
+    public function changeRole(MembershipRole $newRole): self
+    {
+        if ($this->role === $newRole) {
+            return $this;
+        }
+
+        return new self($this->workspaceId, $this->userId, $newRole);
     }
 }

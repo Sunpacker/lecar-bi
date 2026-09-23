@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Modules\Workspace\Infrastructure\Persistence\InMemory;
 
 use App\Modules\Workspace\Domain\Repositories\WorkspaceRepositoryInterface;
@@ -15,6 +17,11 @@ final class InMemoryWorkspaceRepository implements WorkspaceRepositoryInterface
     public function findById(WorkspaceId $id): ?Workspace
     {
         return $this->workspaces[$id->value()] ?? null;
+    }
+
+    public function findByIdForUpdate(WorkspaceId $id): ?Workspace
+    {
+        return $this->findById($id);
     }
 
     /** @return list<Workspace> */

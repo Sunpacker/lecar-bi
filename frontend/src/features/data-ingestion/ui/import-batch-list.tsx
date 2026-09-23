@@ -20,6 +20,7 @@ interface ImportBatchListProps {
   onSelectBatch: (batch: ImportBatchSummary) => void
   onRetryBatch: (batchId: string) => Promise<void>
   retryingBatchId: string | null
+  canRetry?: boolean
 }
 
 export function ImportBatchList({
@@ -27,6 +28,7 @@ export function ImportBatchList({
   onSelectBatch,
   onRetryBatch,
   retryingBatchId,
+  canRetry: canRetryAllowed = true,
 }: ImportBatchListProps) {
   if (batches.length === 0) {
     return (
@@ -56,7 +58,8 @@ export function ImportBatchList({
           {batches.map((batch) => {
             const isRetrying = retryingBatchId === batch.id
             const canRetry =
-              batch.status === 'failed' || batch.status === 'completed_with_errors'
+              canRetryAllowed &&
+              (batch.status === 'failed' || batch.status === 'completed_with_errors')
             const percent =
               batch.progress_percentage ??
               (batch.total_rows > 0

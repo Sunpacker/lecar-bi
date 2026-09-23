@@ -13,6 +13,7 @@ paths:
   /imports:
     get:
       operationId: getImportBatches
+      x-required-capability: imports.view
       summary: List data ingestion batches for workspace
       parameters:
         - in: query
@@ -58,6 +59,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
     post:
       operationId: uploadImportBatch
+      x-required-capability: imports.manage
       summary: Upload data ingestion file
       requestBody:
         required: true
@@ -102,6 +104,7 @@ paths:
   /imports/{id}:
     get:
       operationId: getImportBatch
+      x-required-capability: imports.view
       summary: Get import batch details and progress
       parameters:
         - in: path
@@ -137,6 +140,7 @@ paths:
   /imports/{id}/failures:
     get:
       operationId: getImportFailures
+      x-required-capability: imports.view
       summary: List validation failure rows for import batch
       parameters:
         - in: path
@@ -184,6 +188,7 @@ paths:
   /imports/{id}/retry:
     post:
       operationId: retryImportBatch
+      x-required-capability: imports.manage
       summary: Retry failed or incomplete import batch
       parameters:
         - in: path
@@ -353,9 +358,108 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /workspaces/{workspaceId}/members:
+    get:
+      operationId: getWorkspaceMembers
+      summary: List members of the workspace
+      x-required-capability: workspace.members.manage
+      parameters:
+        - in: path
+          name: workspaceId
+          required: true
+          schema:
+            type: string
+          description: Workspace identifier
+      responses:
+        '200':
+          description: List of workspace members
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceMemberListResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient capability or cross-workspace access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /workspaces/{workspaceId}/members/{userId}/role:
+    patch:
+      operationId: changeWorkspaceMemberRole
+      summary: Change the role of an existing workspace member
+      x-required-capability: workspace.members.manage
+      parameters:
+        - in: path
+          name: workspaceId
+          required: true
+          schema:
+            type: string
+          description: Workspace identifier
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: User identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeWorkspaceMemberRoleRequest'
+      responses:
+        '200':
+          description: Role updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangeWorkspaceMemberRoleResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient capability or cross-workspace access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace or member not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict - cannot demote the last workspace owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /analytics/sales/overview:
     get:
       operationId: getSalesOverview
+      x-required-capability: analytics.view
       summary: Get aggregated sales summary, trends, and breakdowns
       parameters:
         - in: header
@@ -418,6 +522,7 @@ paths:
   /analytics/sales/filters:
     get:
       operationId: getSalesFilterOptions
+      x-required-capability: analytics.view
       summary: Get available categories, regions, and date boundaries for sales filters
       parameters:
         - in: header
@@ -448,6 +553,7 @@ paths:
   /analytics/sales/records:
     get:
       operationId: getSalesRecords
+      x-required-capability: analytics.view
       summary: Get paginated and sorted detail sales records for drill-down
       parameters:
         - in: header
@@ -543,6 +649,7 @@ paths:
   /analytics/inventory/summary:
     get:
       operationId: getInventorySummary
+      x-required-capability: analytics.view
       summary: Get current inventory summary, health breakdown, and warehouse metrics
       parameters:
         - in: header
@@ -592,6 +699,7 @@ paths:
   /analytics/inventory/items:
     get:
       operationId: getInventoryItems
+      x-required-capability: analytics.view
       summary: Get paginated and sorted list of inventory items with sales velocity, DOS, and stock health
       parameters:
         - in: header
@@ -680,6 +788,7 @@ paths:
   /analytics/inventory/filters:
     get:
       operationId: getInventoryFilters
+      x-required-capability: analytics.view
       summary: Get available filter options for inventory analytics
       parameters:
         - in: header
@@ -710,6 +819,7 @@ paths:
   /analytics/inventory/abc-xyz/summary:
     get:
       operationId: getAbcXyzSummary
+      x-required-capability: analytics.view
       summary: Get ABC/XYZ combined matrix and summary metrics
       parameters:
         - in: header
@@ -778,6 +888,7 @@ paths:
   /analytics/inventory/abc-xyz/items:
     get:
       operationId: getAbcXyzItems
+      x-required-capability: analytics.view
       summary: Get product-level items for ABC/XYZ analysis with variation and shares
       parameters:
         - in: header
@@ -906,6 +1017,7 @@ paths:
   /analytics/suppliers/overview:
     get:
       operationId: getSupplierOverview
+      x-required-capability: analytics.view
       summary: Get aggregated supplier metrics overview, delivery trends, and status breakdown
       parameters:
         - in: header
@@ -974,6 +1086,7 @@ paths:
   /analytics/suppliers/filters:
     get:
       operationId: getSupplierFilterOptions
+      x-required-capability: analytics.view
       summary: Get available suppliers, warehouses, statuses, and date bounds
       parameters:
         - in: header
@@ -1010,6 +1123,7 @@ paths:
   /analytics/suppliers/performance:
     get:
       operationId: getSupplierPerformance
+      x-required-capability: analytics.view
       summary: Get comparative performance ranking of suppliers with sorting and pagination
       parameters:
         - in: header
@@ -1111,6 +1225,7 @@ paths:
   /analytics/suppliers/deliveries:
     get:
       operationId: getSupplierDeliveries
+      x-required-capability: analytics.view
       summary: Get granular delivery records journal with sorting, filtering, and pagination
       parameters:
         - in: header
@@ -1224,6 +1339,7 @@ paths:
   /dashboards:
     get:
       operationId: getDashboards
+      x-required-capability: dashboards.view
       summary: List all custom dashboards for the current workspace
       parameters:
         - in: header
@@ -1259,6 +1375,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
     post:
       operationId: createDashboard
+      x-required-capability: dashboards.manage
       summary: Create a new custom dashboard
       parameters:
         - in: header
@@ -1301,6 +1418,7 @@ paths:
   /dashboards/{id}:
     get:
       operationId: getDashboardById
+      x-required-capability: dashboards.view
       summary: Get details and widget layout for a specific dashboard
       parameters:
         - in: path
@@ -1342,6 +1460,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
     put:
       operationId: updateDashboard
+      x-required-capability: dashboards.manage
       summary: Update a dashboard title, description, and widget layout
       parameters:
         - in: path
@@ -1395,6 +1514,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
     delete:
       operationId: deleteDashboard
+      x-required-capability: dashboards.manage
       summary: Delete a custom dashboard
       parameters:
         - in: path
@@ -1436,6 +1556,7 @@ paths:
         - Dashboards
       summary: List saved views and filter presets for a dashboard
       operationId: getDashboardSavedViews
+      x-required-capability: dashboards.view
       security:
         - UserIdAuth: []
       parameters:
@@ -1481,6 +1602,7 @@ paths:
         - Dashboards
       summary: Create a saved view or filter preset for a dashboard
       operationId: createDashboardSavedView
+      x-required-capability: dashboards.manage
       security:
         - UserIdAuth: []
       parameters:
@@ -1540,6 +1662,7 @@ paths:
         - Dashboards
       summary: Get a specific saved view
       operationId: getDashboardSavedViewById
+      x-required-capability: dashboards.view
       security:
         - UserIdAuth: []
       parameters:
@@ -1588,6 +1711,7 @@ paths:
         - Dashboards
       summary: Update a saved view
       operationId: updateDashboardSavedView
+      x-required-capability: dashboards.manage
       security:
         - UserIdAuth: []
       parameters:
@@ -1648,6 +1772,7 @@ paths:
         - Dashboards
       summary: Delete a saved view
       operationId: deleteDashboardSavedView
+      x-required-capability: dashboards.manage
       security:
         - UserIdAuth: []
       parameters:
@@ -1691,6 +1816,7 @@ paths:
   /alert-rules:
     get:
       operationId: getAlertRules
+      x-required-capability: alerts.view
       summary: List alert rules for current workspace
       parameters:
         - in: query
@@ -1719,6 +1845,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
     post:
       operationId: createAlertRule
+      x-required-capability: alerts.manage
       summary: Create alert rule
       requestBody:
         required: true
@@ -1761,6 +1888,7 @@ paths:
   /alert-rules/{id}:
     get:
       operationId: getAlertRuleById
+      x-required-capability: alerts.view
       summary: Get alert rule details
       parameters:
         - in: path
@@ -1795,6 +1923,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
     put:
       operationId: updateAlertRule
+      x-required-capability: alerts.manage
       summary: Update alert rule
       parameters:
         - in: path
@@ -1847,6 +1976,7 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
     delete:
       operationId: deleteAlertRule
+      x-required-capability: alerts.manage
       summary: Delete alert rule
       parameters:
         - in: path
@@ -1879,6 +2009,7 @@ paths:
   /alert-rules/{id}/toggle:
     post:
       operationId: toggleAlertRule
+      x-required-capability: alerts.manage
       summary: Toggle alert rule enabled status
       parameters:
         - in: path
@@ -1915,6 +2046,7 @@ paths:
   /alert-rules/evaluate:
     post:
       operationId: evaluateAlertRules
+      x-required-capability: alerts.manage
       summary: Trigger evaluation of alert rules
       responses:
         '200':
@@ -1939,6 +2071,7 @@ paths:
   /alerts:
     get:
       operationId: getAlerts
+      x-required-capability: alerts.view
       summary: List alerts for workspace with optional filtering
       parameters:
         - in: query
@@ -1998,6 +2131,7 @@ paths:
   /alerts/summary:
     get:
       operationId: getAlertSummary
+      x-required-capability: alerts.view
       summary: Get active alert counts by severity and status
       responses:
         '200':
@@ -2022,6 +2156,7 @@ paths:
   /alerts/{id}:
     get:
       operationId: getAlertById
+      x-required-capability: alerts.view
       summary: Get alert details
       parameters:
         - in: path
@@ -2058,6 +2193,7 @@ paths:
   /alerts/{id}/acknowledge:
     post:
       operationId: acknowledgeAlert
+      x-required-capability: alerts.manage
       summary: Acknowledge active alert
       parameters:
         - in: path
@@ -2100,6 +2236,7 @@ paths:
   /alerts/{id}/resolve:
     post:
       operationId: resolveAlert
+      x-required-capability: alerts.manage
       summary: Resolve alert
       parameters:
         - in: path
@@ -2336,15 +2473,66 @@ components:
         id: { type: string }
         email: { type: string, format: email }
         name: { type: string }
+    WorkspaceRole:
+      type: string
+      enum: [owner, member, viewer]
+    WorkspaceCapability:
+      type: string
+      enum:
+        - analytics.view
+        - dashboards.view
+        - dashboards.manage
+        - imports.view
+        - imports.manage
+        - alerts.view
+        - alerts.manage
+        - workspace.members.manage
+    WorkspaceMemberResponse:
+      type: object
+      additionalProperties: false
+      required: [user, role]
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        role:
+          $ref: '#/components/schemas/WorkspaceRole'
+    WorkspaceMemberListResponse:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspaceMemberResponse'
+    ChangeWorkspaceMemberRoleRequest:
+      type: object
+      additionalProperties: false
+      required: [role]
+      properties:
+        role:
+          $ref: '#/components/schemas/WorkspaceRole'
+    ChangeWorkspaceMemberRoleResponse:
+      type: object
+      additionalProperties: false
+      required: [member]
+      properties:
+        member:
+          $ref: '#/components/schemas/WorkspaceMemberResponse'
     WorkspaceResponse:
       type: object
       additionalProperties: false
-      required: [id, name, slug, role]
+      required: [id, name, slug, role, capabilities]
       properties:
         id: { type: string }
         name: { type: string }
         slug: { type: string }
-        role: { type: string, enum: [owner, member] }
+        role:
+          $ref: '#/components/schemas/WorkspaceRole'
+        capabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspaceCapability'
     WorkspaceListResponse:
       type: object
       additionalProperties: false

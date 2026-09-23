@@ -41,6 +41,123 @@ final class ApiContractTest extends TestCase
         self::assertArrayHasKey('ErrorResponse', $schemas);
     }
 
+    public function test_contract_contains_workspace_rbac_schemas_and_endpoints(): void
+    {
+        $contract = $this->openApiContract();
+        $schemas = $contract['components']['schemas'];
+
+        self::assertArrayHasKey('WorkspaceRole', $schemas);
+        self::assertEqualsCanonicalizing(['owner', 'member', 'viewer'], $schemas['WorkspaceRole']['enum']);
+
+        self::assertArrayHasKey('WorkspaceCapability', $schemas);
+        $expectedCapabilities = [
+            'analytics.view',
+            'dashboards.view',
+            'dashboards.manage',
+            'imports.view',
+            'imports.manage',
+            'alerts.view',
+            'alerts.manage',
+            'workspace.members.manage',
+        ];
+        self::assertEqualsCanonicalizing($expectedCapabilities, $schemas['WorkspaceCapability']['enum']);
+
+        self::assertArrayHasKey('WorkspaceMemberResponse', $schemas);
+        self::assertArrayHasKey('WorkspaceMemberListResponse', $schemas);
+        self::assertArrayHasKey('ChangeWorkspaceMemberRoleRequest', $schemas);
+        self::assertArrayHasKey('ChangeWorkspaceMemberRoleResponse', $schemas);
+
+        $workspaceSchema = $schemas['WorkspaceResponse'];
+        self::assertContains('capabilities', $workspaceSchema['required']);
+        self::assertArrayHasKey('capabilities', $workspaceSchema['properties']);
+
+        self::assertArrayHasKey('/workspaces/{workspaceId}/members', $contract['paths']);
+        self::assertArrayHasKey('get', $contract['paths']['/workspaces/{workspaceId}/members']);
+
+        self::assertArrayHasKey('/workspaces/{workspaceId}/members/{userId}/role', $contract['paths']);
+        self::assertArrayHasKey('patch', $contract['paths']['/workspaces/{workspaceId}/members/{userId}/role']);
+    }
+
+    public function test_protected_operations_declare_required_capabilities(): void
+    {
+        $contract = $this->openApiContract();
+        $paths = $contract['paths'];
+
+        $expectedMatrix = [
+            '/analytics/sales/overview' => ['get' => 'analytics.view'],
+            '/analytics/sales/filters' => ['get' => 'analytics.view'],
+            '/analytics/sales/records' => ['get' => 'analytics.view'],
+            '/analytics/inventory/summary' => ['get' => 'analytics.view'],
+            '/analytics/inventory/items' => ['get' => 'analytics.view'],
+            '/analytics/inventory/filters' => ['get' => 'analytics.view'],
+            '/analytics/inventory/abc-xyz/summary' => ['get' => 'analytics.view'],
+            '/analytics/inventory/abc-xyz/items' => ['get' => 'analytics.view'],
+            '/analytics/suppliers/overview' => ['get' => 'analytics.view'],
+            '/analytics/suppliers/filters' => ['get' => 'analytics.view'],
+            '/analytics/suppliers/performance' => ['get' => 'analytics.view'],
+            '/analytics/suppliers/deliveries' => ['get' => 'analytics.view'],
+            '/dashboards' => [
+                'get' => 'dashboards.view',
+                'post' => 'dashboards.manage',
+            ],
+            '/dashboards/{id}' => [
+                'get' => 'dashboards.view',
+                'put' => 'dashboards.manage',
+                'delete' => 'dashboards.manage',
+            ],
+            '/dashboards/{dashboardId}/views' => [
+                'get' => 'dashboards.view',
+                'post' => 'dashboards.manage',
+            ],
+            '/dashboards/{dashboardId}/views/{viewId}' => [
+                'put' => 'dashboards.manage',
+                'delete' => 'dashboards.manage',
+            ],
+            '/imports' => [
+                'get' => 'imports.view',
+                'post' => 'imports.manage',
+            ],
+            '/imports/{id}' => ['get' => 'imports.view'],
+            '/imports/{id}/failures' => ['get' => 'imports.view'],
+            '/imports/{id}/retry' => ['post' => 'imports.manage'],
+            '/alert-rules' => [
+                'get' => 'alerts.view',
+                'post' => 'alerts.manage',
+            ],
+            '/alert-rules/{id}' => [
+                'get' => 'alerts.view',
+                'put' => 'alerts.manage',
+                'delete' => 'alerts.manage',
+            ],
+            '/alert-rules/{id}/toggle' => ['post' => 'alerts.manage'],
+            '/alert-rules/evaluate' => ['post' => 'alerts.manage'],
+            '/alerts' => ['get' => 'alerts.view'],
+            '/alerts/summary' => ['get' => 'alerts.view'],
+            '/alerts/{id}' => ['get' => 'alerts.view'],
+            '/alerts/{id}/acknowledge' => ['post' => 'alerts.manage'],
+            '/alerts/{id}/resolve' => ['post' => 'alerts.manage'],
+            '/workspaces/{workspaceId}/members' => ['get' => 'workspace.members.manage'],
+            '/workspaces/{workspaceId}/members/{userId}/role' => ['patch' => 'workspace.members.manage'],
+        ];
+
+        foreach ($expectedMatrix as $path => $methods) {
+            self::assertArrayHasKey($path, $paths, "Path {$path} missing from contract");
+            foreach ($methods as $method => $expectedCap) {
+                self::assertArrayHasKey($method, $paths[$path], "Method {$method} on {$path} missing");
+                self::assertArrayHasKey(
+                    'x-required-capability',
+                    $paths[$path][$method],
+                    "Operation {$method} {$path} missing x-required-capability"
+                );
+                self::assertSame(
+                    $expectedCap,
+                    $paths[$path][$method]['x-required-capability'],
+                    "Operation {$method} {$path} has incorrect x-required-capability"
+                );
+            }
+        }
+    }
+
     public function test_contract_contains_sales_analytics_endpoints(): void
     {
         $contract = $this->openApiContract();

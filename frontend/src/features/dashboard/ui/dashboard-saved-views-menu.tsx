@@ -18,6 +18,7 @@ import {
   type DashboardFilterValues,
   type DashboardSavedView,
 } from '../api/dashboard-gateway'
+import { useWorkspaceAccess } from '../../workspace/ui/workspace-access-provider'
 
 interface DashboardSavedViewsMenuProps {
   dashboardId: string
@@ -40,6 +41,9 @@ export function DashboardSavedViewsMenu({
   onSelectView,
   onViewsUpdated,
 }: DashboardSavedViewsMenuProps) {
+  const { hasCapability } = useWorkspaceAccess()
+  const canManageViews = hasCapability('dashboards.manage')
+
   const [isOpen, setIsOpen] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [newViewName, setNewViewName] = useState('')
@@ -134,20 +138,22 @@ export function DashboardSavedViewsMenu({
           <ChevronDownIcon className="size-3 text-muted-foreground ml-1" />
         </Button>
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setIsCreating(true)
-            setIsOpen(true)
-          }}
-          className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
-          title="Сохранить текущие фильтры"
-        >
-          <PlusIcon className="size-3.5" />
-          <span className="hidden sm:inline">Сохранить представление</span>
-        </Button>
+        {canManageViews && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setIsCreating(true)
+              setIsOpen(true)
+            }}
+            className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+            title="Сохранить текущие фильтры"
+          >
+            <PlusIcon className="size-3.5" />
+            <span className="hidden sm:inline">Сохранить представление</span>
+          </Button>
+        )}
       </div>
 
       {isOpen && (
@@ -213,13 +219,15 @@ export function DashboardSavedViewsMenu({
             <div className="space-y-1">
               <div className="px-2 py-1 text-[11px] font-medium text-muted-foreground border-b border-border/40 flex items-center justify-between">
                 <span>Сохранённые представления ({savedViews.length})</span>
-                <button
-                  type="button"
-                  onClick={() => setIsCreating(true)}
-                  className="text-emerald-500 hover:underline flex items-center gap-0.5 text-[11px]"
-                >
-                  <PlusIcon className="size-3" /> Добавить
-                </button>
+                {canManageViews && (
+                  <button
+                    type="button"
+                    onClick={() => setIsCreating(true)}
+                    className="text-emerald-500 hover:underline flex items-center gap-0.5 text-[11px]"
+                  >
+                    <PlusIcon className="size-3" /> Добавить
+                  </button>
+                )}
               </div>
 
               {savedViews.length === 0 ? (
@@ -258,26 +266,30 @@ export function DashboardSavedViewsMenu({
                           )}
                         </div>
 
-                        <div className="flex items-center gap-1 shrink-0 ml-2">
-                          <button
-                            type="button"
-                            title={view.is_default ? 'Снять дефолт' : 'Сделать дефолтным'}
-                            onClick={(e) => handleSetDefault(view, e)}
-                            className="p-1 text-muted-foreground hover:text-amber-400"
-                          >
-                            <StarIcon
-                              className={`size-3 ${view.is_default ? 'fill-amber-400 text-amber-400' : ''}`}
-                            />
-                          </button>
-                          <button
-                            type="button"
-                            title="Удалить представление"
-                            onClick={(e) => handleDelete(view.id, e)}
-                            className="p-1 text-muted-foreground hover:text-rose-400"
-                          >
-                            <Trash2Icon className="size-3" />
-                          </button>
-                        </div>
+                        {canManageViews && (
+                          <div className="flex items-center gap-1 shrink-0 ml-2">
+                            <button
+                              type="button"
+                              title={
+                                view.is_default ? 'Снять дефолт' : 'Сделать дефолтным'
+                              }
+                              onClick={(e) => handleSetDefault(view, e)}
+                              className="p-1 text-muted-foreground hover:text-amber-400"
+                            >
+                              <StarIcon
+                                className={`size-3 ${view.is_default ? 'fill-amber-400 text-amber-400' : ''}`}
+                              />
+                            </button>
+                            <button
+                              type="button"
+                              title="Удалить представление"
+                              onClick={(e) => handleDelete(view.id, e)}
+                              className="p-1 text-muted-foreground hover:text-rose-400"
+                            >
+                              <Trash2Icon className="size-3" />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )
                   })}

@@ -1,6 +1,9 @@
 <?php
 
+use App\Console\Commands\BenchmarkAnalyticsCommand;
+use App\Console\Commands\SeedPerformanceDatasetCommand;
 use App\Modules\Alerting\Infrastructure\Commands\EvaluateAlertsConsoleCommand;
+use App\Modules\Workspace\Presentation\Middleware\RequireWorkspaceCapabilityMiddleware;
 use App\Shared\Infrastructure\Commands\OutboxPublishCommand;
 use App\Shared\Infrastructure\Commands\OutboxRetryCommand;
 use App\Shared\Infrastructure\Jobs\PublishOutboxMessagesJob;
@@ -20,6 +23,8 @@ return Application::configure(basePath: dirname(__DIR__))
         EvaluateAlertsConsoleCommand::class,
         OutboxPublishCommand::class,
         OutboxRetryCommand::class,
+        SeedPerformanceDatasetCommand::class,
+        BenchmarkAnalyticsCommand::class,
     ])
     ->withSchedule(function (Schedule $schedule): void {
         // Evaluate alert rules every 5 minutes
@@ -28,6 +33,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // Dispatch outbox publisher job every minute
         $schedule->job(PublishOutboxMessagesJob::class, 'outbox')->everyMinute()->withoutOverlapping();
     })
-    ->withMiddleware(fn (Middleware $middleware) => $middleware)
+    ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->alias([
+            'workspace.can' => RequireWorkspaceCapabilityMiddleware::class,
+        ]);
+    })
     ->withExceptions(fn (Exceptions $exceptions) => $exceptions)
     ->create();

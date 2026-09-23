@@ -7,8 +7,9 @@
 - браузер пользователя;
 - web-сервис на Next.js;
 - backend-сервис аналитики на Laravel;
-- PostgreSQL как основное постоянное хранилище;
-- Redis для кэша, очередей, блокировок и технических задач;
+- microservice уведомлений notification на Laravel;
+- PostgreSQL: независимые хранилища для analytics и notification;
+- Redis для транспорта интеграционных событий (Redis Streams), кэша, очередей и блокировок;
 - будущие внешние или внутренние микросервисы.
 
 ## Ответственность Next.js
@@ -43,22 +44,34 @@ Laravel отвечает за:
 - правила alerting;
 - подготовку API для frontend и других сервисов.
 
-## Граница между frontend и backend
+## Ответственность Notification Service
 
-Связь между Next.js и Laravel должна строиться через явный API-контракт.
+Notification Service отвечает за:
 
-Frontend не должен зависеть от внутренней структуры PHP-классов, ORM-моделей или деталей хранения данных.
+- асинхронное потребление событий `alert.triggered.v1` из Redis Stream;
+- идемпотентность и дедупликацию событий (`consumed_events`);
+- формирование и сохранение проекций уведомлений (`notifications`) в собственной базе данных;
+- предоставление изолированных технических health/readiness endpoints;
+- изоляцию от analytics: отсутствие доступа к analytics PostgreSQL и отсутствие прямых синхронных вызовов.
 
-Backend не должен зависеть от конкретных UI-компонентов frontend.
+## Граница между сервисами
+
+Связь между сервисами строится через явные контракты:
+
+- Next.js и Analytics: OpenAPI HTTP-контракт.
+- Analytics и Notification: асинхронный event contract через Redis Stream (Transactional Outbox в analytics, Consumer Group в notification).
+- Frontend не зависит от внутренней структуры backend-моделей или деталей хранения данных.
+- Notification service не зависит от внутренней структуры domain analytics или его базы данных.
 
 ## Независимость deployable-сервисов
 
-Next.js и Laravel должны:
+Next.js, Analytics и Notification должны:
 
 - иметь независимые процессы сборки;
 - иметь независимые Docker images;
 - иметь независимые конфигурации окружения;
 - иметь возможность разворачиваться отдельно;
+- владеть собственными базами данных (database per service);
 - взаимодействовать только через согласованные контракты.
 
 ## Развитие системы

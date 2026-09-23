@@ -42,12 +42,18 @@ use App\Modules\SalesAnalytics\Infrastructure\Persistence\PostgresSalesAnalytics
 use App\Modules\SupplierAnalytics\Application\Contracts\SupplierAnalyticsReadModelInterface;
 use App\Modules\SupplierAnalytics\Infrastructure\Persistence\InMemorySupplierAnalyticsReadModel;
 use App\Modules\SupplierAnalytics\Infrastructure\Persistence\PostgresSupplierAnalyticsReadModel;
+use App\Modules\Workspace\Application\Contracts\WorkspaceMemberReadModelInterface;
+use App\Modules\Workspace\Application\Contracts\WorkspaceTransactionManagerInterface;
 use App\Modules\Workspace\Domain\Repositories\UserRepositoryInterface;
 use App\Modules\Workspace\Domain\Repositories\WorkspaceRepositoryInterface;
 use App\Modules\Workspace\Infrastructure\Persistence\Eloquent\Repositories\EloquentUserRepository;
 use App\Modules\Workspace\Infrastructure\Persistence\Eloquent\Repositories\EloquentWorkspaceRepository;
+use App\Modules\Workspace\Infrastructure\Persistence\EloquentWorkspaceMemberReadModel;
 use App\Modules\Workspace\Infrastructure\Persistence\InMemory\InMemoryUserRepository;
 use App\Modules\Workspace\Infrastructure\Persistence\InMemory\InMemoryWorkspaceRepository;
+use App\Modules\Workspace\Infrastructure\Persistence\InMemoryWorkspaceMemberReadModel;
+use App\Modules\Workspace\Infrastructure\Persistence\InMemoryWorkspaceTransactionManager;
+use App\Modules\Workspace\Infrastructure\Persistence\LaravelWorkspaceTransactionManager;
 use App\Shared\Application\Ports\IntegrationEventTransportInterface;
 use App\Shared\Application\Ports\OutboxRepositoryInterface;
 use App\Shared\Application\Ports\TransactionManagerInterface;
@@ -79,6 +85,25 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return new EloquentWorkspaceRepository;
+        });
+
+        $this->app->singleton(WorkspaceMemberReadModelInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new InMemoryWorkspaceMemberReadModel(
+                    $this->app->make(WorkspaceRepositoryInterface::class),
+                    $this->app->make(UserRepositoryInterface::class),
+                );
+            }
+
+            return new EloquentWorkspaceMemberReadModel;
+        });
+
+        $this->app->singleton(WorkspaceTransactionManagerInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new InMemoryWorkspaceTransactionManager;
+            }
+
+            return new LaravelWorkspaceTransactionManager;
         });
 
         $this->app->singleton(SalesAnalyticsReadModelInterface::class, function () {

@@ -15,17 +15,22 @@ AutoBI хранится в одном Git-репозитории.
 
 ## Разделение сервисов
 
-Несмотря на общий репозиторий, web и backend должны рассматриваться как отдельные приложения.
+В монорепозитории выделены три независимых deployable-сервиса:
 
-Каждый сервис должен иметь:
+- `frontend/` — Next.js web-приложение (BFF, UI, dashboards);
+- `backend/` — Laravel сервис аналитики (DDD, ingestion, sales/inventory/supplier/alerting, outbox);
+- `notification/` — Laravel сервис уведомлений (Redis Stream consumer, projection repository, inbox deduplication).
 
-- собственные зависимости;
-- собственный конфигурационный слой;
-- собственный Dockerfile;
-- собственные тесты;
-- собственные entry points;
-- собственный процесс сборки;
-- собственную ответственность.
+Каждый сервис имеет:
+
+- собственные зависимости (`package.json` / `composer.json`);
+- собственный конфигурационный слой (`.env.example`, `config/`);
+- собственный Dockerfile и build target;
+- собственные тесты (Unit, Feature, Architecture);
+- собственные entry points (HTTP-сервер, CLI consumer worker);
+- собственный процесс сборки и CI validation;
+- собственную базу данных (PostgreSQL для analytics и отдельный PostgreSQL для notification);
+- собственную изолированную ответственность.
 
 ## Общие директории
 

@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import React from 'react'
 import { DashboardListView } from './dashboard-list-view'
 import { dashboardGateway, type DashboardSummary } from '../api/dashboard-gateway'
+import { WorkspaceAccessProvider } from '../../workspace/ui/workspace-access-provider'
 
 const mockPush = vi.fn()
 vi.mock('next/navigation', () => ({
@@ -37,11 +38,13 @@ describe('DashboardListView', () => {
 
   it('renders list of dashboard cards with title and widget count', () => {
     render(
-      <DashboardListView
-        initialDashboards={initialDashboards}
-        userId="user-1"
-        workspaceId="ws-1"
-      />,
+      <WorkspaceAccessProvider capabilities={['dashboards.view']}>
+        <DashboardListView
+          initialDashboards={initialDashboards}
+          userId="user-1"
+          workspaceId="ws-1"
+        />
+      </WorkspaceAccessProvider>,
     )
 
     expect(screen.getByText('Сводный обзор бизнеса')).toBeDefined()
@@ -49,7 +52,22 @@ describe('DashboardListView', () => {
     expect(screen.getByText(/6 виджетов/)).toBeDefined()
   })
 
-  it('creates new dashboard via modal sheet', async () => {
+  it('hides create and delete controls when user lacks dashboards.manage capability (viewer)', () => {
+    render(
+      <WorkspaceAccessProvider capabilities={['dashboards.view']}>
+        <DashboardListView
+          initialDashboards={initialDashboards}
+          userId="user-1"
+          workspaceId="ws-1"
+        />
+      </WorkspaceAccessProvider>,
+    )
+
+    expect(screen.queryByText('Создать дашборд')).toBeNull()
+    expect(screen.queryByLabelText('Удалить дашборд')).toBeNull()
+  })
+
+  it('creates new dashboard via modal sheet when user has dashboards.manage capability', async () => {
     vi.mocked(dashboardGateway.create).mockResolvedValueOnce({
       id: 'd-new',
       workspace_id: 'ws-1',
@@ -61,12 +79,16 @@ describe('DashboardListView', () => {
     })
 
     render(
-      <DashboardListView
-        initialDashboards={initialDashboards}
-        userId="user-1"
-        workspaceId="ws-1"
-      />,
+      <WorkspaceAccessProvider capabilities={['dashboards.view', 'dashboards.manage']}>
+        <DashboardListView
+          initialDashboards={initialDashboards}
+          userId="user-1"
+          workspaceId="ws-1"
+        />
+      </WorkspaceAccessProvider>,
     )
+
+    expect(screen.getByLabelText('Удалить дашборд')).toBeDefined()
 
     fireEvent.click(screen.getByText('Создать дашборд'))
 

@@ -10,6 +10,7 @@ import {
 import { Sidebar } from '../../src/shared/ui/layout/sidebar'
 import { Header } from '../../src/shared/ui/layout/header'
 import { Footer } from '../../src/shared/ui/layout/footer'
+import { WorkspaceAccessProvider } from '../../src/features/workspace/ui/workspace-access-provider'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,18 +36,20 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <Sidebar />
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <Header
-          workspaceContext={workspaceContext}
-          accessibleWorkspaces={accessibleWorkspaces}
-        />
-        <div className="flex flex-1 flex-col overflow-y-auto">
-          {children}
-          <Footer status={healthStatus} />
+    <WorkspaceAccessProvider capabilities={workspaceContext?.workspace.capabilities}>
+      <div className="flex h-screen overflow-hidden bg-background">
+        <Sidebar />
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <Header
+            workspaceContext={workspaceContext}
+            accessibleWorkspaces={accessibleWorkspaces}
+          />
+          <div className="flex flex-1 flex-col overflow-y-auto">
+            {children}
+            <Footer status={healthStatus} />
+          </div>
         </div>
       </div>
-    </div>
+    </WorkspaceAccessProvider>
   )
 }
