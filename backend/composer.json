@@ -12,7 +12,8 @@
     "phpunit/phpunit": "^11.0",
     "laravel/pint": "^1.16",
     "larastan/larastan": "^3.12",
-    "symfony/yaml": "^7.4"
+    "symfony/yaml": "^7.4",
+    "mockery/mockery": "^1.6"
   },
   "autoload": {
     "psr-4": {
