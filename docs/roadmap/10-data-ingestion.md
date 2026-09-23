@@ -101,16 +101,46 @@ Import работает, progress виден, invalid rows понятны, retri
    - Реализовано клиентское представление `DataIngestionView` с тихим автополлингом (каждые 3 сек для активных процессов) и предотвращением мерцания пустого состояния через скелетон загрузки.
    - Реализован серверный маршрут App Router `frontend/app/(dashboard)/imports/page.tsx` с аутентификацией сессии и резолвингом воркспейса.
    - Добавлен пункт навигации «Импорт данных» с иконкой `UploadCloud` в `Sidebar`.
-   - Полное покрытие unit-, компонентными и сквозными flow-тестами (все 162 теста фронтенда успешно проходят).
+   - Полное покрытие unit-, компонентными и сквозными flow-тестами.
+
+7. **Интеграционный checkpoint и проекции Star Schema (`ImportPipelineExecutionTest`):**
+   - Проверены сквозные сценарии загрузки и обработки для обоих датасетов (`sales` и `inventory`).
+   - Подтверждена корректная проекция записей продаж (`projectedSalesRows`) и складских остатков (`projectedInventoryRows`).
+   - Проверены изоляция некорректных строк со статусом `completed_with_errors` и инспекция ошибок через API.
+   - Проверен безопасный перезапуск (`retry`) с идемпотентным обновлением проекций без порчи или дублирования аналитических витрин.
 
 ### Что осталось
 
-1. **Интеграционный checkpoint фазы 10:**
-   - Сквозной интеграционный сценарий (загрузка CSV через API -> асинхронная очередь -> staging -> star schema -> проверка обновления витрин продаж/склада).
-   - Проверка чекпоинта по `ROADMAP.md#integration-checkpoints`.
+- Нет (все задачи этапа и интеграционный чекпоинт завершены).
+
+### Блокеры
+
+- Нет.
 
 ### Следующий шаг
 
-- Провести интеграционный checkpoint фазы 10 и закрыть Phase 10.
+- Переход к `Phase 12 — Alerting` (Phase 11 Supplier Analytics уже завершена).
+
+---
+
+## Проверка завершения
+
+- **Дата:** 2026-09-23
+- **Exit Criteria:**
+  - `Import работает`: Загрузка multipart CSV/JSON/JSONL для датасетов продаж (`sales`) и инвентаря (`inventory`) через `POST /api/v1/imports` с валидацией размера и формата.
+  - `progress виден`: UI с автополлингом каждые 3 секунды для активных процессов, индикаторами статусов (`pending`, `validating`, `processing`, `completed`, `completed_with_errors`, `failed`) и прогресс-барами.
+  - `invalid rows понятны`: Строки с ошибками изолируются в staging-таблицах, детали доступны через эндпоинт `GET /api/v1/imports/{id}/failures` с указанием номера строки, поля и текста ошибки, визуализируются в панели `ImportBatchDetailSheet`.
+  - `retries безопасны`: Метод `POST /api/v1/imports/{id}/retry` доступен только для пакетов в статусах `failed` или `completed_with_errors`, очищает предыдущие ошибки и перезапускает обработку.
+  - `duplicate processing не портит данные`: Обеспечена идемпотентность пайплайна при повторном запуске обработки пакета.
+  - `projection rebuild протестирован`: Сквозные тесты `ImportPipelineExecutionTest` подтверждают перенос валидированных строк в проекцию Star Schema (`fact_sales`, `fact_inventory_daily`).
+- **Команды проверок и результаты:**
+  - `backend: ./vendor/bin/phpunit tests/Unit/Modules/DataIngestion tests/Feature/Modules/DataIngestion` — 60 tests, 218 assertions, OK.
+  - `backend (полный сьют): ./vendor/bin/phpunit` — 231 tests, 29117 assertions, OK.
+  - `backend static analysis: ./vendor/bin/phpstan analyse` — Level Max, 0 errors.
+  - `backend code style: ./vendor/bin/pint --test` — Passed.
+  - `frontend tests: npm test` — 43 test files, 177 tests passed.
+  - `frontend typecheck: npm run typecheck` — 0 errors.
+  - `frontend lint: npm run lint` — 0 errors.
+  - `openapi contract validation: npm run contracts:validate` — Valid (0 errors).
 
 

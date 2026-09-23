@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Modules\DataIngestion;
 
+use App\Modules\DataIngestion\Application\Contracts\StarSchemaProjectorInterface;
+use App\Modules\DataIngestion\Infrastructure\Projection\InMemoryStarSchemaProjector;
 use App\Modules\Workspace\Domain\MembershipRole;
 use App\Modules\Workspace\Domain\Repositories\UserRepositoryInterface;
 use App\Modules\Workspace\Domain\Repositories\WorkspaceRepositoryInterface;
@@ -80,16 +82,48 @@ final class ImportPipelineExecutionTest extends TestCase
 
         self::assertContains($retryResponse->json('batch.status'), ['pending', 'completed_with_errors']);
 
-        // 5. Inspect batch detail after retry (Idempotent replay: valid row re-projected without duplication)
-        $detailAfterRetry = $this->withHeaders([
+        // 5. Confirm star schema projection (1 row on initial upload, 1 row on retry re-projection)
+        /** @var InMemoryStarSchemaProjector $projector */
+        $projector = $this->app->make(StarSchemaProjectorInterface::class);
+        self::assertCount(2, $projector->projectedSalesRows);
+        self::assertSame('ORD-001', $projector->projectedSalesRows[0]['row']['order_number']);
+        self::assertSame('BRAKE-01', $projector->projectedSalesRows[0]['row']['sku']);
+        self::assertSame('ORD-001', $projector->projectedSalesRows[1]['row']['order_number']);
+    }
+
+    #[Test]
+    public function full_lifecycle_inventory_import_pipeline_projects_to_fact_inventory_daily(): void
+    {
+        $csvContent = "snapshot_date,warehouse_code,sku,quantity_on_hand,quantity_reserved,safety_stock,reorder_point,unit_cost\n2026-03-01,WH-01,BRAKE-01,50,5,10,15,45.00\n";
+        $file = UploadedFile::fake()->createWithContent('inventory.csv', $csvContent);
+
+        $uploadResponse = $this->withHeaders([
+            'X-User-Id' => 'user-1',
+            'X-Workspace-Id' => 'ws-1',
+        ])->post('/api/v1/imports', [
+            'file' => $file,
+            'dataset_type' => 'inventory',
+        ])->assertStatus(202);
+
+        $batchId = $uploadResponse->json('batch.id');
+        self::assertNotEmpty($batchId);
+
+        $detailResponse = $this->withHeaders([
             'X-User-Id' => 'user-1',
             'X-Workspace-Id' => 'ws-1',
         ])->getJson("/api/v1/imports/{$batchId}")
             ->assertOk();
 
-        self::assertSame('completed_with_errors', $detailAfterRetry->json('batch.status'));
-        self::assertSame(2, $detailAfterRetry->json('batch.total_rows'));
-        self::assertSame(1, $detailAfterRetry->json('batch.successful_rows'));
-        self::assertSame(1, $detailAfterRetry->json('batch.failed_rows'));
+        self::assertSame('completed', $detailResponse->json('batch.status'));
+        self::assertSame(1, $detailResponse->json('batch.total_rows'));
+        self::assertSame(1, $detailResponse->json('batch.successful_rows'));
+        self::assertSame(0, $detailResponse->json('batch.failed_rows'));
+
+        /** @var InMemoryStarSchemaProjector $projector */
+        $projector = $this->app->make(StarSchemaProjectorInterface::class);
+        self::assertCount(1, $projector->projectedInventoryRows);
+        self::assertSame('WH-01', $projector->projectedInventoryRows[0]['row']['warehouse_code']);
+        self::assertSame('BRAKE-01', $projector->projectedInventoryRows[0]['row']['sku']);
+        self::assertSame('50', $projector->projectedInventoryRows[0]['row']['quantity_on_hand']);
     }
 }
