@@ -175,6 +175,40 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/workspaces/{workspaceId}/members': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List members of the workspace */
+    get: operations['getWorkspaceMembers']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/workspaces/{workspaceId}/members/{userId}/role': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    /** Change the role of an existing workspace member */
+    patch: operations['changeWorkspaceMemberRole']
+    trace?: never
+  }
   '/analytics/sales/overview': {
     parameters: {
       query?: never
@@ -710,12 +744,37 @@ export interface components {
       email: string
       name: string
     }
+    /** @enum {string} */
+    WorkspaceRole: 'owner' | 'member' | 'viewer'
+    /** @enum {string} */
+    WorkspaceCapability:
+      | 'analytics.view'
+      | 'dashboards.view'
+      | 'dashboards.manage'
+      | 'imports.view'
+      | 'imports.manage'
+      | 'alerts.view'
+      | 'alerts.manage'
+      | 'workspace.members.manage'
+    WorkspaceMemberResponse: {
+      user: components['schemas']['UserResponse']
+      role: components['schemas']['WorkspaceRole']
+    }
+    WorkspaceMemberListResponse: {
+      items: components['schemas']['WorkspaceMemberResponse'][]
+    }
+    ChangeWorkspaceMemberRoleRequest: {
+      role: components['schemas']['WorkspaceRole']
+    }
+    ChangeWorkspaceMemberRoleResponse: {
+      member: components['schemas']['WorkspaceMemberResponse']
+    }
     WorkspaceResponse: {
       id: string
       name: string
       slug: string
-      /** @enum {string} */
-      role: 'owner' | 'member'
+      role: components['schemas']['WorkspaceRole']
+      capabilities: components['schemas']['WorkspaceCapability'][]
     }
     WorkspaceListResponse: {
       items: components['schemas']['WorkspaceResponse'][]
@@ -1857,6 +1916,130 @@ export interface operations {
       }
       /** @description Workspace not found */
       404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getWorkspaceMembers: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description Workspace identifier */
+        workspaceId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description List of workspace members */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['WorkspaceMemberListResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden - insufficient capability or cross-workspace access denied */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Workspace not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  changeWorkspaceMemberRole: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        /** @description Workspace identifier */
+        workspaceId: string
+        /** @description User identifier */
+        userId: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChangeWorkspaceMemberRoleRequest']
+      }
+    }
+    responses: {
+      /** @description Role updated successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ChangeWorkspaceMemberRoleResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden - insufficient capability or cross-workspace access denied */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Workspace or member not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Conflict - cannot demote the last workspace owner */
+      409: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Validation error */
+      422: {
         headers: {
           [name: string]: unknown
         }
