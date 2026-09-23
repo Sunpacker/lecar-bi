@@ -169,6 +169,36 @@ final class ApiContractTest extends TestCase
         self::assertArrayHasKey('SupplierReliabilityTier', $schemas);
     }
 
+    public function test_contract_contains_alerting_endpoints_and_schemas(): void
+    {
+        $contract = $this->openApiContract();
+
+        self::assertArrayHasKey('/alert-rules', $contract['paths']);
+        self::assertArrayHasKey('/alert-rules/{id}', $contract['paths']);
+        self::assertArrayHasKey('/alert-rules/{id}/toggle', $contract['paths']);
+        self::assertArrayHasKey('/alert-rules/evaluate', $contract['paths']);
+        self::assertArrayHasKey('/alerts', $contract['paths']);
+        self::assertArrayHasKey('/alerts/summary', $contract['paths']);
+        self::assertArrayHasKey('/alerts/{id}', $contract['paths']);
+        self::assertArrayHasKey('/alerts/{id}/acknowledge', $contract['paths']);
+        self::assertArrayHasKey('/alerts/{id}/resolve', $contract['paths']);
+
+        $schemas = $contract['components']['schemas'];
+        self::assertArrayHasKey('AlertRule', $schemas);
+        self::assertArrayHasKey('AlertRuleListResponse', $schemas);
+        self::assertArrayHasKey('AlertRuleDetailResponse', $schemas);
+        self::assertArrayHasKey('CreateAlertRuleRequest', $schemas);
+        self::assertArrayHasKey('UpdateAlertRuleRequest', $schemas);
+        self::assertArrayHasKey('Alert', $schemas);
+        self::assertArrayHasKey('AlertListResponse', $schemas);
+        self::assertArrayHasKey('AlertDetailResponse', $schemas);
+        self::assertArrayHasKey('AlertSummaryResponse', $schemas);
+        self::assertArrayHasKey('AlertEvaluationResultResponse', $schemas);
+        self::assertArrayHasKey('AlertSeverity', $schemas);
+        self::assertArrayHasKey('AlertStatus', $schemas);
+        self::assertArrayHasKey('RuleType', $schemas);
+    }
+
     /** @return array<string, mixed> */
     private function openApiContract(): array
     {

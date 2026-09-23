@@ -1687,6 +1687,467 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
+  /alert-rules:
+    get:
+      operationId: getAlertRules
+      summary: List alert rules for current workspace
+      parameters:
+        - in: query
+          name: is_enabled
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of alert rules
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRuleListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      operationId: createAlertRule
+      summary: Create alert rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAlertRuleRequest'
+      responses:
+        '201':
+          description: Alert rule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRuleDetailResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alert-rules/{id}:
+    get:
+      operationId: getAlertRuleById
+      summary: Get alert rule details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Alert rule details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRuleDetailResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Alert rule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      operationId: updateAlertRule
+      summary: Update alert rule
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAlertRuleRequest'
+      responses:
+        '200':
+          description: Alert rule updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRuleDetailResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Alert rule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      operationId: deleteAlertRule
+      summary: Delete alert rule
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Alert rule deleted
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Alert rule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alert-rules/{id}/toggle:
+    post:
+      operationId: toggleAlertRule
+      summary: Toggle alert rule enabled status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Alert rule status toggled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRuleDetailResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Alert rule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alert-rules/evaluate:
+    post:
+      operationId: evaluateAlertRules
+      summary: Trigger evaluation of alert rules
+      responses:
+        '200':
+          description: Alert evaluation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertEvaluationResultResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alerts:
+    get:
+      operationId: getAlerts
+      summary: List alerts for workspace with optional filtering
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [all, active, open, acknowledged, resolved]
+            default: active
+        - in: query
+          name: severity
+          required: false
+          schema:
+            $ref: '#/components/schemas/AlertSeverity'
+        - in: query
+          name: warehouse_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: rule_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of alerts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alerts/summary:
+    get:
+      operationId: getAlertSummary
+      summary: Get active alert counts by severity and status
+      responses:
+        '200':
+          description: Alert summary counters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertSummaryResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alerts/{id}:
+    get:
+      operationId: getAlertById
+      summary: Get alert details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Alert details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertDetailResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Alert not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alerts/{id}/acknowledge:
+    post:
+      operationId: acknowledgeAlert
+      summary: Acknowledge active alert
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Alert acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertDetailResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Alert not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict with alert lifecycle state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alerts/{id}/resolve:
+    post:
+      operationId: resolveAlert
+      summary: Resolve alert
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resolution_note:
+                  type: string
+      responses:
+        '200':
+          description: Alert resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertDetailResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Alert not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict with alert lifecycle state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   securitySchemes:
     UserIdAuth:
@@ -3177,5 +3638,356 @@ components:
         max_date:
           type: string
           format: date
+
+    AlertSeverity:
+      type: string
+      enum:
+        - info
+        - warning
+        - critical
+
+    AlertStatus:
+      type: string
+      enum:
+        - open
+        - acknowledged
+        - resolved
+
+    RuleType:
+      type: string
+      enum:
+        - out_of_stock
+        - critical_stock
+        - overstock
+        - reorder_point
+
+    AlertRule:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - workspace_id
+        - name
+        - rule_type
+        - severity
+        - metric
+        - comparator
+        - threshold_value
+        - is_enabled
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        workspace_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        rule_type:
+          $ref: '#/components/schemas/RuleType'
+        severity:
+          $ref: '#/components/schemas/AlertSeverity'
+        metric:
+          type: string
+        comparator:
+          type: string
+        threshold_value:
+          type: number
+        warehouse_id:
+          type: string
+          nullable: true
+        category_id:
+          type: string
+          nullable: true
+        product_id:
+          type: string
+          nullable: true
+        is_enabled:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AlertRuleListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertRule'
+
+    AlertRuleDetailResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - rule
+      properties:
+        rule:
+          $ref: '#/components/schemas/AlertRule'
+
+    CreateAlertRuleRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - rule_type
+        - severity
+        - metric
+        - comparator
+        - threshold_value
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        rule_type:
+          $ref: '#/components/schemas/RuleType'
+        severity:
+          $ref: '#/components/schemas/AlertSeverity'
+        metric:
+          type: string
+        comparator:
+          type: string
+        threshold_value:
+          type: number
+        warehouse_id:
+          type: string
+          nullable: true
+        category_id:
+          type: string
+          nullable: true
+        product_id:
+          type: string
+          nullable: true
+        is_enabled:
+          type: boolean
+          default: true
+
+    UpdateAlertRuleRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - severity
+        - threshold_value
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        severity:
+          $ref: '#/components/schemas/AlertSeverity'
+        metric:
+          type: string
+        comparator:
+          type: string
+        threshold_value:
+          type: number
+        warehouse_id:
+          type: string
+          nullable: true
+        category_id:
+          type: string
+          nullable: true
+        product_id:
+          type: string
+          nullable: true
+        is_enabled:
+          type: boolean
+
+    AlertContext:
+      type: object
+      additionalProperties: true
+      required:
+        - target
+      properties:
+        target:
+          type: string
+          example: inventory
+        warehouse_id:
+          type: string
+          nullable: true
+        warehouse_name:
+          type: string
+          nullable: true
+        product_id:
+          type: string
+          nullable: true
+        product_name:
+          type: string
+          nullable: true
+        product_sku:
+          type: string
+          nullable: true
+        current_value:
+          type: number
+        threshold_value:
+          type: number
+
+    Alert:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - workspace_id
+        - rule_name
+        - severity
+        - status
+        - triggered_at
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        workspace_id:
+          type: string
+        rule_id:
+          type: string
+          nullable: true
+        rule_name:
+          type: string
+        severity:
+          $ref: '#/components/schemas/AlertSeverity'
+        status:
+          $ref: '#/components/schemas/AlertStatus'
+        dedup_fingerprint:
+          type: string
+        product_id:
+          type: string
+          nullable: true
+        product_name:
+          type: string
+          nullable: true
+        product_sku:
+          type: string
+          nullable: true
+        warehouse_id:
+          type: string
+          nullable: true
+        warehouse_name:
+          type: string
+          nullable: true
+        current_value:
+          type: number
+          nullable: true
+        threshold_value:
+          type: number
+          nullable: true
+        context_data:
+          $ref: '#/components/schemas/AlertContext'
+        triggered_at:
+          type: string
+          format: date-time
+        acknowledged_at:
+          type: string
+          format: date-time
+          nullable: true
+        acknowledged_by:
+          type: string
+          nullable: true
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+        resolved_by:
+          type: string
+          nullable: true
+        resolution_note:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AlertListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Alert'
+        pagination:
+          type: object
+          additionalProperties: false
+          required:
+            - page
+            - per_page
+            - total
+            - total_pages
+          properties:
+            page:
+              type: integer
+            per_page:
+              type: integer
+            total:
+              type: integer
+            total_pages:
+              type: integer
+
+    AlertDetailResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - alert
+      properties:
+        alert:
+          $ref: '#/components/schemas/Alert'
+
+    AlertSummaryResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - total_active
+        - critical_count
+        - warning_count
+        - info_count
+        - acknowledged_count
+      properties:
+        total_active:
+          type: integer
+        critical_count:
+          type: integer
+        warning_count:
+          type: integer
+        info_count:
+          type: integer
+        acknowledged_count:
+          type: integer
+
+    AlertEvaluationResultResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - rules_evaluated
+        - alerts_triggered
+        - alerts_created
+        - alerts_updated
+      properties:
+        rules_evaluated:
+          type: integer
+        alerts_triggered:
+          type: integer
+        alerts_created:
+          type: integer
+        alerts_updated:
+          type: integer
 
 
