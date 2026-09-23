@@ -15,8 +15,8 @@ vi.spyOn(widgetDataLoader, 'loadWidgetData').mockResolvedValue({
   loading: false,
   kpi: { value: 1500000, formatted: '1 500 000 ₽', subtitle: 'за 30 дней' },
   chartData: [
-    { label: '2026-09-01', value: 100000 },
-    { label: '2026-09-02', value: 120000 },
+    { name: '2026-09-01', value: 100000 },
+    { name: '2026-09-02', value: 120000 },
   ],
 })
 
@@ -62,7 +62,12 @@ describe('Dashboard Builder Full E2E Flow', () => {
           id: 'w-new-2',
           title: 'Динамика продаж',
           type: 'line_chart',
-          query_config: { dataset: 'sales', metric: 'revenue', dimension: 'date', date_range: '30d' },
+          query_config: {
+            dataset: 'sales',
+            metric: 'revenue',
+            dimension: 'date',
+            date_range: '30d',
+          },
           position: { x: 0, y: 2, w: 8, h: 4 },
           options: {},
         },
@@ -70,11 +75,7 @@ describe('Dashboard Builder Full E2E Flow', () => {
     })
 
     render(
-      <DashboardViewer
-        dashboard={initialDashboard}
-        userId="user-1"
-        workspaceId="ws-1"
-      />,
+      <DashboardViewer dashboard={initialDashboard} userId="user-1" workspaceId="ws-1" />,
     )
 
     // 1. Initial View Mode check
@@ -93,7 +94,9 @@ describe('Dashboard Builder Full E2E Flow', () => {
     // 3. Edit title and description
     const titleInput = screen.getByTestId('dashboard-title-input')
     const descInput = screen.getByTestId('dashboard-desc-input')
-    fireEvent.change(titleInput, { target: { value: 'Обновленный коммерческий дашборд' } })
+    fireEvent.change(titleInput, {
+      target: { value: 'Обновленный коммерческий дашборд' },
+    })
     fireEvent.change(descInput, { target: { value: 'Новое описание дашборда' } })
 
     // 4. Reposition & Resize existing widget (w-1)
@@ -166,11 +169,7 @@ describe('Dashboard Builder Full E2E Flow', () => {
 
   it('allows discarding builder changes without mutating original state', () => {
     render(
-      <DashboardViewer
-        dashboard={initialDashboard}
-        userId="user-1"
-        workspaceId="ws-1"
-      />,
+      <DashboardViewer dashboard={initialDashboard} userId="user-1" workspaceId="ws-1" />,
     )
 
     // Switch to edit mode

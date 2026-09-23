@@ -95,7 +95,9 @@ describe('DashboardListView Full Flow', () => {
     const deleteBtn = screen.getByRole('button', { name: 'Удалить дашборд' })
     fireEvent.click(deleteBtn)
 
-    expect(window.confirm).toHaveBeenCalledWith('Вы уверены, что хотите удалить этот дашборд?')
+    expect(window.confirm).toHaveBeenCalledWith(
+      'Вы уверены, что хотите удалить этот дашборд?',
+    )
 
     await waitFor(() => {
       expect(dashboardGateway.delete).toHaveBeenCalledWith('d-1', 'user-1', 'ws-1')
