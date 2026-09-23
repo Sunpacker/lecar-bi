@@ -41,6 +41,7 @@ export function NavigationList({ onItemClick }: { onItemClick?: () => void }) {
                 <item.icon className="h-5 w-5 shrink-0 text-muted-foreground/35" />
                 <span>{item.name}</span>
               </div>
+
               {item.badge && (
                 <span className="text-[10px] font-normal px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground/70 border border-border/40">
                   {item.badge}
@@ -79,6 +80,7 @@ export function Sidebar() {
         <LayoutDashboard className="h-6 w-6 text-emerald-500" />
         <span className="font-bold text-lg tracking-tight">AutoBI</span>
       </div>
+
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
         <NavigationList />
       </nav>

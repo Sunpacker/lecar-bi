@@ -22,6 +22,9 @@ const themeInitializationScript = `
 export const metadata: Metadata = {
   title: 'AutoBI',
   description: 'Analytics workspace',
+  icons: {
+    icon: '/favicon.ico',
+  },
 }
 
 export default function RootLayout({
