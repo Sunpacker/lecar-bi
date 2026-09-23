@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState, useCallback } from 'react'
+import React, { useEffect, useState, useCallback, useRef } from 'react'
 import {
   Sheet,
   SheetContent,
@@ -55,6 +55,7 @@ export function ImportBatchDetailSheet({
   const [failureError, setFailureError] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const activeBatchIdRef = useRef<string | null>(null)
 
   const loadFailures = useCallback(
     async (batchId: string, pageNum: number) => {
@@ -65,36 +66,47 @@ export function ImportBatchDetailSheet({
           page: pageNum,
           perPage: 50,
         })
+        if (activeBatchIdRef.current !== batchId) return
         setFailures(res.items)
         setTotalPages(res.total_pages)
         setPage(res.page)
       } catch (err) {
+        if (activeBatchIdRef.current !== batchId) return
         setFailureError(
           err instanceof Error ? err.message : 'Не удалось загрузить список ошибок',
         )
       } finally {
-        setIsLoadingFailures(false)
+        if (activeBatchIdRef.current === batchId) {
+          setIsLoadingFailures(false)
+        }
       }
     },
     [userId, workspaceId],
   )
 
+  const batchId = batch?.id
+  const hasFailures = (batch?.failed_rows ?? 0) > 0
+
   useEffect(() => {
     let ignore = false
+    activeBatchIdRef.current = isOpen && batchId ? batchId : null
+
     void Promise.resolve().then(() => {
       if (ignore) return
-      if (batch && isOpen && batch.failed_rows > 0) {
-        void loadFailures(batch.id, 1)
+      if (isOpen && batchId && hasFailures) {
+        void loadFailures(batchId, 1)
       } else {
         setFailures([])
         setPage(1)
         setTotalPages(1)
       }
     })
+
     return () => {
       ignore = true
+      activeBatchIdRef.current = null
     }
-  }, [batch, isOpen, loadFailures])
+  }, [batchId, isOpen, hasFailures, loadFailures])
 
   if (!batch) return null
 
@@ -162,10 +174,11 @@ export function ImportBatchDetailSheet({
                 Создан
               </span>
               <p className="text-xs font-medium mt-1.5 text-foreground truncate">
-                {new Date(batch.created_at).toLocaleTimeString('ru-RU', {
+                {new Date(batch.created_at).toLocaleString('ru-RU', {
+                  day: '2-digit',
+                  month: '2-digit',
                   hour: '2-digit',
                   minute: '2-digit',
-                  second: '2-digit',
                 })}
               </p>
             </CardContent>
