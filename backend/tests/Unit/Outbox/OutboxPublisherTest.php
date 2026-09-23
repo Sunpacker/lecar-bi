@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Outbox;
 
 use App\Shared\Application\IntegrationEvent;
-use App\Shared\Infrastructure\Jobs\PublishOutboxMessagesJob;
 use App\Shared\Infrastructure\Outbox\InMemoryOutboxRepository;
 use App\Shared\Infrastructure\Persistence\Eloquent\Repositories\EloquentOutboxRepository;
 use App\Shared\Infrastructure\Transport\InMemoryIntegrationEventTransport;
@@ -201,7 +200,7 @@ final class OutboxPublisherTest extends TestCase
     }
 
     /**
-     * @param array<string, mixed> $message
+     * @param  array<string, mixed>  $message
      */
     private function messageToIntegrationEvent(array $message): IntegrationEvent
     {

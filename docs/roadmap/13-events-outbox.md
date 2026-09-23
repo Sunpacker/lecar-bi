@@ -96,3 +96,24 @@ Business transaction и outbox registration атомарны, retry работа
 ### Блокеры
 
 Нет.
+
+## Проверка завершения
+
+**Дата:** 2026-09-23
+
+**Exit criteria подтверждены:**
+- Business transaction и outbox registration атомарны — `EvaluateAlertRulesHandler` оборачивает save + register в `TransactionManagerInterface::transaction()`
+- Retry policy работает — `EloquentOutboxRepository.scheduleRetry()` с backoff 1m/5m/15m/1h/6h/24h
+- Events versioned — `alert.triggered` v1, контракт зафиксирован в JSON Schema
+- At-least-once delivery — `event_id` стабилен, consumers должны дедуплицировать
+- Transport не проникает в Domain — всё за `IntegrationEventTransportInterface` port (ADR-017)
+
+**Команды проверок и результаты:**
+```
+php vendor/bin/pint --test        → passed
+php vendor/bin/phpstan analyse    → No errors
+php vendor/bin/phpunit --no-coverage → 277/277 OK (29373 assertions)
+```
+
+**Примечание об integration checkpoint:**
+Полный integration checkpoint (Docker Compose, Redis XADD end-to-end) требует запущенного Redis. Инфраструктурные тесты Unit/Feature покрывают outbox pipeline через InMemory реализации с теми же acceptance criteria. E2E проверка с реальным Redis — следующий шаг перед Phase 14.

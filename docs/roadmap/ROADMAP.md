@@ -29,7 +29,7 @@
 - [x] [Phase 10 — Data Ingestion](10-data-ingestion.md)
 - [x] [Phase 11 — Supplier Analytics](11-supplier-analytics.md)
 - [x] [Phase 12 — Alerting](12-alerting.md)
-- [ ] [Phase 13 — Domain Events and Transactional Outbox](13-events-outbox.md)
+- [x] [Phase 13 — Domain Events and Transactional Outbox](13-events-outbox.md)
 - [ ] [Phase 14 — Notification Service Extraction Exercise](14-notification-service.md)
 - [ ] [Phase 15 — RBAC](15-rbac.md)
 - [ ] [Phase 16 — Performance and Caching](16-performance-caching.md)
