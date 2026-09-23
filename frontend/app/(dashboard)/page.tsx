@@ -40,14 +40,17 @@ export default async function HomePage() {
               <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
               Розничная сеть LECAR Store &amp; LADA Деталь
             </div>
+
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-foreground">
               Аналитическое пространство продаж
             </h1>
+
             <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-xl">
               Сквозная BI-аналитика розничной сети: выручка, динамика заказов, средний чек
               и регионально-категорийные срезы на основе реальных данных торговых точек
               LECAR.
             </p>
+
             <div className="flex flex-wrap items-center gap-2.5 pt-1 text-xs text-muted-foreground">
               <div className="inline-flex items-center gap-1.5 rounded-md bg-muted/40 border border-border/60 px-2.5 py-1">
                 <MapPin className="size-3.5 text-rose-500" />
@@ -55,6 +58,7 @@ export default async function HomePage() {
                 <span className="text-muted-foreground/60">•</span>
                 <span>Тольятти</span>
               </div>
+
               <div className="inline-flex items-center gap-1.5 rounded-md bg-muted/40 border border-border/60 px-2.5 py-1">
                 <Store className="size-3.5 text-emerald-400" />
                 <span>Торговая сеть онлайн</span>
@@ -73,8 +77,10 @@ export default async function HomePage() {
                   className="object-cover object-center transition-transform duration-700 ease-out group-hover:scale-[1.03]"
                   sizes="(max-width: 1024px) 100vw, 45vw"
                 />
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background/80 via-transparent to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-40" />
+
+                <div className="pointer-events-none absolute inset-0 bg-linear-to-t from-background/80 via-transparent to-transparent opacity-60 transition-opacity duration-300 group-hover:opacity-40" />
               </div>
+
               <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between px-2.5 py-1 rounded-md bg-background/80 backdrop-blur-md border border-border/60 text-[11px] text-muted-foreground pointer-events-none">
                 <span className="font-medium text-foreground">LECAR Store #01</span>
                 <span>Флагманский фасад</span>

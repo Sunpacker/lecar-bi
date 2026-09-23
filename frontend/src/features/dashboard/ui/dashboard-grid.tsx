@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import type { WidgetDetail } from '../api/dashboard-gateway'
+import type { DashboardFilterValues, WidgetDetail } from '../api/dashboard-gateway'
 import { WidgetRenderer } from './widgets/widget-renderer'
 import { LayoutGrid } from 'lucide-react'
 
@@ -9,9 +9,15 @@ interface DashboardGridProps {
   widgets: WidgetDetail[]
   userId: string
   workspaceId: string
+  filters?: DashboardFilterValues | null
 }
 
-export function DashboardGrid({ widgets, userId, workspaceId }: DashboardGridProps) {
+export function DashboardGrid({
+  widgets,
+  userId,
+  workspaceId,
+  filters,
+}: DashboardGridProps) {
   if (widgets.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 p-12 text-center bg-card/20">
@@ -46,7 +52,12 @@ export function DashboardGrid({ widgets, userId, workspaceId }: DashboardGridPro
             className="min-h-[140px]"
           >
             <div className="h-full w-full">
-              <WidgetRenderer widget={widget} userId={userId} workspaceId={workspaceId} />
+              <WidgetRenderer
+                widget={widget}
+                userId={userId}
+                workspaceId={workspaceId}
+                filters={filters}
+              />
             </div>
           </div>
         )

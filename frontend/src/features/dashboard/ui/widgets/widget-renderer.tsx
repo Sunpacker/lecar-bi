@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AlertCircle } from 'lucide-react'
-import type { WidgetDetail } from '../../api/dashboard-gateway'
+import type { DashboardFilterValues, WidgetDetail } from '../../api/dashboard-gateway'
 import { loadWidgetData, type WidgetDataResult } from '../../model/widget-data-loader'
 import { WidgetKpiCard } from './widget-kpi-card'
 import { WidgetLineChart } from './widget-line-chart'
@@ -16,15 +16,21 @@ interface WidgetRendererProps {
   widget: WidgetDetail
   userId: string
   workspaceId: string
+  filters?: DashboardFilterValues | null
 }
 
-export function WidgetRenderer({ widget, userId, workspaceId }: WidgetRendererProps) {
+export function WidgetRenderer({
+  widget,
+  userId,
+  workspaceId,
+  filters,
+}: WidgetRendererProps) {
   const [dataResult, setDataResult] = useState<WidgetDataResult>({ loading: true })
 
   useEffect(() => {
     let isCancelled = false
 
-    loadWidgetData(widget, userId, workspaceId).then((res) => {
+    loadWidgetData(widget, userId, workspaceId, filters).then((res) => {
       if (!isCancelled) {
         setDataResult(res)
       }
@@ -33,7 +39,7 @@ export function WidgetRenderer({ widget, userId, workspaceId }: WidgetRendererPr
     return () => {
       isCancelled = true
     }
-  }, [widget, userId, workspaceId])
+  }, [widget, userId, workspaceId, filters])
 
   if (dataResult.loading) {
     return (

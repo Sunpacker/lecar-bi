@@ -1,6 +1,11 @@
 import { salesGateway } from '../../sales-analytics/api/sales-gateway'
 import { inventoryGateway } from '../../inventory-analytics/api/inventory-gateway'
-import type { WidgetDetail } from '../api/dashboard-gateway'
+import type { DashboardFilterValues, WidgetDetail } from '../api/dashboard-gateway'
+import {
+  mergeFilters,
+  resolveDateRange,
+  sanitizeFiltersForDataset,
+} from './filter-resolver'
 
 export interface WidgetChartPoint {
   name: string
@@ -55,31 +60,21 @@ export function formatMetricValue(value: number, metric: string, unit?: string):
   return new Intl.NumberFormat('ru-RU').format(value).replace(/\s/g, ' ')
 }
 
-function resolveDateRangeFilters(dateRange?: string | null): {
-  dateFrom?: string
-  dateTo?: string
-} {
-  if (!dateRange || dateRange === 'all') {
-    return {}
-  }
-
-  const daysMap: Record<string, number> = {
-    '30d': 30,
-    '90d': 90,
-    '180d': 180,
-    '365d': 365,
-  }
-
-  const days = daysMap[dateRange]
-  if (!days) return {}
-
-  const to = new Date()
-  const from = new Date()
-  from.setDate(to.getDate() - days)
-
-  return {
-    dateFrom: from.toISOString().split('T')[0],
-    dateTo: to.toISOString().split('T')[0],
+function mapStockHealth(
+  health?: 'in_stock' | 'low_stock' | 'out_of_stock' | 'overstock' | null,
+): 'out_of_stock' | 'critical' | 'optimal' | 'overstock' | undefined {
+  if (!health) return undefined
+  switch (health) {
+    case 'low_stock':
+      return 'critical'
+    case 'in_stock':
+      return 'optimal'
+    case 'out_of_stock':
+      return 'out_of_stock'
+    case 'overstock':
+      return 'overstock'
+    default:
+      return undefined
   }
 }
 
@@ -87,16 +82,41 @@ export async function loadWidgetData(
   widget: WidgetDetail,
   userId: string,
   workspaceId: string,
+  dashboardFilters?: DashboardFilterValues | null,
 ): Promise<WidgetDataResult> {
-  const { dataset, metric, dimension, date_range } = widget.query_config
+  const { dataset, metric, dimension } = widget.query_config
   const unit = widget.options?.unit as string | undefined
+
+  // Merge dashboard-level filters with widget-level overrides
+  const widgetOverrides: DashboardFilterValues = {
+    date_range: widget.query_config.date_range ?? widget.query_config.filters?.date_range,
+    date_from: widget.query_config.filters?.date_from,
+    date_to: widget.query_config.filters?.date_to,
+    category_id: widget.query_config.filters?.category_id,
+    region_id: widget.query_config.filters?.region_id,
+    warehouse_id: widget.query_config.filters?.warehouse_id,
+    stock_health: widget.query_config.filters?.stock_health,
+  }
+
+  const merged = mergeFilters(dashboardFilters, widgetOverrides)
+  const sanitized = sanitizeFiltersForDataset(merged, dataset)
+  const { dateFrom, dateTo } = resolveDateRange(
+    sanitized.date_range,
+    sanitized.date_from,
+    sanitized.date_to,
+  )
 
   try {
     if (dataset === 'sales') {
-      const filters = resolveDateRangeFilters(date_range)
+      const salesFilters = {
+        dateFrom,
+        dateTo,
+        categoryId: sanitized.category_id || undefined,
+        regionId: sanitized.region_id || undefined,
+      }
 
       if (widget.type === 'kpi_card') {
-        const overview = await salesGateway.getOverview(userId, workspaceId, filters)
+        const overview = await salesGateway.getOverview(userId, workspaceId, salesFilters)
         let val = 0
         switch (metric) {
           case 'revenue':
@@ -122,13 +142,15 @@ export async function loadWidgetData(
           kpi: {
             value: val,
             formatted: formatMetricValue(val, metric, unit),
-            subtitle: date_range ? `Период: ${date_range}` : undefined,
+            subtitle: sanitized.date_range
+              ? `Период: ${sanitized.date_range}`
+              : undefined,
           },
         }
       }
 
       if (widget.type === 'line_chart' || dimension === 'date') {
-        const overview = await salesGateway.getOverview(userId, workspaceId, filters)
+        const overview = await salesGateway.getOverview(userId, workspaceId, salesFilters)
         const chartData: WidgetChartPoint[] = overview.trend.map((pt) => {
           const val = metric === 'order_count' ? pt.order_count : pt.revenue
           return {
@@ -141,7 +163,7 @@ export async function loadWidgetData(
       }
 
       if (widget.type === 'donut_chart' || widget.type === 'bar_chart') {
-        const overview = await salesGateway.getOverview(userId, workspaceId, filters)
+        const overview = await salesGateway.getOverview(userId, workspaceId, salesFilters)
         if (dimension === 'region') {
           const chartData: WidgetChartPoint[] = overview.regions.map((reg) => ({
             name: reg.region_name,
@@ -161,7 +183,7 @@ export async function loadWidgetData(
 
       if (widget.type === 'table') {
         const records = await salesGateway.getRecords(userId, workspaceId, {
-          ...filters,
+          ...salesFilters,
           page: 1,
           perPage: 10,
         })
@@ -186,8 +208,14 @@ export async function loadWidgetData(
     }
 
     if (dataset === 'inventory') {
+      const warehouseId = sanitized.warehouse_id || undefined
+      const stockHealth = mapStockHealth(sanitized.stock_health)
+
       if (widget.type === 'kpi_card') {
-        const summaryRes = await inventoryGateway.getSummary(userId, workspaceId)
+        const summaryRes = await inventoryGateway.getSummary(userId, workspaceId, {
+          warehouseId,
+          asOfDate: dateTo,
+        })
         let val = 0
         switch (metric) {
           case 'stock_quantity':
@@ -216,7 +244,10 @@ export async function loadWidgetData(
 
       if (widget.type === 'bar_chart' || widget.type === 'donut_chart') {
         if (dimension === 'warehouse') {
-          const summaryRes = await inventoryGateway.getSummary(userId, workspaceId)
+          const summaryRes = await inventoryGateway.getSummary(userId, workspaceId, {
+            warehouseId,
+            asOfDate: dateTo,
+          })
           const chartData: WidgetChartPoint[] = summaryRes.warehouses.map((wh) => {
             const val = metric === 'stock_value' ? wh.total_value : wh.total_quantity
             return {
@@ -229,7 +260,23 @@ export async function loadWidgetData(
         }
 
         if (dimension === 'abc_class' || dimension === 'xyz_class') {
-          const abcSummary = await inventoryGateway.getAbcXyzSummary(userId, workspaceId)
+          const periodDays =
+            sanitized.date_range === '30d'
+              ? 30
+              : sanitized.date_range === '180d'
+                ? 180
+                : sanitized.date_range === '365d'
+                  ? 365
+                  : 90
+          const abcSummary = await inventoryGateway.getAbcXyzSummary(
+            userId,
+            workspaceId,
+            {
+              warehouseId,
+              categoryId: sanitized.category_id || undefined,
+              periodDays,
+            },
+          )
           const dist =
             dimension === 'abc_class'
               ? abcSummary.data.abc_distribution
@@ -245,6 +292,8 @@ export async function loadWidgetData(
 
       if (widget.type === 'table') {
         const itemsRes = await inventoryGateway.getItems(userId, workspaceId, {
+          warehouseId,
+          stockHealth,
           page: 1,
           perPage: 10,
         })

@@ -16,11 +16,18 @@ import {
   Check,
   AlertCircle,
 } from 'lucide-react'
-import type { DashboardDetail } from '../api/dashboard-gateway'
+import {
+  dashboardGateway,
+  type DashboardDetail,
+  type DashboardSavedView,
+} from '../api/dashboard-gateway'
 import { useDashboardBuilder } from '../model/use-dashboard-builder'
+import { useDashboardFilters } from '../model/use-dashboard-filters'
 import { DashboardGrid } from './dashboard-grid'
 import { DashboardGridEditor } from './dashboard-grid-editor'
 import { WidgetConfigSheet } from './widget-config-sheet'
+import { DashboardFilterBar } from './dashboard-filter-bar'
+import { DashboardSavedViewsMenu } from './dashboard-saved-views-menu'
 
 interface DashboardViewerProps {
   dashboard: DashboardDetail
@@ -35,6 +42,24 @@ export function DashboardViewer({
 }: DashboardViewerProps) {
   const [refreshKey, setRefreshKey] = useState(0)
   const [saveSuccessMsg, setSaveSuccessMsg] = useState(false)
+  const [savedViews, setSavedViews] = useState<DashboardSavedView[]>([])
+
+  const loadSavedViews = React.useCallback(() => {
+    dashboardGateway
+      .listSavedViews(dashboard.id, userId, workspaceId)
+      .then((items) => setSavedViews(items))
+      .catch(() => setSavedViews([]))
+  }, [dashboard.id, userId, workspaceId])
+
+  React.useEffect(() => {
+    loadSavedViews()
+  }, [loadSavedViews])
+
+  const filterManager = useDashboardFilters({
+    savedViews,
+  })
+
+  const { filters, activeView, setFilters, applySavedView } = filterManager
 
   const builder = useDashboardBuilder({
     initialDashboard: dashboard,
@@ -214,6 +239,31 @@ export function DashboardViewer({
         </div>
       )}
 
+      {/* View Mode Filters and Saved Views */}
+      {mode === 'view' && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <DashboardSavedViewsMenu
+              dashboardId={dashboard.id}
+              userId={userId}
+              workspaceId={workspaceId}
+              currentFilters={filters}
+              activeView={activeView}
+              savedViews={savedViews}
+              onSelectView={applySavedView}
+              onViewsUpdated={loadSavedViews}
+            />
+          </div>
+
+          <DashboardFilterBar
+            activeFilters={filters}
+            onFilterChange={(f) => setFilters(f, activeView?.id ?? null)}
+            userId={userId}
+            workspaceId={workspaceId}
+          />
+        </div>
+      )}
+
       {/* Main Grid: View or Edit Mode */}
       {mode === 'view' ? (
         <DashboardGrid
@@ -221,6 +271,7 @@ export function DashboardViewer({
           widgets={widgets}
           userId={userId}
           workspaceId={workspaceId}
+          filters={filters}
         />
       ) : (
         <DashboardGridEditor
