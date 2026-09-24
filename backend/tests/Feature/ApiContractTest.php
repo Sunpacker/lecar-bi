@@ -58,6 +58,7 @@ final class ApiContractTest extends TestCase
             'imports.manage',
             'alerts.view',
             'alerts.manage',
+            'support.use',
             'workspace.members.manage',
         ];
         self::assertEqualsCanonicalizing($expectedCapabilities, $schemas['WorkspaceCapability']['enum']);
@@ -76,6 +77,60 @@ final class ApiContractTest extends TestCase
 
         self::assertArrayHasKey('/workspaces/{workspaceId}/members/{userId}/role', $contract['paths']);
         self::assertArrayHasKey('patch', $contract['paths']['/workspaces/{workspaceId}/members/{userId}/role']);
+    }
+
+    public function test_contract_contains_complete_support_chat_boundary(): void
+    {
+        $contract = $this->openApiContract();
+        $operations = [
+            ['/support/conversations', 'post'],
+            ['/support/conversations', 'get'],
+            ['/support/conversations/{id}', 'get'],
+            ['/support/conversations/{id}', 'delete'],
+            ['/support/conversations/{id}/messages', 'post'],
+            ['/support/conversations/{id}/messages', 'get'],
+            ['/support/generations/{id}', 'get'],
+            ['/support/generations/{id}/events', 'get'],
+            ['/support/generations/{id}/retry', 'post'],
+            ['/support/messages/{id}/feedback', 'post'],
+        ];
+        self::assertCount(10, $operations);
+        self::assertSame([['UserIdAuth' => []]], $contract['security']);
+
+        foreach ($operations as [$path, $method]) {
+            self::assertArrayHasKey($path, $contract['paths']);
+            self::assertArrayHasKey($method, $contract['paths'][$path]);
+            self::assertSame('support.use', $contract['paths'][$path][$method]['x-required-capability']);
+            $parameters = array_merge(
+                $contract['paths'][$path]['parameters'] ?? [],
+                $contract['paths'][$path][$method]['parameters'] ?? [],
+            );
+            self::assertContains('#/components/parameters/WorkspaceIdHeader', array_column($parameters, '$ref'));
+            self::assertArrayHasKey('401', $contract['paths'][$path][$method]['responses']);
+            self::assertArrayHasKey('403', $contract['paths'][$path][$method]['responses']);
+        }
+
+        $events = $contract['paths']['/support/generations/{id}/events']['get'];
+        self::assertArrayHasKey('text/event-stream', $events['responses']['200']['content']);
+        self::assertEqualsCanonicalizing(['snapshot', 'completed', 'failed'], array_keys($events['x-sse-events']));
+
+        foreach (['SupportConversation', 'SupportMessage', 'SupportGeneration', 'SupportCitation', 'SupportGenerationSnapshotEvent', 'SupportGenerationCompletedEvent', 'SupportGenerationFailedEvent'] as $schema) {
+            self::assertArrayHasKey($schema, $contract['components']['schemas']);
+        }
+    }
+
+    public function test_versioned_support_holdout_has_required_distribution(): void
+    {
+        $path = dirname(__DIR__, 3).'/docs/support/evaluation/holdout-v1.json';
+        $dataset = json_decode((string) file_get_contents($path), true, flags: JSON_THROW_ON_ERROR);
+        $questions = $dataset['questions'];
+        $counts = array_count_values(array_column($questions, 'kind'));
+
+        self::assertCount(60, $questions);
+        self::assertSame(40, $counts['answerable']);
+        self::assertSame(10, $counts['no_context']);
+        self::assertSame(10, $counts['adversarial']);
+        self::assertCount(60, array_unique(array_column($questions, 'id')));
     }
 
     public function test_protected_operations_declare_required_capabilities(): void

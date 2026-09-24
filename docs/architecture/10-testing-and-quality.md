@@ -72,6 +72,14 @@ Frontend должен включать:
 
 Изменение API должно обнаруживаться до production.
 
+## RAG Support Chat
+
+Обычный CI использует детерминированные AI doubles и проверяет orchestration, отсутствие chat-вызова
+при `no_context`, отзыв источника, citations, reconnect и workspace isolation. PostgreSQL suite запускается
+отдельно с `RUN_SUPPORT_POSTGRES_INTEGRATION=1` на одноразовой базе с pgvector и выполняет destructive
+`migrate:fresh`; SQLite не заменяет эту проверку. Production выпуск дополнительно требует реального
+proxy/BFF streaming test и versioned 60-question holdout на утверждённом provider/profile.
+
 ## Архитектурные тесты
 
 Желательно автоматически контролировать ключевые ограничения:

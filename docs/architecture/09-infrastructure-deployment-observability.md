@@ -12,13 +12,17 @@
 
 - `frontend` — Next.js UI / BFF;
 - `backend` — Laravel Analytics Service;
-- `postgres` (analytics) — хранилище аналитики и outbox;
+- `postgres` (analytics) — PostgreSQL с pgvector, хранилище аналитики, support knowledge index и outbox;
+- `support-generation-worker` — отдельная очередь `ai-generation`, один платный chat-вызов на claim;
+- `support-indexing-worker` — отдельная очередь `ai-indexing` и бюджет embeddings;
+- `backend-scheduler` — dispatcher сохранённых generation и maintenance lease/retention;
 - `notification` — Laravel Notification Service (HTTP health/readiness endpoints);
 - `notification-worker` — процесс потребления событий `notifications:consume`;
 - `notification-postgres` — отдельная база данных PostgreSQL и volume для сервиса уведомлений;
 - `redis` — общий транспорт интеграционных событий (Streams), кэш и очереди.
 
 Notification service не получает учетных данных от `postgres` аналитики и не имеет сетевой зависимости от нее.
+AI workers не обслуживают outbox. Недоступность AI provider не входит в общую readiness Analytics.
 
 ## Независимый деплой
 
@@ -34,6 +38,15 @@ Frontend, Analytics и Notification разворачиваются незави�
 Конфигурация среды должна храниться вне бизнес-кода.
 
 Секреты не должны находиться в репозитории.
+
+RAG adapters выбираются серверной конфигурацией. Детерминированные adapters разрешены только в
+testing и локальной среде; production по умолчанию использует `disabled`, пока не утверждены provider,
+регион обработки, retention/training policy и категории данных.
+Backend image собирается из корня репозитория и включает `docs/support` как read-only build input в
+`/var/www/docs/support`; ingestion worker не зависит от checkout или writable volume на сервере.
+`SESSION_SECRET` подписывает Next.js session cookie, а отдельный `SUPPORT_BFF_SHARED_SECRET`
+аутентифицирует только внутренний путь Next.js BFF → Analytics. Оба значения server-only,
+различаются между собой, не имеют `NEXT_PUBLIC_` префикса и передаются через secret storage среды.
 
 ## Observability
 
@@ -68,6 +81,8 @@ Frontend, Analytics и Notification разворачиваются незави�
   - `GET /api/v1/health/live` — liveness probe: проверяет, что HTTP-процесс запущен и принимает запросы.
   - `GET /api/v1/health/ready` — readiness probe: проверяет доступность локальной PostgreSQL notification service и Redis Stream транспорта. Analytics не является runtime-зависимостью и не опрашивается.
 - Состояние фоновых workers логируется структурно (heartbeat / processed count). Остановка worker не влияет на liveness веб-процессов.
+- Support generation пишет безопасные структурные события lifecycle/latency по IDs и error codes,
+  без raw prompt, документов, credentials и полного provider exception.
 
 ## Будущие инструменты
 

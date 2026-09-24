@@ -8,6 +8,7 @@ use App\Modules\DataIngestion\Presentation\Controllers\ImportBatchController;
 use App\Modules\InventoryAnalytics\Presentation\Controllers\InventoryAnalyticsController;
 use App\Modules\SalesAnalytics\Presentation\Controllers\SalesAnalyticsController;
 use App\Modules\SupplierAnalytics\Presentation\Controllers\SupplierAnalyticsController;
+use App\Modules\Support\Presentation\Controllers\SupportController;
 use App\Modules\Workspace\Presentation\Controllers\AuthController;
 use App\Modules\Workspace\Presentation\Controllers\CurrentWorkspaceController;
 use App\Modules\Workspace\Presentation\Controllers\ProfileController;
@@ -99,6 +100,19 @@ Route::prefix('v1')->group(function () {
             Route::post('/alert-rules/evaluate', [AlertRuleController::class, 'evaluate']);
             Route::post('/alerts/{id}/acknowledge', [AlertController::class, 'acknowledge']);
             Route::post('/alerts/{id}/resolve', [AlertController::class, 'resolve']);
+        });
+
+        Route::prefix('support')->middleware(['support.transport', 'workspace.can:support.use'])->group(function () {
+            Route::post('/conversations', [SupportController::class, 'createConversation']);
+            Route::get('/conversations', [SupportController::class, 'listConversations']);
+            Route::get('/conversations/{id}', [SupportController::class, 'getConversation']);
+            Route::delete('/conversations/{id}', [SupportController::class, 'deleteConversation']);
+            Route::post('/conversations/{id}/messages', [SupportController::class, 'sendMessage']);
+            Route::get('/conversations/{id}/messages', [SupportController::class, 'listMessages']);
+            Route::get('/generations/{id}', [SupportController::class, 'getGeneration']);
+            Route::get('/generations/{id}/events', [SupportController::class, 'streamGeneration']);
+            Route::post('/generations/{id}/retry', [SupportController::class, 'retryGeneration']);
+            Route::post('/messages/{id}/feedback', [SupportController::class, 'feedback']);
         });
     });
 });

@@ -44,7 +44,7 @@ final class ArchitectureTest extends TestCase
         $sharedDomainDirectory = dirname(__DIR__, 2).'/app/Shared/Domain';
 
         self::assertIsArray($domainDirectories);
-        self::assertCount(7, $domainDirectories, 'Every bounded context must expose a Domain layer.');
+        self::assertCount(9, $domainDirectories, 'Every bounded context must expose a Domain layer.');
         self::assertDirectoryExists($sharedDomainDirectory);
 
         $domainDirectories[] = $sharedDomainDirectory;

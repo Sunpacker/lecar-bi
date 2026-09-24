@@ -6,7 +6,8 @@
   "require": {
     "php": "^8.2",
     "laravel/framework": "^13.0",
-    "predis/predis": "^2.2"
+    "predis/predis": "^2.2",
+    "neuron-core/neuron-ai": "^3.17"
   },
   "require-dev": {
     "phpunit/phpunit": "^11.0",
@@ -34,7 +35,7 @@
       "@lint:types"
     ],
     "lint:style": "./vendor/bin/pint --test",
-    "lint:types": "./vendor/bin/phpstan analyse --debug --no-progress",
+    "lint:types": "./vendor/bin/phpstan analyse --memory-limit=512M --debug --no-progress",
     "lint:fix": "./vendor/bin/pint"
   }
 }

@@ -1,0 +1,15 @@
+**
+!backend
+!backend/**
+!docs
+!docs/support
+!docs/support/**
+backend/.env
+backend/.env.*
+backend/vendor
+backend/storage/logs/*
+backend/storage/framework/cache/*
+backend/storage/framework/sessions/*
+backend/storage/framework/views/*
+backend/.phpunit.result.cache
+backend/.phpunit.cache

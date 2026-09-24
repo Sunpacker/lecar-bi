@@ -9,5 +9,7 @@ return [
         'SupplierAnalytics',
         'Dashboard',
         'Alerting',
+        'Support',
+        'KnowledgeBase',
     ],
 ];

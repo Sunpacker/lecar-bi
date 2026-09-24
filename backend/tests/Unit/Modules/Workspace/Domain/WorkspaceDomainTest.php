@@ -67,12 +67,14 @@ final class WorkspaceDomainTest extends TestCase
         self::assertTrue(MembershipRole::OWNER->allows(WorkspaceCapability::WORKSPACE_MEMBERS_MANAGE));
         self::assertTrue(MembershipRole::OWNER->allows(WorkspaceCapability::DASHBOARDS_MANAGE));
         self::assertTrue(MembershipRole::OWNER->allows(WorkspaceCapability::ANALYTICS_VIEW));
+        self::assertTrue(MembershipRole::OWNER->allows(WorkspaceCapability::SUPPORT_USE));
 
         self::assertFalse(MembershipRole::MEMBER->allows(WorkspaceCapability::WORKSPACE_MEMBERS_MANAGE));
         self::assertTrue(MembershipRole::MEMBER->allows(WorkspaceCapability::DASHBOARDS_MANAGE));
         self::assertTrue(MembershipRole::MEMBER->allows(WorkspaceCapability::IMPORTS_MANAGE));
         self::assertTrue(MembershipRole::MEMBER->allows(WorkspaceCapability::ALERTS_MANAGE));
         self::assertTrue(MembershipRole::MEMBER->allows(WorkspaceCapability::ANALYTICS_VIEW));
+        self::assertTrue(MembershipRole::MEMBER->allows(WorkspaceCapability::SUPPORT_USE));
 
         self::assertFalse(MembershipRole::VIEWER->allows(WorkspaceCapability::WORKSPACE_MEMBERS_MANAGE));
         self::assertFalse(MembershipRole::VIEWER->allows(WorkspaceCapability::DASHBOARDS_MANAGE));
@@ -82,6 +84,7 @@ final class WorkspaceDomainTest extends TestCase
         self::assertTrue(MembershipRole::VIEWER->allows(WorkspaceCapability::DASHBOARDS_VIEW));
         self::assertTrue(MembershipRole::VIEWER->allows(WorkspaceCapability::IMPORTS_VIEW));
         self::assertTrue(MembershipRole::VIEWER->allows(WorkspaceCapability::ALERTS_VIEW));
+        self::assertTrue(MembershipRole::VIEWER->allows(WorkspaceCapability::SUPPORT_USE));
     }
 
     #[Test]

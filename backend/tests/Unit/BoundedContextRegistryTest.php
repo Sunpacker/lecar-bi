@@ -19,6 +19,8 @@ final class BoundedContextRegistryTest extends TestCase
             'SupplierAnalytics',
             'Dashboard',
             'Alerting',
+            'Support',
+            'KnowledgeBase',
         ], $registry->names());
         self::assertTrue($registry->has('SalesAnalytics'));
         self::assertFalse($registry->has('Unknown'));

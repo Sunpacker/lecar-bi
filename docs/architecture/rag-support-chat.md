@@ -2,10 +2,11 @@
 
 ## Статус и область действия
 
-Документ описывает **планируемое расширение**, а не реализованную возможность AutoBI.
+Документ является контрактом реализации Phase 20. Код feature подготовлен, но возможность не разрешена
+для production до обязательного integration checkpoint и внешней provider evaluation.
 Целевой дизайн закреплён в [ADR-019](12-architecture-decisions.md#adr-019--rag-support-chat).
-Начало реализации требует задачи, охватывающей RAG, и включения этапа с зависимостями и exit criteria
-в [roadmap](../roadmap/ROADMAP.md). Этот документ не меняет порядок и статус существующих фаз.
+Этап с зависимостями и exit criteria включён в [roadmap](../roadmap/ROADMAP.md). Эта работа не меняет
+порядок и статус существующих фаз; Phase 16 остаётся текущей незавершённой фазой.
 
 Профильные правила: [DDD](04-backend-laravel-ddd.md), [contexts и RBAC](05-bounded-contexts.md),
 [API](07-api-and-integration.md), [очереди](08-events-outbox-async.md),
@@ -45,7 +46,9 @@ conversation-aware retrieval и tool calling относятся к отдель�
 
 Domain не зависит от Laravel, HTTP, SDK или pgvector. Application отвечает за orchestration;
 Infrastructure реализует persistence, поиск, очередь и AI-провайдеров. Controllers и jobs тонкие.
-Next.js отвечает за UI и транспорт; при необходимости BFF только передаёт сессию, workspace и поток.
+Next.js отвечает за UI и обязательный BFF для всех support-операций. BFF проверяет подписанную
+HttpOnly session, подставляет user ID и отдельный server-only transport secret. Analytics отклоняет
+support-запрос с одним клиентским `X-User-Id`; браузер не получает transport secret.
 
 AI-порты: `ChatModel` и `EmbeddingModel`. `Reranker` добавляется вместе с соответствующей фичей.
 Provider-specific SDK, payload и исключения остаются в Infrastructure. MVP использует один
@@ -66,6 +69,8 @@ Provider-specific SDK, payload и исключения остаются в Infra
   недостаточна; cross-user/cross-workspace обращения возвращают `404`, не раскрывая наличие ресурса.
 - Отсутствие сессии — `401`, отсутствие capability — существующий `403 INSUFFICIENT_CAPABILITY`.
   Выбор workspace следует действующему API и `WorkspaceAccessGuard`; входной ID не является доверием.
+- Публичный браузерный путь — `/api/support/*` на Next.js. Внутренний `/api/v1/support/*` Analytics
+  дополнительно требует `X-Support-BFF-Key`, переданный только по закрытому server-to-server пути.
 - Список диалогов фильтруется по пользователю и workspace на backend. Смена workspace во frontend
   закрывает поток и очищает отображаемую переписку до загрузки разрешённых данных.
 - Worker повторно проверяет доступ перед retrieval и внешним вызовом. SSE проверяет его при
@@ -101,6 +106,8 @@ Embeddings и `search_vector` принадлежат конкретному buil
 build, document version и chunk index. `content_hash` не заменяет ключ идемпотентности.
 Размерность столбца и оператор расстояния должны соответствовать profile. Векторы разных моделей
 не смешиваются даже при одинаковой размерности; запрос использует profile активного индекса.
+Retriever сначала читает active build и его persisted provider/model/dimensions, разрешает точное
+совпадение в registry и материализует только chunks этого build до вычисления vector distance.
 
 Для MVP язык корпуса и evaluation — русский с техническими английскими терминами.
 Использовать одинаковую явно заданную PostgreSQL FTS configuration при индексации и запросе
@@ -276,12 +283,15 @@ Streaming-текст предварительный до `completed`; при о�
 - Chat provider получает текущий вопрос и разрешённые чанки; embedding provider — вопрос
   и разрешённые для индексации тексты. Не отправлять session tokens, внутренние IDs пользователя,
   историю диалога и фактические BI-данные. Пользовательский вопрос сам может содержать личные данные.
-- До включения внешнего provider зафиксировать модель, регион/режим обработки, retention/training
-  настройки и допустимые категории данных; показать краткое уведомление о внешней обработке.
+- Demo provider зафиксирован как Google Gemini API: `gemma-4-26b-a4b-it` для ответа с
+  `thinkingLevel=minimal` и `gemini-embedding-2` с профилем `qa-768-v1` для embeddings.
+  Разрешены только публичный support corpus и демонстрационные вопросы без персональных,
+  коммерческих и фактических BI-данных. Free tier может использовать переданный контент для
+  улучшения продуктов Google; резидентность в РФ не гарантируется. UI показывает это до отправки.
   Не переключать provider автоматически на вариант с другой политикой данных.
 - Ключи AI доступны только backend/worker. Логи содержат IDs, коды и метрики;
   raw prompts, документы, credentials и полные provider exceptions туда не попадают.
-- Начальный retention диалогов и generation metadata — 90 дней после последней активности.
+- Demo retention диалогов и generation metadata — 7 дней после последней активности.
   Удаление диалога/пользователя/workspace немедленно запрещает чтение и новые вызовы;
   очистка сообщений, частичных ответов, feedback и idempotency-данных — в течение 24 часов.
   Активный worker прекращает дальнейшую запись при удалении; срок backup retention документируется

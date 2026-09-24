@@ -13,5 +13,6 @@ enum WorkspaceCapability: string
     case IMPORTS_MANAGE = 'imports.manage';
     case ALERTS_VIEW = 'alerts.view';
     case ALERTS_MANAGE = 'alerts.manage';
+    case SUPPORT_USE = 'support.use';
     case WORKSPACE_MEMBERS_MANAGE = 'workspace.members.manage';
 }

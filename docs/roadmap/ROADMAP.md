@@ -36,6 +36,7 @@
 - [ ] [Phase 17 — Observability](17-observability.md)
 - [ ] [Phase 18 — Production Hardening](18-production-hardening.md)
 - [ ] [Phase 19 — Forecasting Extension](19-forecasting.md)
+- [ ] [Phase 20 — RAG Support Chat](20-rag-support-chat.md)
 
 ## Как обновлять прогресс
 

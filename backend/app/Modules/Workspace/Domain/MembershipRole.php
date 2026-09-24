@@ -24,6 +24,7 @@ enum MembershipRole: string
                 WorkspaceCapability::IMPORTS_MANAGE,
                 WorkspaceCapability::ALERTS_VIEW,
                 WorkspaceCapability::ALERTS_MANAGE,
+                WorkspaceCapability::SUPPORT_USE,
                 WorkspaceCapability::WORKSPACE_MEMBERS_MANAGE,
             ],
             self::MEMBER => [
@@ -34,12 +35,14 @@ enum MembershipRole: string
                 WorkspaceCapability::IMPORTS_MANAGE,
                 WorkspaceCapability::ALERTS_VIEW,
                 WorkspaceCapability::ALERTS_MANAGE,
+                WorkspaceCapability::SUPPORT_USE,
             ],
             self::VIEWER => [
                 WorkspaceCapability::ANALYTICS_VIEW,
                 WorkspaceCapability::DASHBOARDS_VIEW,
                 WorkspaceCapability::IMPORTS_VIEW,
                 WorkspaceCapability::ALERTS_VIEW,
+                WorkspaceCapability::SUPPORT_USE,
             ],
         };
     }

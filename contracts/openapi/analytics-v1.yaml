@@ -2285,6 +2285,217 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /support/conversations:
+    parameters:
+      - $ref: '#/components/parameters/WorkspaceIdHeader'
+    post:
+      operationId: createSupportConversation
+      summary: Create a private support conversation
+      x-required-capability: support.use
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSupportConversationRequest'
+      responses:
+        '201':
+          description: Conversation created or an idempotent result returned
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupportConversationResponse' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    get:
+      operationId: listSupportConversations
+      summary: List the current user's conversations in the current workspace
+      x-required-capability: support.use
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Cursor-paginated conversations
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupportConversationListResponse' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /support/conversations/{id}:
+    parameters:
+      - $ref: '#/components/parameters/SupportResourceId'
+      - $ref: '#/components/parameters/WorkspaceIdHeader'
+    get:
+      operationId: getSupportConversation
+      summary: Get an owned support conversation
+      x-required-capability: support.use
+      responses:
+        '200':
+          description: Conversation metadata
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupportConversationResponse' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      operationId: deleteSupportConversation
+      summary: Revoke access and schedule cleanup of an owned conversation
+      x-required-capability: support.use
+      responses:
+        '204': { description: Conversation deleted }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /support/conversations/{id}/messages:
+    parameters:
+      - $ref: '#/components/parameters/SupportResourceId'
+      - $ref: '#/components/parameters/WorkspaceIdHeader'
+    post:
+      operationId: sendSupportMessage
+      summary: Persist a question and queue one generation
+      x-required-capability: support.use
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SendSupportMessageRequest' }
+      responses:
+        '202':
+          description: Message and generation accepted transactionally
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupportGenerationAcceptedResponse' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+    get:
+      operationId: listSupportMessages
+      summary: List persisted messages of an owned conversation
+      x-required-capability: support.use
+      parameters:
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/PerPage'
+      responses:
+        '200':
+          description: Cursor-paginated messages
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupportMessageListResponse' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /support/generations/{id}:
+    get:
+      operationId: getSupportGeneration
+      summary: Get persisted generation state without starting work
+      x-required-capability: support.use
+      parameters:
+        - $ref: '#/components/parameters/SupportResourceId'
+        - $ref: '#/components/parameters/WorkspaceIdHeader'
+      responses:
+        '200':
+          description: Current generation snapshot
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupportGenerationResponse' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /support/generations/{id}/events:
+    get:
+      operationId: streamSupportGenerationEvents
+      summary: Observe an existing generation as server-sent events
+      description: The first event is a full snapshot or terminal event. Reconnect never starts a model call.
+      x-required-capability: support.use
+      x-sse-events:
+        snapshot: { $ref: '#/components/schemas/SupportGenerationSnapshotEvent' }
+        completed: { $ref: '#/components/schemas/SupportGenerationCompletedEvent' }
+        failed: { $ref: '#/components/schemas/SupportGenerationFailedEvent' }
+      parameters:
+        - $ref: '#/components/parameters/SupportResourceId'
+        - $ref: '#/components/parameters/WorkspaceIdHeader'
+        - in: header
+          name: Last-Event-ID
+          required: false
+          schema: { type: integer, minimum: 0 }
+      responses:
+        '200':
+          description: SSE stream; id is the generation-local sequence
+          headers:
+            Cache-Control:
+              schema: { type: string, example: no-store }
+            X-Accel-Buffering:
+              schema: { type: string, example: 'no' }
+          content:
+            text/event-stream:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/SupportGenerationSnapshotEvent'
+                  - $ref: '#/components/schemas/SupportGenerationCompletedEvent'
+                  - $ref: '#/components/schemas/SupportGenerationFailedEvent'
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /support/generations/{id}/retry:
+    post:
+      operationId: retrySupportGeneration
+      summary: Create an explicit new attempt for the latest failed generation
+      x-required-capability: support.use
+      parameters:
+        - $ref: '#/components/parameters/SupportResourceId'
+        - $ref: '#/components/parameters/WorkspaceIdHeader'
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RetrySupportGenerationRequest' }
+      responses:
+        '202':
+          description: Retry generation accepted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupportGenerationAcceptedResponse' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+  /support/messages/{id}/feedback:
+    post:
+      operationId: upsertSupportMessageFeedback
+      summary: Upsert feedback for an owned completed assistant message
+      x-required-capability: support.use
+      parameters:
+        - $ref: '#/components/parameters/SupportResourceId'
+        - $ref: '#/components/parameters/WorkspaceIdHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SupportFeedbackRequest' }
+      responses:
+        '200':
+          description: Feedback stored
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SupportFeedbackResponse' }
+        '401': { $ref: '#/components/responses/Unauthenticated' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
 components:
   securitySchemes:
     UserIdAuth:
@@ -2292,6 +2503,67 @@ components:
       in: header
       name: X-User-Id
       description: Authenticated user identifier
+  parameters:
+    IdempotencyKey:
+      in: header
+      name: Idempotency-Key
+      required: true
+      schema: { type: string, minLength: 16, maxLength: 128 }
+    WorkspaceIdHeader:
+      in: header
+      name: X-Workspace-Id
+      required: true
+      description: Current workspace selected by the authenticated user
+      schema: { type: string }
+    SupportResourceId:
+      in: path
+      name: id
+      required: true
+      schema: { type: string, format: uuid }
+    Cursor:
+      in: query
+      name: cursor
+      required: false
+      schema: { type: string, nullable: true }
+    PerPage:
+      in: query
+      name: per_page
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+  responses:
+    Unauthenticated:
+      description: Session is missing or invalid
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Forbidden:
+      description: Current membership lacks support.use
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    NotFound:
+      description: Resource is absent or not owned in the current workspace
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    Conflict:
+      description: Idempotency payload or generation lifecycle conflict
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    ValidationError:
+      description: Invalid request
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
+    RateLimited:
+      description: Admission, concurrency, or budget limit exceeded
+      headers:
+        Retry-After:
+          schema: { type: integer, minimum: 1 }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorResponse' }
   schemas:
 
     DatasetType:
@@ -2486,6 +2758,7 @@ components:
         - imports.manage
         - alerts.view
         - alerts.manage
+        - support.use
         - workspace.members.manage
     WorkspaceMemberResponse:
       type: object
@@ -4178,4 +4451,169 @@ components:
         alerts_updated:
           type: integer
 
-
+    CreateSupportConversationRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120, nullable: true }
+    SendSupportMessageRequest:
+      type: object
+      additionalProperties: false
+      required: [client_message_id, content]
+      properties:
+        client_message_id: { type: string, format: uuid }
+        content: { type: string, minLength: 1, maxLength: 4000 }
+    RetrySupportGenerationRequest:
+      type: object
+      additionalProperties: false
+      required: [retry_request_id]
+      properties:
+        retry_request_id: { type: string, format: uuid }
+    SupportFeedbackRequest:
+      type: object
+      additionalProperties: false
+      required: [rating]
+      properties:
+        rating:
+          type: string
+          enum: [helpful, not_helpful]
+    SupportConversation:
+      type: object
+      additionalProperties: false
+      required: [id, workspace_id, title, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        workspace_id: { type: string }
+        title: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    SupportConversationResponse:
+      type: object
+      additionalProperties: false
+      required: [conversation]
+      properties:
+        conversation: { $ref: '#/components/schemas/SupportConversation' }
+    SupportConversationListResponse:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/SupportConversation' }
+        next_cursor: { type: string, nullable: true }
+    SupportGenerationStatus:
+      type: string
+      enum: [queued, running, completed, failed]
+    SupportGenerationOutcome:
+      type: string
+      enum: [answered, no_context]
+      nullable: true
+    SupportCitation:
+      type: object
+      additionalProperties: false
+      required: [document_id, revision, chunk_id, title, available]
+      properties:
+        document_id: { type: string }
+        revision: { type: string }
+        chunk_id: { type: string, format: uuid }
+        title: { type: string }
+        url: { type: string, nullable: true }
+        anchor: { type: string, nullable: true }
+        available: { type: boolean }
+    SupportGeneration:
+      type: object
+      additionalProperties: false
+      required: [id, conversation_id, user_message_id, assistant_message_id, attempt, status, sequence, text, citations, created_at, updated_at]
+      properties:
+        id: { type: string, format: uuid }
+        conversation_id: { type: string, format: uuid }
+        user_message_id: { type: string, format: uuid }
+        assistant_message_id: { type: string, format: uuid }
+        attempt: { type: integer, minimum: 1 }
+        status: { $ref: '#/components/schemas/SupportGenerationStatus' }
+        outcome: { $ref: '#/components/schemas/SupportGenerationOutcome' }
+        sequence: { type: integer, minimum: 0 }
+        text: { type: string }
+        error_code: { type: string, nullable: true }
+        retryable: { type: boolean, default: false }
+        citations:
+          type: array
+          items: { $ref: '#/components/schemas/SupportCitation' }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    SupportGenerationResponse:
+      type: object
+      additionalProperties: false
+      required: [generation]
+      properties:
+        generation: { $ref: '#/components/schemas/SupportGeneration' }
+    SupportGenerationAcceptedResponse:
+      type: object
+      additionalProperties: false
+      required: [message_id, assistant_message_id, generation_id]
+      properties:
+        message_id: { type: string, format: uuid }
+        assistant_message_id: { type: string, format: uuid }
+        generation_id: { type: string, format: uuid }
+    SupportMessage:
+      type: object
+      additionalProperties: false
+      required: [id, conversation_id, role, content, position, citations, created_at]
+      properties:
+        id: { type: string, format: uuid }
+        conversation_id: { type: string, format: uuid }
+        role: { type: string, enum: [user, assistant] }
+        content: { type: string }
+        position: { type: integer, minimum: 1 }
+        generation_id: { type: string, format: uuid, nullable: true }
+        generation_status: { $ref: '#/components/schemas/SupportGenerationStatus' }
+        outcome: { $ref: '#/components/schemas/SupportGenerationOutcome' }
+        citations:
+          type: array
+          items: { $ref: '#/components/schemas/SupportCitation' }
+        created_at: { type: string, format: date-time }
+    SupportMessageListResponse:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/SupportMessage' }
+        next_cursor: { type: string, nullable: true }
+    SupportFeedbackResponse:
+      type: object
+      additionalProperties: false
+      required: [message_id, rating, updated_at]
+      properties:
+        message_id: { type: string, format: uuid }
+        rating: { type: string, enum: [helpful, not_helpful] }
+        updated_at: { type: string, format: date-time }
+    SupportGenerationSnapshotEvent:
+      type: object
+      additionalProperties: false
+      required: [generation_id, sequence, status, text]
+      properties:
+        generation_id: { type: string, format: uuid }
+        sequence: { type: integer, minimum: 0 }
+        status: { $ref: '#/components/schemas/SupportGenerationStatus' }
+        text: { type: string }
+    SupportGenerationCompletedEvent:
+      allOf:
+        - $ref: '#/components/schemas/SupportGenerationSnapshotEvent'
+        - type: object
+          required: [outcome, citations]
+          properties:
+            outcome: { type: string, enum: [answered, no_context] }
+            citations:
+              type: array
+              items: { $ref: '#/components/schemas/SupportCitation' }
+    SupportGenerationFailedEvent:
+      allOf:
+        - $ref: '#/components/schemas/SupportGenerationSnapshotEvent'
+        - type: object
+          required: [error_code, retryable]
+          properties:
+            error_code: { type: string }
+            retryable: { type: boolean }

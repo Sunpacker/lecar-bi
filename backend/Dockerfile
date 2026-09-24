@@ -21,7 +21,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Composer lock-файл обязателен для воспроизводимой сборки.
 # Сначала копируем только файлы зависимостей, чтобы Docker мог кешировать этот слой.
-COPY composer.json composer.lock ./
+COPY backend/composer.json backend/composer.lock ./
 
 # Laravel-скрипты пока не запускаем: исходники приложения и artisan ещё не скопированы.
 RUN composer install \
@@ -31,7 +31,8 @@ RUN composer install \
     --no-dev \
     --no-scripts
 
-COPY . .
+COPY backend/. .
+COPY docs/support /var/www/docs/support
 
 # После копирования приложения пересобираем production-autoload.
 # На этом этапе composer может безопасно выполнить Laravel post-autoload scripts.

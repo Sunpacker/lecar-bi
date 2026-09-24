@@ -132,8 +132,8 @@
 
 ## ADR-019 — RAG Support Chat
 
-Статус: целевой дизайн планируемого расширения, 2026-09-23. Реализация начинается по отдельной
-задаче в рамках согласованного roadmap; существующие фазы и runtime этим ADR не изменяются.
+Статус: реализация в Phase 20, 2026-09-24. Контракт, модули и runtime-конфигурация подготовлены;
+production rollout заблокирован до PostgreSQL/proxy checkpoint и внешней provider evaluation.
 
 Решение: реализовать поддержку по документации в contexts `Support` и `KnowledgeBase` внутри
 analytics-service. Использовать PostgreSQL/pgvector + FTS, Laravel Queue и существующую
@@ -146,7 +146,7 @@ Workspace/auth boundary. Next.js отображает чат и передаёт
 
 - MVP работает только с явно опубликованной общей документацией/FAQ, без доступа к фактическим
   BI-данным и без tool calling. Приватные знания workspace — последующее расширение.
-- Диалоги приватны по паре workspace/user; планируемая capability `support.use` не заменяет ownership.
+- Диалоги приватны по паре workspace/user; capability `support.use` не заменяет ownership.
 - `KnowledgeBase` предоставляет публичный retrieval contract; SQL обеих поисковых веток ограничивает
   доступные документы до `LIMIT`. Начальный baseline — exact vector search и объединение рангов с FTS.
 - Версии индекса публикуются атомарно; embedding profiles не смешиваются. Удалённые/отозванные

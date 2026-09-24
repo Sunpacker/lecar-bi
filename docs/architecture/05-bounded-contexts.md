@@ -23,10 +23,10 @@ Bounded context должен иметь:
 - **Рабочие пространства:** изолированные тенанты (`WorkspaceId`, `slug`, `name`).
 - **Ролевая модель:** фиксированный набор ролей (`owner`, `member`, `viewer`), хранящийся в таблице `workspace_members`.
 - **Инвариант агрегата Workspace:** в рабочем пространстве обязан оставаться хотя бы один активный владелец (`owner`). Попытка понизить роль последнего владельца блокируется на уровне доменной логики и транзакционной блокировки агрегата (`LastWorkspaceOwnerException` → HTTP `409 LAST_WORKSPACE_OWNER`).
-- **Система возможностей (Capabilities):** чистое доменное сопоставление роли замкнутому набору из 8 атомарных прав:
-  - `owner`: все 8 прав, включая `workspace.members.manage`;
-  - `member`: операционные права (`analytics.view`, `dashboards.view`, `dashboards.manage`, `imports.view`, `imports.manage`, `alerts.view`, `alerts.manage`), без управления участниками;
-  - `viewer`: только права на чтение (`analytics.view`, `dashboards.view`, `imports.view`, `alerts.view`).
+- **Система возможностей (Capabilities):** чистое доменное сопоставление роли замкнутому набору из 9 атомарных прав:
+  - `owner`: все 9 прав, включая `workspace.members.manage` и `support.use`;
+  - `member`: операционные права (`analytics.view`, `dashboards.view`, `dashboards.manage`, `imports.view`, `imports.manage`, `alerts.view`, `alerts.manage`, `support.use`), без управления участниками;
+  - `viewer`: права на чтение (`analytics.view`, `dashboards.view`, `imports.view`, `alerts.view`) и `support.use`.
 - **CQRS-операции:**
   - Commands: `ChangeWorkspaceMemberRoleCommand` (с транзакционным локом строки воркспейса для предотвращения race condition).
   - Queries: `GetWorkspaceMembersQuery`, `GetCurrentWorkspaceQuery`, `GetAccessibleWorkspacesQuery`.
@@ -104,16 +104,16 @@ Bounded context должен иметь:
 - жизненный цикл alert;
 - взаимодействие с будущими notification-сервисами.
 
-## Планируемые contexts поддержки
+## Contexts поддержки
 
-Для будущего RAG-чата предусмотрены `Support` (диалоги, генерации, feedback и orchestration)
+Для RAG-чата реализуются `Support` (диалоги, генерации, feedback и orchestration)
 и `KnowledgeBase` (источники, индексация и retrieval) внутри analytics-service.
 Их контракт и границы определены в [спецификации RAG](rag-support-chat.md) и
 [ADR-019](12-architecture-decisions.md#adr-019--rag-support-chat).
 
-Это целевой дизайн, а не описание реализованных модулей. При реализации Workspace расширяется
-capability `support.use` для всех существующих ролей; текущий набор из 8 прав выше остаётся
-описанием действующего RBAC. Доступ к переписке дополнительно ограничен владением диалогом.
+Workspace предоставляет capability `support.use` всем существующим ролям. Доступ к переписке
+дополнительно ограничен актуальным членством и владением диалогом. Production rollout остаётся
+закрыт до integration checkpoint и provider evaluation этапа roadmap.
 
 ## Правила взаимодействия контекстов
 
