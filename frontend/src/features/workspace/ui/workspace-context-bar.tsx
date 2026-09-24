@@ -20,6 +20,24 @@ export function WorkspaceContextBar({
   const router = useRouter()
   const [currentId, setCurrentId] = useState(context.workspace.id)
   const [loggingOut, setLoggingOut] = useState(false)
+  const [switchingWorkspace, setSwitchingWorkspace] = useState(false)
+
+  const handleWorkspaceChange = async (workspaceId: string) => {
+    setSwitchingWorkspace(true)
+    setCurrentId(workspaceId)
+
+    try {
+      const response = await fetch('/api/workspace/current', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspace_id: workspaceId }),
+      })
+      if (!response.ok) throw new Error('Workspace switch failed')
+      router.refresh()
+    } finally {
+      setSwitchingWorkspace(false)
+    }
+  }
 
   const handleLogout = async () => {
     setLoggingOut(true)
@@ -41,8 +59,11 @@ export function WorkspaceContextBar({
         <WorkspaceSwitcher
           currentWorkspaceId={currentId}
           workspaces={accessibleWorkspaces}
-          onSelectWorkspace={setCurrentId}
+          onSelectWorkspace={handleWorkspaceChange}
         />
+        {switchingWorkspace && (
+          <Loader2 aria-label="Переключение workspace" className="size-4 animate-spin" />
+        )}
       </div>
 
       <div className="flex items-center gap-3 sm:gap-4">

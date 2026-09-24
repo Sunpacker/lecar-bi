@@ -1,10 +1,10 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { SESSION_COOKIE_NAME, parseSessionValue } from './src/features/auth/model/session'
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value
-  const session = parseSessionValue(sessionCookie)
+  const session = await parseSessionValue(sessionCookie)
   const isAuthenticated = session !== null
 
   if (pathname === '/login') {
@@ -18,6 +18,7 @@ export function middleware(request: NextRequest) {
   if (
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/api/health') ||
+    pathname.startsWith('/api/support') ||
     pathname.startsWith('/_next') ||
     pathname.includes('.')
   ) {

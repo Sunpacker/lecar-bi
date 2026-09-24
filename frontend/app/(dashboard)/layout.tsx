@@ -11,6 +11,7 @@ import { Sidebar } from '../../src/shared/ui/layout/sidebar'
 import { Header } from '../../src/shared/ui/layout/header'
 import { Footer } from '../../src/shared/ui/layout/footer'
 import { WorkspaceAccessProvider } from '../../src/features/workspace/ui/workspace-access-provider'
+import { getSelectedWorkspaceId } from '../../src/features/workspace/model/selected-workspace'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,13 +24,17 @@ export default async function DashboardLayout({
   }
 
   const userId = session.userId
+  const selectedWorkspaceId = await getSelectedWorkspaceId()
   const healthStatus = await loadHealthStatus()
 
   let workspaceContext: CurrentWorkspace | null = null
   let accessibleWorkspaces: Workspace[] = []
 
   try {
-    workspaceContext = await workspaceGateway.getCurrentWorkspace(userId)
+    workspaceContext = await workspaceGateway.getCurrentWorkspace(
+      userId,
+      selectedWorkspaceId,
+    )
     accessibleWorkspaces = await workspaceGateway.listWorkspaces(userId)
   } catch {
     // Backend may not have database seeded or may be starting

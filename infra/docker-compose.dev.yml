@@ -1,3 +1,12 @@
+x-backend-dev-volumes: &backend-dev-volumes
+  - ../backend:/var/www/html
+  - ../contracts:/var/www/contracts:ro
+  - ../docs:/var/www/docs:ro
+
+x-support-provider-dev-environment: &support-provider-dev-environment
+  # The bare adapter inherits an explicit shell value or falls back to Laravel dotenv.
+  SUPPORT_AI_ADAPTER:
+
 services:
   frontend:
     image: ${FRONTEND_DEV_IMAGE:-autobi/frontend:dev}
@@ -10,6 +19,26 @@ services:
       - ../frontend:/app
       - frontend-node-modules:/app/node_modules
       - frontend-next-cache:/app/.next
+
+  backend:
+    command: ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8080", "--no-reload"]
+    user: "${DEV_UID:-1000}:${DEV_GID:-1000}"
+    environment: *support-provider-dev-environment
+    volumes: *backend-dev-volumes
+
+  support-generation-worker:
+    user: "${DEV_UID:-1000}:${DEV_GID:-1000}"
+    environment: *support-provider-dev-environment
+    volumes: *backend-dev-volumes
+
+  support-indexing-worker:
+    user: "${DEV_UID:-1000}:${DEV_GID:-1000}"
+    environment: *support-provider-dev-environment
+    volumes: *backend-dev-volumes
+
+  backend-scheduler:
+    user: "${DEV_UID:-1000}:${DEV_GID:-1000}"
+    volumes: *backend-dev-volumes
 
   notification:
     volumes:

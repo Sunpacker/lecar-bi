@@ -643,6 +643,144 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/support/conversations': {
+    parameters: {
+      query?: never
+      header: {
+        /** @description Current workspace selected by the authenticated user */
+        'X-Workspace-Id': components['parameters']['WorkspaceIdHeader']
+      }
+      path?: never
+      cookie?: never
+    }
+    /** List the current user's conversations in the current workspace */
+    get: operations['listSupportConversations']
+    put?: never
+    /** Create a private support conversation */
+    post: operations['createSupportConversation']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/support/conversations/{id}': {
+    parameters: {
+      query?: never
+      header: {
+        /** @description Current workspace selected by the authenticated user */
+        'X-Workspace-Id': components['parameters']['WorkspaceIdHeader']
+      }
+      path: {
+        id: components['parameters']['SupportResourceId']
+      }
+      cookie?: never
+    }
+    /** Get an owned support conversation */
+    get: operations['getSupportConversation']
+    put?: never
+    post?: never
+    /** Revoke access and schedule cleanup of an owned conversation */
+    delete: operations['deleteSupportConversation']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/support/conversations/{id}/messages': {
+    parameters: {
+      query?: never
+      header: {
+        /** @description Current workspace selected by the authenticated user */
+        'X-Workspace-Id': components['parameters']['WorkspaceIdHeader']
+      }
+      path: {
+        id: components['parameters']['SupportResourceId']
+      }
+      cookie?: never
+    }
+    /** List persisted messages of an owned conversation */
+    get: operations['listSupportMessages']
+    put?: never
+    /** Persist a question and queue one generation */
+    post: operations['sendSupportMessage']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/support/generations/{id}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get persisted generation state without starting work */
+    get: operations['getSupportGeneration']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/support/generations/{id}/events': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /**
+     * Observe an existing generation as server-sent events
+     * @description The first event is a full snapshot or terminal event. Reconnect never starts a model call.
+     */
+    get: operations['streamSupportGenerationEvents']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/support/generations/{id}/retry': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Create an explicit new attempt for the latest failed generation */
+    post: operations['retrySupportGeneration']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/support/messages/{id}/feedback': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Upsert feedback for an owned completed assistant message */
+    post: operations['upsertSupportMessageFeedback']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
 }
 export type webhooks = Record<string, never>
 export interface components {
@@ -755,6 +893,7 @@ export interface components {
       | 'imports.manage'
       | 'alerts.view'
       | 'alerts.manage'
+      | 'support.use'
       | 'workspace.members.manage'
     WorkspaceMemberResponse: {
       user: components['schemas']['UserResponse']
@@ -1466,9 +1605,198 @@ export interface components {
       alerts_created: number
       alerts_updated: number
     }
+    CreateSupportConversationRequest: {
+      title?: string | null
+    }
+    SendSupportMessageRequest: {
+      /** Format: uuid */
+      client_message_id: string
+      content: string
+    }
+    RetrySupportGenerationRequest: {
+      /** Format: uuid */
+      retry_request_id: string
+    }
+    SupportFeedbackRequest: {
+      /** @enum {string} */
+      rating: 'helpful' | 'not_helpful'
+    }
+    SupportConversation: {
+      /** Format: uuid */
+      id: string
+      workspace_id: string
+      title: string
+      /** Format: date-time */
+      created_at: string
+      /** Format: date-time */
+      updated_at: string
+    }
+    SupportConversationResponse: {
+      conversation: components['schemas']['SupportConversation']
+    }
+    SupportConversationListResponse: {
+      items: components['schemas']['SupportConversation'][]
+      next_cursor: string | null
+    }
+    /** @enum {string} */
+    SupportGenerationStatus: 'queued' | 'running' | 'completed' | 'failed'
+    /** @enum {string|null} */
+    SupportGenerationOutcome: 'answered' | 'no_context' | null
+    SupportCitation: {
+      document_id: string
+      revision: string
+      /** Format: uuid */
+      chunk_id: string
+      title: string
+      url?: string | null
+      anchor?: string | null
+      available: boolean
+    }
+    SupportGeneration: {
+      /** Format: uuid */
+      id: string
+      /** Format: uuid */
+      conversation_id: string
+      /** Format: uuid */
+      user_message_id: string
+      /** Format: uuid */
+      assistant_message_id: string
+      attempt: number
+      status: components['schemas']['SupportGenerationStatus']
+      outcome?: components['schemas']['SupportGenerationOutcome']
+      sequence: number
+      text: string
+      error_code?: string | null
+      /** @default false */
+      retryable: boolean
+      citations: components['schemas']['SupportCitation'][]
+      /** Format: date-time */
+      created_at: string
+      /** Format: date-time */
+      updated_at: string
+    }
+    SupportGenerationResponse: {
+      generation: components['schemas']['SupportGeneration']
+    }
+    SupportGenerationAcceptedResponse: {
+      /** Format: uuid */
+      message_id: string
+      /** Format: uuid */
+      assistant_message_id: string
+      /** Format: uuid */
+      generation_id: string
+    }
+    SupportMessage: {
+      /** Format: uuid */
+      id: string
+      /** Format: uuid */
+      conversation_id: string
+      /** @enum {string} */
+      role: 'user' | 'assistant'
+      content: string
+      position: number
+      /** Format: uuid */
+      generation_id?: string | null
+      generation_status?: components['schemas']['SupportGenerationStatus']
+      outcome?: components['schemas']['SupportGenerationOutcome']
+      citations: components['schemas']['SupportCitation'][]
+      /** Format: date-time */
+      created_at: string
+    }
+    SupportMessageListResponse: {
+      items: components['schemas']['SupportMessage'][]
+      next_cursor: string | null
+    }
+    SupportFeedbackResponse: {
+      /** Format: uuid */
+      message_id: string
+      /** @enum {string} */
+      rating: 'helpful' | 'not_helpful'
+      /** Format: date-time */
+      updated_at: string
+    }
+    SupportGenerationSnapshotEvent: {
+      /** Format: uuid */
+      generation_id: string
+      sequence: number
+      status: components['schemas']['SupportGenerationStatus']
+      text: string
+    }
+    SupportGenerationCompletedEvent: components['schemas']['SupportGenerationSnapshotEvent'] & {
+      /** @enum {string} */
+      outcome: 'answered' | 'no_context'
+      citations: components['schemas']['SupportCitation'][]
+    }
+    SupportGenerationFailedEvent: components['schemas']['SupportGenerationSnapshotEvent'] & {
+      error_code: string
+      retryable: boolean
+    }
   }
-  responses: never
-  parameters: never
+  responses: {
+    /** @description Session is missing or invalid */
+    Unauthenticated: {
+      headers: {
+        [name: string]: unknown
+      }
+      content: {
+        'application/json': components['schemas']['ErrorResponse']
+      }
+    }
+    /** @description Current membership lacks support.use */
+    Forbidden: {
+      headers: {
+        [name: string]: unknown
+      }
+      content: {
+        'application/json': components['schemas']['ErrorResponse']
+      }
+    }
+    /** @description Resource is absent or not owned in the current workspace */
+    NotFound: {
+      headers: {
+        [name: string]: unknown
+      }
+      content: {
+        'application/json': components['schemas']['ErrorResponse']
+      }
+    }
+    /** @description Idempotency payload or generation lifecycle conflict */
+    Conflict: {
+      headers: {
+        [name: string]: unknown
+      }
+      content: {
+        'application/json': components['schemas']['ErrorResponse']
+      }
+    }
+    /** @description Invalid request */
+    ValidationError: {
+      headers: {
+        [name: string]: unknown
+      }
+      content: {
+        'application/json': components['schemas']['ErrorResponse']
+      }
+    }
+    /** @description Admission, concurrency, or budget limit exceeded */
+    RateLimited: {
+      headers: {
+        'Retry-After'?: number
+        [name: string]: unknown
+      }
+      content: {
+        'application/json': components['schemas']['ErrorResponse']
+      }
+    }
+  }
+  parameters: {
+    IdempotencyKey: string
+    /** @description Current workspace selected by the authenticated user */
+    WorkspaceIdHeader: string
+    SupportResourceId: string
+    Cursor: string | null
+    PerPage: number
+  }
   requestBodies: never
   headers: never
   pathItems: never
@@ -4003,6 +4331,318 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
+    }
+  }
+  listSupportConversations: {
+    parameters: {
+      query?: {
+        cursor?: components['parameters']['Cursor']
+        per_page?: components['parameters']['PerPage']
+      }
+      header: {
+        /** @description Current workspace selected by the authenticated user */
+        'X-Workspace-Id': components['parameters']['WorkspaceIdHeader']
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Cursor-paginated conversations */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SupportConversationListResponse']
+        }
+      }
+      401: components['responses']['Unauthenticated']
+      403: components['responses']['Forbidden']
+    }
+  }
+  createSupportConversation: {
+    parameters: {
+      query?: never
+      header: {
+        /** @description Current workspace selected by the authenticated user */
+        'X-Workspace-Id': components['parameters']['WorkspaceIdHeader']
+        'Idempotency-Key': components['parameters']['IdempotencyKey']
+      }
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateSupportConversationRequest']
+      }
+    }
+    responses: {
+      /** @description Conversation created or an idempotent result returned */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SupportConversationResponse']
+        }
+      }
+      401: components['responses']['Unauthenticated']
+      403: components['responses']['Forbidden']
+      409: components['responses']['Conflict']
+      422: components['responses']['ValidationError']
+    }
+  }
+  getSupportConversation: {
+    parameters: {
+      query?: never
+      header: {
+        /** @description Current workspace selected by the authenticated user */
+        'X-Workspace-Id': components['parameters']['WorkspaceIdHeader']
+      }
+      path: {
+        id: components['parameters']['SupportResourceId']
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Conversation metadata */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SupportConversationResponse']
+        }
+      }
+      401: components['responses']['Unauthenticated']
+      403: components['responses']['Forbidden']
+      404: components['responses']['NotFound']
+    }
+  }
+  deleteSupportConversation: {
+    parameters: {
+      query?: never
+      header: {
+        /** @description Current workspace selected by the authenticated user */
+        'X-Workspace-Id': components['parameters']['WorkspaceIdHeader']
+      }
+      path: {
+        id: components['parameters']['SupportResourceId']
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Conversation deleted */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      401: components['responses']['Unauthenticated']
+      403: components['responses']['Forbidden']
+      404: components['responses']['NotFound']
+    }
+  }
+  listSupportMessages: {
+    parameters: {
+      query?: {
+        cursor?: components['parameters']['Cursor']
+        per_page?: components['parameters']['PerPage']
+      }
+      header: {
+        /** @description Current workspace selected by the authenticated user */
+        'X-Workspace-Id': components['parameters']['WorkspaceIdHeader']
+      }
+      path: {
+        id: components['parameters']['SupportResourceId']
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Cursor-paginated messages */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SupportMessageListResponse']
+        }
+      }
+      401: components['responses']['Unauthenticated']
+      403: components['responses']['Forbidden']
+      404: components['responses']['NotFound']
+    }
+  }
+  sendSupportMessage: {
+    parameters: {
+      query?: never
+      header: {
+        /** @description Current workspace selected by the authenticated user */
+        'X-Workspace-Id': components['parameters']['WorkspaceIdHeader']
+        'Idempotency-Key': components['parameters']['IdempotencyKey']
+      }
+      path: {
+        id: components['parameters']['SupportResourceId']
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SendSupportMessageRequest']
+      }
+    }
+    responses: {
+      /** @description Message and generation accepted transactionally */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SupportGenerationAcceptedResponse']
+        }
+      }
+      401: components['responses']['Unauthenticated']
+      403: components['responses']['Forbidden']
+      404: components['responses']['NotFound']
+      409: components['responses']['Conflict']
+      422: components['responses']['ValidationError']
+      429: components['responses']['RateLimited']
+    }
+  }
+  getSupportGeneration: {
+    parameters: {
+      query?: never
+      header: {
+        /** @description Current workspace selected by the authenticated user */
+        'X-Workspace-Id': components['parameters']['WorkspaceIdHeader']
+      }
+      path: {
+        id: components['parameters']['SupportResourceId']
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Current generation snapshot */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SupportGenerationResponse']
+        }
+      }
+      401: components['responses']['Unauthenticated']
+      403: components['responses']['Forbidden']
+      404: components['responses']['NotFound']
+    }
+  }
+  streamSupportGenerationEvents: {
+    parameters: {
+      query?: never
+      header: {
+        /** @description Current workspace selected by the authenticated user */
+        'X-Workspace-Id': components['parameters']['WorkspaceIdHeader']
+        'Last-Event-ID'?: number
+      }
+      path: {
+        id: components['parameters']['SupportResourceId']
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description SSE stream; id is the generation-local sequence */
+      200: {
+        headers: {
+          'Cache-Control'?: string
+          'X-Accel-Buffering'?: string
+          [name: string]: unknown
+        }
+        content: {
+          'text/event-stream':
+            | components['schemas']['SupportGenerationSnapshotEvent']
+            | components['schemas']['SupportGenerationCompletedEvent']
+            | components['schemas']['SupportGenerationFailedEvent']
+        }
+      }
+      401: components['responses']['Unauthenticated']
+      403: components['responses']['Forbidden']
+      404: components['responses']['NotFound']
+    }
+  }
+  retrySupportGeneration: {
+    parameters: {
+      query?: never
+      header: {
+        /** @description Current workspace selected by the authenticated user */
+        'X-Workspace-Id': components['parameters']['WorkspaceIdHeader']
+        'Idempotency-Key': components['parameters']['IdempotencyKey']
+      }
+      path: {
+        id: components['parameters']['SupportResourceId']
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RetrySupportGenerationRequest']
+      }
+    }
+    responses: {
+      /** @description Retry generation accepted */
+      202: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SupportGenerationAcceptedResponse']
+        }
+      }
+      401: components['responses']['Unauthenticated']
+      403: components['responses']['Forbidden']
+      404: components['responses']['NotFound']
+      409: components['responses']['Conflict']
+      429: components['responses']['RateLimited']
+    }
+  }
+  upsertSupportMessageFeedback: {
+    parameters: {
+      query?: never
+      header: {
+        /** @description Current workspace selected by the authenticated user */
+        'X-Workspace-Id': components['parameters']['WorkspaceIdHeader']
+      }
+      path: {
+        id: components['parameters']['SupportResourceId']
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SupportFeedbackRequest']
+      }
+    }
+    responses: {
+      /** @description Feedback stored */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['SupportFeedbackResponse']
+        }
+      }
+      401: components['responses']['Unauthenticated']
+      403: components['responses']['Forbidden']
+      404: components['responses']['NotFound']
+      409: components['responses']['Conflict']
+      422: components['responses']['ValidationError']
     }
   }
 }

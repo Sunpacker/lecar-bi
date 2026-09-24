@@ -5,8 +5,8 @@ services:
     image: ${BACKEND_IMAGE:-lecar-bi/backend:latest}
 
     build:
-      context: ../backend
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: backend/Dockerfile
 
     environment:
       APP_NAME: ${APP_NAME:-Lecar BI}
@@ -30,6 +30,24 @@ services:
       REDIS_PORT: 6379
       CACHE_STORE: redis
       QUEUE_CONNECTION: redis
+      SUPPORT_AI_ADAPTER: ${SUPPORT_AI_ADAPTER:-disabled}
+      GEMMA_API_KEY: ${GEMMA_API_KEY:-}
+      SUPPORT_GOOGLE_CHAT_MODEL: ${SUPPORT_GOOGLE_CHAT_MODEL:-gemma-4-26b-a4b-it}
+      SUPPORT_GOOGLE_EMBEDDING_MODEL: ${SUPPORT_GOOGLE_EMBEDDING_MODEL:-gemini-embedding-2}
+      SUPPORT_GOOGLE_EMBEDDING_DIMENSIONS: ${SUPPORT_GOOGLE_EMBEDDING_DIMENSIONS:-768}
+      SUPPORT_GOOGLE_THINKING_LEVEL: ${SUPPORT_GOOGLE_THINKING_LEVEL:-minimal}
+      SUPPORT_PROMPT_VERSION: ${SUPPORT_PROMPT_VERSION:-support-google-v1}
+      SUPPORT_RETRIEVAL_PROFILE: ${SUPPORT_RETRIEVAL_PROFILE:-hybrid-rrf-v2}
+      SUPPORT_MINIMUM_RRF_SCORE: ${SUPPORT_MINIMUM_RRF_SCORE:-0.025}
+      SUPPORT_MINIMUM_HYBRID_VECTOR_SCORE: ${SUPPORT_MINIMUM_HYBRID_VECTOR_SCORE:-0.65}
+      SUPPORT_MINIMUM_SEMANTIC_VECTOR_SCORE: ${SUPPORT_MINIMUM_SEMANTIC_VECTOR_SCORE:-0.70}
+      SUPPORT_RETENTION_DAYS: ${SUPPORT_RETENTION_DAYS:-7}
+      SUPPORT_BFF_SHARED_SECRET: ${SUPPORT_BFF_SHARED_SECRET:?SUPPORT_BFF_SHARED_SECRET must be set}
+      SUPPORT_GENERATION_QUEUE: ${SUPPORT_GENERATION_QUEUE:-ai-generation}
+      SUPPORT_INDEXING_QUEUE: ${SUPPORT_INDEXING_QUEUE:-ai-indexing}
+      SUPPORT_WORKSPACE_DAILY_TOKEN_BUDGET: ${SUPPORT_WORKSPACE_DAILY_TOKEN_BUDGET:-200000}
+      SUPPORT_ENVIRONMENT_DAILY_TOKEN_BUDGET: ${SUPPORT_ENVIRONMENT_DAILY_TOKEN_BUDGET:-1000000}
+      SUPPORT_INDEXING_DAILY_TOKEN_BUDGET: ${SUPPORT_INDEXING_DAILY_TOKEN_BUDGET:-500000}
 
     expose:
       - "8080"
@@ -56,8 +74,112 @@ services:
         aliases:
           - lecar-bi-backend
 
+  support-generation-worker:
+    image: ${BACKEND_IMAGE:-lecar-bi/backend:latest}
+    command: ["php", "artisan", "queue:work", "redis", "--queue=ai-generation", "--tries=1", "--timeout=95"]
+    environment:
+      APP_ENV: production
+      APP_KEY: ${APP_KEY:?APP_KEY must be set}
+      APP_DEBUG: "false"
+      LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-lecar_bi}
+      DB_USERNAME: ${POSTGRES_USER:-lecar_bi}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      QUEUE_CONNECTION: redis
+      SUPPORT_AI_ADAPTER: ${SUPPORT_AI_ADAPTER:-disabled}
+      GEMMA_API_KEY: ${GEMMA_API_KEY:-}
+      SUPPORT_GOOGLE_CHAT_MODEL: ${SUPPORT_GOOGLE_CHAT_MODEL:-gemma-4-26b-a4b-it}
+      SUPPORT_GOOGLE_EMBEDDING_MODEL: ${SUPPORT_GOOGLE_EMBEDDING_MODEL:-gemini-embedding-2}
+      SUPPORT_GOOGLE_EMBEDDING_DIMENSIONS: ${SUPPORT_GOOGLE_EMBEDDING_DIMENSIONS:-768}
+      SUPPORT_GOOGLE_THINKING_LEVEL: ${SUPPORT_GOOGLE_THINKING_LEVEL:-minimal}
+      SUPPORT_PROMPT_VERSION: ${SUPPORT_PROMPT_VERSION:-support-google-v1}
+      SUPPORT_RETRIEVAL_PROFILE: ${SUPPORT_RETRIEVAL_PROFILE:-hybrid-rrf-v2}
+      SUPPORT_MINIMUM_RRF_SCORE: ${SUPPORT_MINIMUM_RRF_SCORE:-0.025}
+      SUPPORT_MINIMUM_HYBRID_VECTOR_SCORE: ${SUPPORT_MINIMUM_HYBRID_VECTOR_SCORE:-0.65}
+      SUPPORT_MINIMUM_SEMANTIC_VECTOR_SCORE: ${SUPPORT_MINIMUM_SEMANTIC_VECTOR_SCORE:-0.70}
+      SUPPORT_GENERATION_QUEUE: ${SUPPORT_GENERATION_QUEUE:-ai-generation}
+      SUPPORT_WORKSPACE_DAILY_TOKEN_BUDGET: ${SUPPORT_WORKSPACE_DAILY_TOKEN_BUDGET:-200000}
+      SUPPORT_ENVIRONMENT_DAILY_TOKEN_BUDGET: ${SUPPORT_ENVIRONMENT_DAILY_TOKEN_BUDGET:-1000000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - internal
+
+  support-indexing-worker:
+    image: ${BACKEND_IMAGE:-lecar-bi/backend:latest}
+    command: ["php", "artisan", "queue:work", "redis", "--queue=ai-indexing", "--tries=3", "--timeout=300"]
+    environment:
+      APP_ENV: production
+      APP_KEY: ${APP_KEY:?APP_KEY must be set}
+      APP_DEBUG: "false"
+      LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-lecar_bi}
+      DB_USERNAME: ${POSTGRES_USER:-lecar_bi}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      QUEUE_CONNECTION: redis
+      SUPPORT_AI_ADAPTER: ${SUPPORT_AI_ADAPTER:-disabled}
+      GEMMA_API_KEY: ${GEMMA_API_KEY:-}
+      SUPPORT_GOOGLE_EMBEDDING_MODEL: ${SUPPORT_GOOGLE_EMBEDDING_MODEL:-gemini-embedding-2}
+      SUPPORT_GOOGLE_EMBEDDING_DIMENSIONS: ${SUPPORT_GOOGLE_EMBEDDING_DIMENSIONS:-768}
+      SUPPORT_INDEXING_QUEUE: ${SUPPORT_INDEXING_QUEUE:-ai-indexing}
+      SUPPORT_INDEXING_DAILY_TOKEN_BUDGET: ${SUPPORT_INDEXING_DAILY_TOKEN_BUDGET:-500000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - internal
+
+  backend-scheduler:
+    image: ${BACKEND_IMAGE:-lecar-bi/backend:latest}
+    command: ["php", "artisan", "schedule:work"]
+    environment:
+      APP_ENV: production
+      APP_KEY: ${APP_KEY:?APP_KEY must be set}
+      APP_DEBUG: "false"
+      LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-lecar_bi}
+      DB_USERNAME: ${POSTGRES_USER:-lecar_bi}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      QUEUE_CONNECTION: redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - internal
+
   postgres:
-    image: ${POSTGRES_IMAGE:-postgres:16-alpine}
+    image: ${ANALYTICS_POSTGRES_IMAGE:-pgvector/pgvector:pg16}
 
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-lecar_bi}

@@ -51,6 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - run: ./scripts/verify-support-provider-compose.sh
       - run: docker compose --env-file infra/.env.example -f infra/docker-compose.yml build frontend
       - run: docker compose --env-file infra/.env.example -f infra/docker-compose.yml build backend
 

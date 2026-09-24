@@ -1,3 +1,6 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = { output: 'standalone' }
+const nextConfig = {
+  output: 'standalone',
+  experimental: { useTypeScriptCli: false },
+}
 export default nextConfig

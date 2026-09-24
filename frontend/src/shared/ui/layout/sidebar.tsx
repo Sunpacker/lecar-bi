@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   UploadCloud,
   ShieldCheck,
+  MessageCircleQuestion,
 } from 'lucide-react'
 import { useWorkspaceAccess } from '../../../features/workspace/ui/workspace-access-provider'
 import type { WorkspaceCapability } from '../../../features/workspace/model/workspace-access'
@@ -33,6 +34,12 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { name: 'Импорт данных', href: '/imports', icon: UploadCloud },
   { name: 'Поставщики', href: '/suppliers', icon: Users },
   { name: 'Алерты', href: '/alerts', icon: Bell },
+  {
+    name: 'Поддержка',
+    href: '/support',
+    icon: MessageCircleQuestion,
+    requiredCapability: 'support.use',
+  },
   {
     name: 'Доступ',
     href: '/settings/access',
