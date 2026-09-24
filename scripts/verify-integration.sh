@@ -5,7 +5,11 @@ set -eu
 FRONTEND_URL="${FRONTEND_URL:-http://127.0.0.1:3000}"
 BACKEND_URL="${BACKEND_URL:-http://127.0.0.1:8080}"
 NOTIFICATION_URL="${NOTIFICATION_URL:-http://127.0.0.1:8081}"
-INFRA_ENV_FILE="${INFRA_ENV_FILE:-infra/.env.example}"
+if [ -z "${INFRA_ENV_FILE:-}" ]; then
+    INFRA_ENV_FILE=infra/.env.example
+    if [ -f infra/.env ]; then INFRA_ENV_FILE=infra/.env; fi
+    if [ -f infra/.env.dev ]; then INFRA_ENV_FILE=infra/.env.dev; fi
+fi
 MAX_ATTEMPTS="${MAX_ATTEMPTS:-30}"
 
 wait_for_service() {

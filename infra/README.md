@@ -11,6 +11,11 @@
 
 Сервисы имеют собственные Dockerfile и разворачиваются независимо. Базы данных строго изолированы: notification service не имеет доступа к аналитической БД.
 
+`infra/.env.example` — общий шаблон для Compose: `APP_ENV`, `APP_DEBUG`, логирование,
+`REDIS_CLIENT`, `REDIS_HOST`, `INTEGRATION_EVENTS_REDIS_DB`, `INTEGRATION_STREAM_NAME`
+и `SUPPORT_BFF_SHARED_SECRET` задаются здесь один раз.
+В `backend/`, `frontend/` и `notification/` остаются шаблоны настроек самих сервисов.
+
 - `docker-compose.yml` описывает production-like запуск immutable образов.
 - `docker-compose.dev.yml` добавляет development target для frontend, bind mount исходников для backend и notification, и отдельные тома.
 
@@ -25,6 +30,10 @@ HTTP backend использует `artisan serve --no-reload`, чтобы reload
 параметров Compose и production-like/VPS запуска.
 
 Из корня репозитория используйте `make dev` для разработки с Fast Refresh и `make infra-up` для проверки production-сборки.
+`make dev` подготавливает отдельный локальный `infra/.env.dev`: создаёт его при отсутствии и записывает
+случайные `SESSION_SECRET` и `SUPPORT_BFF_SHARED_SECRET`, если значения ещё не заданы. Существующие секреты не меняются.
+Для PostgreSQL и Redis dev файл использует порты хоста `15432`, `15433` и `16379`, чтобы не занимать стандартные порты других локальных стеков.
+`make infra-up` и `make vps-up` используют `infra/.env`.
 
 Development entrypoint синхронизирует `node_modules` с `package-lock.json` только после изменения lock-файла, поэтому именованный Docker volume не сохраняет устаревшие зависимости.
 

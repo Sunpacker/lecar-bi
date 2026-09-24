@@ -49,6 +49,8 @@ jobs:
 
   container-builds:
     runs-on: ubuntu-latest
+    env:
+      SUPPORT_BFF_SHARED_SECRET: ci-support-bff-secret-at-least-32-characters
     steps:
       - uses: actions/checkout@v7
       - run: ./scripts/verify-support-provider-compose.sh
@@ -58,6 +60,8 @@ jobs:
   integration:
     runs-on: ubuntu-latest
     needs: [frontend-and-contracts, backend, container-builds]
+    env:
+      SUPPORT_BFF_SHARED_SECRET: ci-support-bff-secret-at-least-32-characters
     steps:
       - uses: actions/checkout@v7
       - run: docker compose --env-file infra/.env.example -f infra/docker-compose.yml up --build --detach

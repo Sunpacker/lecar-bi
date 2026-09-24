@@ -47,11 +47,13 @@ services:
       DB_DATABASE: ${POSTGRES_DB:-autobi}
       DB_USERNAME: ${POSTGRES_USER:-autobi}
       DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
-      REDIS_CLIENT: predis
-      REDIS_HOST: redis
+      REDIS_CLIENT: ${REDIS_CLIENT:-predis}
+      REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: 6379
       CACHE_STORE: redis
       QUEUE_CONNECTION: redis
+      OUTBOX_REDIS_DB: ${INTEGRATION_EVENTS_REDIS_DB:-2}
+      OUTBOX_STREAM_NAME: ${INTEGRATION_STREAM_NAME:-autobi.integration-events}
       SUPPORT_AI_ADAPTER: ${SUPPORT_AI_ADAPTER:-disabled}
       SUPPORT_GOOGLE_CHAT_MODEL: ${SUPPORT_GOOGLE_CHAT_MODEL:-gemma-4-26b-a4b-it}
       SUPPORT_GOOGLE_EMBEDDING_MODEL: ${SUPPORT_GOOGLE_EMBEDDING_MODEL:-gemini-embedding-2}
@@ -96,8 +98,8 @@ services:
       DB_DATABASE: ${POSTGRES_DB:-autobi}
       DB_USERNAME: ${POSTGRES_USER:-autobi}
       DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
-      REDIS_CLIENT: predis
-      REDIS_HOST: redis
+      REDIS_CLIENT: ${REDIS_CLIENT:-predis}
+      REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: 6379
       QUEUE_CONNECTION: redis
       SUPPORT_AI_ADAPTER: ${SUPPORT_AI_ADAPTER:-disabled}
@@ -129,8 +131,8 @@ services:
       DB_DATABASE: ${POSTGRES_DB:-autobi}
       DB_USERNAME: ${POSTGRES_USER:-autobi}
       DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
-      REDIS_CLIENT: predis
-      REDIS_HOST: redis
+      REDIS_CLIENT: ${REDIS_CLIENT:-predis}
+      REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: 6379
       QUEUE_CONNECTION: redis
       SUPPORT_AI_ADAPTER: ${SUPPORT_AI_ADAPTER:-disabled}
@@ -154,8 +156,8 @@ services:
       DB_DATABASE: ${POSTGRES_DB:-autobi}
       DB_USERNAME: ${POSTGRES_USER:-autobi}
       DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
-      REDIS_CLIENT: predis
-      REDIS_HOST: redis
+      REDIS_CLIENT: ${REDIS_CLIENT:-predis}
+      REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: 6379
       QUEUE_CONNECTION: redis
     depends_on:
@@ -212,8 +214,8 @@ services:
       DB_DATABASE: ${NOTIFICATION_POSTGRES_DB:-notification}
       DB_USERNAME: ${NOTIFICATION_POSTGRES_USER:-notification}
       DB_PASSWORD: ${NOTIFICATION_POSTGRES_PASSWORD:-notification}
-      REDIS_CLIENT: predis
-      REDIS_HOST: redis
+      REDIS_CLIENT: ${REDIS_CLIENT:-predis}
+      REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       INTEGRATION_EVENTS_REDIS_DB: ${INTEGRATION_EVENTS_REDIS_DB:-2}
@@ -253,8 +255,8 @@ services:
       DB_DATABASE: ${NOTIFICATION_POSTGRES_DB:-notification}
       DB_USERNAME: ${NOTIFICATION_POSTGRES_USER:-notification}
       DB_PASSWORD: ${NOTIFICATION_POSTGRES_PASSWORD:-notification}
-      REDIS_CLIENT: predis
-      REDIS_HOST: redis
+      REDIS_CLIENT: ${REDIS_CLIENT:-predis}
+      REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       INTEGRATION_EVENTS_REDIS_DB: ${INTEGRATION_EVENTS_REDIS_DB:-2}

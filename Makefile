@@ -1,10 +1,11 @@
 INFRA_ENV_FILE ?= $(if $(wildcard infra/.env),infra/.env,infra/.env.example)
+DEV_ENV_FILE ?= infra/.env.dev
 COMPOSE = docker compose --env-file $(INFRA_ENV_FILE) -f infra/docker-compose.yml
-DEV_COMPOSE = $(COMPOSE) -f infra/docker-compose.dev.yml
+DEV_COMPOSE = docker compose --env-file $(DEV_ENV_FILE) -f infra/docker-compose.yml -f infra/docker-compose.dev.yml
 VPS_COMPOSE = docker compose --env-file $(INFRA_ENV_FILE) -f infra/docker-compose.vps.yml
 export COMPOSER_HOME ?= $(CURDIR)/.composer
 
-.PHONY: install install-frontend install-backend install-notification dev dev-down dev-frontend infra-up infra-down build build-backend build-notification build-vps vps-up check check-frontend check-backend check-notification check-contracts test integration migrate migrate-seed migrate-fresh seed artisan notification-migrate notification-artisan performance-seed performance-benchmark
+.PHONY: install install-frontend install-backend install-notification prepare-dev-env dev dev-down dev-frontend infra-up infra-down build build-backend build-notification build-vps vps-up check check-frontend check-backend check-notification check-contracts test integration migrate migrate-seed migrate-fresh seed artisan notification-migrate notification-artisan performance-seed performance-benchmark
 install: install-frontend install-backend install-notification
 
 install-frontend:
@@ -16,7 +17,10 @@ install-backend:
 install-notification:
 	composer --working-dir=notification install --no-interaction
 
-dev:
+prepare-dev-env:
+	python3 scripts/prepare-dev-env.py
+
+dev: prepare-dev-env
 	$(DEV_COMPOSE) up --build -d
 
 dev-down:
