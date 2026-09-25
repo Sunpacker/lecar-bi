@@ -250,6 +250,7 @@ services:
     restart: unless-stopped
     networks:
       - internal
+      - grafana-host
 
 volumes:
   postgres-data:
@@ -263,6 +264,8 @@ networks:
   internal:
     driver: bridge
     internal: true
+  grafana-host:
+    driver: bridge
   proxy:
     external: true
     name: ${CADDY_NETWORK:-proxy}
