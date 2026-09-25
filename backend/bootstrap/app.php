@@ -4,8 +4,10 @@ use App\Console\Commands\BenchmarkAnalyticsCommand;
 use App\Console\Commands\SeedPerformanceDatasetCommand;
 use App\Modules\Alerting\Infrastructure\Commands\EvaluateAlertsConsoleCommand;
 use App\Modules\Workspace\Presentation\Middleware\RequireWorkspaceCapabilityMiddleware;
+use App\Shared\Infrastructure\Commands\OutboxHealthCommand;
 use App\Shared\Infrastructure\Commands\OutboxPublishCommand;
 use App\Shared\Infrastructure\Commands\OutboxRetryCommand;
+use App\Shared\Infrastructure\Http\Middleware\SecurityHeadersMiddleware;
 use App\Shared\Infrastructure\Http\Middleware\TraceContextMiddleware;
 use App\Shared\Infrastructure\Jobs\PublishOutboxMessagesJob;
 use Illuminate\Foundation\Application;
@@ -24,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         EvaluateAlertsConsoleCommand::class,
         OutboxPublishCommand::class,
         OutboxRetryCommand::class,
+        OutboxHealthCommand::class,
         SeedPerformanceDatasetCommand::class,
         BenchmarkAnalyticsCommand::class,
     ])
@@ -36,6 +39,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(TraceContextMiddleware::class);
+        $middleware->append(SecurityHeadersMiddleware::class);
         $middleware->alias([
             'workspace.can' => RequireWorkspaceCapabilityMiddleware::class,
         ]);

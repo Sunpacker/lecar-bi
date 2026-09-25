@@ -62,14 +62,20 @@ use App\Shared\Application\Ports\OutboxRepositoryInterface;
 use App\Shared\Application\Ports\TransactionManagerInterface;
 use App\Shared\Infrastructure\Cache\AnalyticsDatasetVersionStore;
 use App\Shared\Infrastructure\Cache\AnalyticsResultCache;
+use App\Shared\Infrastructure\Health\DefaultDependencyHealthChecker;
+use App\Shared\Infrastructure\Health\DependencyHealthCheckerInterface;
 use App\Shared\Infrastructure\Outbox\InMemoryOutboxRepository;
 use App\Shared\Infrastructure\Persistence\Eloquent\Repositories\EloquentOutboxRepository;
 use App\Shared\Infrastructure\Persistence\LaravelTransactionManager;
 use App\Shared\Infrastructure\Persistence\NoOpTransactionManager;
+use App\Shared\Infrastructure\Security\ProductionSafetyCheck;
 use App\Shared\Infrastructure\Transport\InMemoryIntegrationEventTransport;
 use App\Shared\Infrastructure\Transport\RedisStreamIntegrationEventTransport;
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\ConnectionInterface;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -109,6 +115,23 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return new LaravelWorkspaceTransactionManager;
+        });
+
+        $this->app->singleton(DependencyHealthCheckerInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new class implements DependencyHealthCheckerInterface
+                {
+                    public function check(): array
+                    {
+                        return [
+                            'database' => 'ok',
+                            'redis' => 'ok',
+                        ];
+                    }
+                };
+            }
+
+            return new DefaultDependencyHealthChecker;
         });
 
         $this->app->singleton(AnalyticsDatasetVersionStore::class);
@@ -301,5 +324,82 @@ class AppServiceProvider extends ServiceProvider
         });
     }
 
-    public function boot(): void {}
+    public function boot(): void
+    {
+        ProductionSafetyCheck::check(
+            $this->app->isProduction(),
+            [
+                'app_debug' => config('app.debug'),
+                'app_key' => config('app.key'),
+                'db_password' => config('database.connections.pgsql.password'),
+            ]
+        );
+
+        RateLimiter::for('login', function (Request $request) {
+            $ip = (string) ($request->ip() ?? '127.0.0.1');
+
+            return Limit::perMinute(5)
+                ->by($ip)
+                ->response(function (Request $request, array $headers) {
+                    return response()->json([
+                        'message' => 'Too many login attempts. Please try again later.',
+                        'code' => 'TOO_MANY_REQUESTS',
+                    ], 429, $headers);
+                });
+        });
+
+        RateLimiter::for('imports', function (Request $request) {
+            $workspaceId = (string) (
+                $request->attributes->get('current_workspace_id')
+                ?: $request->header('X-Workspace-Id')
+                ?: $request->ip()
+                ?: 'default'
+            );
+
+            return Limit::perMinute(10)
+                ->by($workspaceId)
+                ->response(function (Request $request, array $headers) {
+                    return response()->json([
+                        'message' => 'Too many import requests for this workspace. Please try again later.',
+                        'code' => 'TOO_MANY_REQUESTS',
+                    ], 429, $headers);
+                });
+        });
+
+        RateLimiter::for('api-write', function (Request $request) {
+            $key = (string) (
+                $request->attributes->get('authenticated_user_id')
+                ?: $request->header('X-User-Id')
+                ?: $request->ip()
+                ?: 'default'
+            );
+
+            return Limit::perMinute(60)
+                ->by($key)
+                ->response(function (Request $request, array $headers) {
+                    return response()->json([
+                        'message' => 'Too many write requests. Please try again later.',
+                        'code' => 'TOO_MANY_REQUESTS',
+                    ], 429, $headers);
+                });
+        });
+
+        RateLimiter::for('api-read', function (Request $request) {
+            $key = (string) (
+                $request->attributes->get('authenticated_user_id')
+                ?: $request->header('X-User-Id')
+                ?: $request->ip()
+                ?: 'default'
+            );
+
+            return Limit::perMinute(300)
+                ->by($key)
+                ->response(function (Request $request, array $headers) {
+                    return response()->json([
+                        'message' => 'Too many read requests. Please try again later.',
+                        'code' => 'TOO_MANY_REQUESTS',
+                    ], 429, $headers);
+                });
+        });
+    }
 }

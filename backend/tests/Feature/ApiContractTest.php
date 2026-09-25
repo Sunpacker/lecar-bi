@@ -352,8 +352,10 @@ final class ApiContractTest extends TestCase
         self::assertEqualsCanonicalizing($schema['required'], array_keys($payload));
 
         foreach ($schema['properties'] as $property => $definition) {
-            self::assertIsString($payload[$property]);
-            self::assertContains($payload[$property], $definition['enum']);
+            if (isset($definition['enum'])) {
+                self::assertIsString($payload[$property]);
+                self::assertContains($payload[$property], $definition['enum']);
+            }
         }
     }
 }

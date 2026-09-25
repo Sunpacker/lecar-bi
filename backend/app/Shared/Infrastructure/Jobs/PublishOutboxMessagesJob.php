@@ -7,6 +7,7 @@ namespace App\Shared\Infrastructure\Jobs;
 use App\Shared\Application\IntegrationEvent;
 use App\Shared\Application\Ports\IntegrationEventTransportInterface;
 use App\Shared\Application\Ports\OutboxRepositoryInterface;
+use App\Shared\Infrastructure\Health\OutboxHealthService;
 use App\Shared\Infrastructure\Persistence\Eloquent\Repositories\EloquentOutboxRepository;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
@@ -55,6 +56,7 @@ final class PublishOutboxMessagesJob implements ShouldBeUnique, ShouldQueue
         ]);
 
         try {
+            OutboxHealthService::recordPublisherHeartbeat();
             $batchSize = (int) config('outbox.batch_size', 100);
             $messages = $outboxRepository->claimPendingBatch($batchSize);
 

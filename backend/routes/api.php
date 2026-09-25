@@ -14,26 +14,30 @@ use App\Modules\Workspace\Presentation\Controllers\ProfileController;
 use App\Modules\Workspace\Presentation\Controllers\WorkspaceController;
 use App\Modules\Workspace\Presentation\Controllers\WorkspaceMemberController;
 use App\Modules\Workspace\Presentation\Middleware\AuthenticateUserIdMiddleware;
+use App\Shared\Presentation\Controllers\HealthController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
-    Route::get('/health', fn () => response()->json(['status' => 'ok', 'service' => 'analytics', 'version' => 'v1']));
-    Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::get('/health', [HealthController::class, 'health']);
+    Route::get('/health/live', [HealthController::class, 'live']);
+    Route::get('/health/ready', [HealthController::class, 'ready']);
+    Route::get('/health/outbox', [HealthController::class, 'outbox']);
+    Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
     Route::middleware(AuthenticateUserIdMiddleware::class)->group(function () {
-        Route::get('/me', [ProfileController::class, 'me']);
-        Route::get('/workspaces', [WorkspaceController::class, 'index']);
-        Route::get('/workspaces/current', [CurrentWorkspaceController::class, 'show']);
-        Route::get('/workspaces/{id}', [WorkspaceController::class, 'show']);
+        Route::get('/me', [ProfileController::class, 'me'])->middleware('throttle:api-read');
+        Route::get('/workspaces', [WorkspaceController::class, 'index'])->middleware('throttle:api-read');
+        Route::get('/workspaces/current', [CurrentWorkspaceController::class, 'show'])->middleware('throttle:api-read');
+        Route::get('/workspaces/{id}', [WorkspaceController::class, 'show'])->middleware('throttle:api-read');
 
         // Workspace Members
         Route::middleware('workspace.can:workspace.members.manage')->group(function () {
-            Route::get('/workspaces/{workspaceId}/members', [WorkspaceMemberController::class, 'index']);
-            Route::patch('/workspaces/{workspaceId}/members/{userId}/role', [WorkspaceMemberController::class, 'updateRole']);
+            Route::get('/workspaces/{workspaceId}/members', [WorkspaceMemberController::class, 'index'])->middleware('throttle:api-read');
+            Route::patch('/workspaces/{workspaceId}/members/{userId}/role', [WorkspaceMemberController::class, 'updateRole'])->middleware('throttle:api-write');
         });
 
         // Analytics (view)
-        Route::middleware('workspace.can:analytics.view')->group(function () {
+        Route::middleware(['workspace.can:analytics.view', 'throttle:api-read'])->group(function () {
             Route::get('/analytics/sales/overview', [SalesAnalyticsController::class, 'overview']);
             Route::get('/analytics/sales/filters', [SalesAnalyticsController::class, 'filters']);
             Route::get('/analytics/sales/records', [SalesAnalyticsController::class, 'records']);
@@ -51,7 +55,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // Dashboards & Views (view)
-        Route::middleware('workspace.can:dashboards.view')->group(function () {
+        Route::middleware(['workspace.can:dashboards.view', 'throttle:api-read'])->group(function () {
             Route::get('/dashboards', [DashboardController::class, 'index']);
             Route::get('/dashboards/{id}', [DashboardController::class, 'show']);
             Route::get('/dashboards/{dashboardId}/views', [DashboardSavedViewController::class, 'index']);
@@ -59,7 +63,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // Dashboards & Views (manage)
-        Route::middleware('workspace.can:dashboards.manage')->group(function () {
+        Route::middleware(['workspace.can:dashboards.manage', 'throttle:api-write'])->group(function () {
             Route::post('/dashboards', [DashboardController::class, 'store']);
             Route::put('/dashboards/{id}', [DashboardController::class, 'update']);
             Route::delete('/dashboards/{id}', [DashboardController::class, 'destroy']);
@@ -69,20 +73,20 @@ Route::prefix('v1')->group(function () {
         });
 
         // Data Ingestion (view)
-        Route::middleware('workspace.can:imports.view')->group(function () {
+        Route::middleware(['workspace.can:imports.view', 'throttle:api-read'])->group(function () {
             Route::get('/imports', [ImportBatchController::class, 'index']);
             Route::get('/imports/{id}', [ImportBatchController::class, 'show']);
             Route::get('/imports/{id}/failures', [ImportBatchController::class, 'failures']);
         });
 
         // Data Ingestion (manage)
-        Route::middleware('workspace.can:imports.manage')->group(function () {
+        Route::middleware(['workspace.can:imports.manage', 'throttle:imports'])->group(function () {
             Route::post('/imports', [ImportBatchController::class, 'store']);
             Route::post('/imports/{id}/retry', [ImportBatchController::class, 'retry']);
         });
 
         // Alerting (view)
-        Route::middleware('workspace.can:alerts.view')->group(function () {
+        Route::middleware(['workspace.can:alerts.view', 'throttle:api-read'])->group(function () {
             Route::get('/alert-rules', [AlertRuleController::class, 'index']);
             Route::get('/alert-rules/{id}', [AlertRuleController::class, 'show']);
             Route::get('/alerts', [AlertController::class, 'index']);
@@ -91,7 +95,7 @@ Route::prefix('v1')->group(function () {
         });
 
         // Alerting (manage)
-        Route::middleware('workspace.can:alerts.manage')->group(function () {
+        Route::middleware(['workspace.can:alerts.manage', 'throttle:api-write'])->group(function () {
             Route::post('/alert-rules', [AlertRuleController::class, 'store']);
             Route::put('/alert-rules/{id}', [AlertRuleController::class, 'update']);
             Route::delete('/alert-rules/{id}', [AlertRuleController::class, 'destroy']);
