@@ -70,7 +70,42 @@
   - Чтение и персистентность: [`PostgresSalesTimeSeriesReader`](../../backend/app/Modules/InventoryAnalytics/Infrastructure/Persistence/PostgresSalesTimeSeriesReader.php), [`PostgresForecastRepository`](../../backend/app/Modules/InventoryAnalytics/Infrastructure/Persistence/PostgresForecastRepository.php) и [`PostgresForecastReadModel`](../../backend/app/Modules/InventoryAnalytics/Infrastructure/Persistence/PostgresForecastReadModel.php).
   - Фоновый пересчёт: джобы [`GenerateForecastJob`](../../backend/app/Modules/InventoryAnalytics/Infrastructure/Jobs/GenerateForecastJob.php) и [`GenerateWorkspaceForecastsJob`](../../backend/app/Modules/InventoryAnalytics/Infrastructure/Jobs/GenerateWorkspaceForecastsJob.php).
   - API Controller [`ForecastController`](../../backend/app/Modules/InventoryAnalytics/Presentation/Controllers/ForecastController.php) с проверкой capabilities и workspace boundary.
+- Реализован frontend-слой прогнозирования спроса и оценки рисков запасов:
+  - Шлюз [`inventory-gateway.ts`](../../frontend/src/features/inventory-analytics/api/inventory-gateway.ts): метод `getForecast(userId, workspaceId, productId, warehouseId, params)` с типизацией ответа `ForecastResponse` и параметров горизонта (7, 14, 28 дней).
+  - Компонент бейджа качества [`forecast-quality-badge.tsx`](../../frontend/src/features/inventory-analytics/ui/forecast-quality-badge.tsx): визуальный индикатор статуса модели (`ready`, `stale`, `insufficient_data`, `limited_by_stockouts`, `failed`), расшифровка метода и метрики backtest (WAPE, MAE, Signed Bias, Coverage).
+  - Карточка риска исчерпания и сроков заказа [`forecast-stock-risk-card.tsx`](../../frontend/src/features/inventory-analytics/ui/forecast-stock-risk-card.tsx): остаток, страховой запас, точка перезаказа, дата исчерпания, дата достижения порога, рекомендация «Заказать сейчас» / срок заказа на основе lead time и обязательный дисклеймер «Сценарий рассчитан без будущих поступлений».
+  - Карточка метаданных [`forecast-metadata.tsx`](../../frontend/src/features/inventory-analytics/ui/forecast-metadata.tsx): свежесть срезов по продажам, остаткам и поставкам (as-of date), время генерации и список допущений модели.
+  - Интерактивный график [`forecast-chart.tsx`](../../frontend/src/features/inventory-analytics/ui/forecast-chart.tsx): сплошная линия факта продаж, пунктирная линия прогноза спроса, полупрозрачная полоса доверительного интервала (80%), вертикальная линия границы данных (as-of) и точки ретроспективного сравнения forecast-vs-actual.
+  - Контейнерный экран [`product-forecast-view.tsx`](../../frontend/src/features/inventory-analytics/ui/product-forecast-view.tsx): селектор горизонта (7/14/28 дней), селектор товара со склада, обновление данных, обработка состояний загрузки и ошибок.
+  - Интеграция в навигацию и таблицы: вкладка «Прогноз спроса» в [`inventory-tabs-nav.tsx`](../../frontend/src/features/inventory-analytics/ui/inventory-tabs-nav.tsx) и [`inventory-tabs-container.tsx`](../../frontend/src/features/inventory-analytics/ui/inventory-tabs-container.tsx), а также прямые кнопки перехода к прогнозу в строках [`inventory-items-table.tsx`](../../frontend/src/features/inventory-analytics/ui/inventory-items-table.tsx).
 - Верификация:
-  - Unit-тесты доменного ядра [`ForecastingTest.php`](../../backend/tests/Unit/Modules/InventoryAnalytics/Domain/ForecastingTest.php) и feature-тесты эндпоинта [`ForecastApiTest.php`](../../backend/tests/Feature/Modules/InventoryAnalytics/ForecastApiTest.php) проходят успешно.
-  - Полный прогон `make check` успешен: контракты валидны, 403 теста backend, 59 тестов notification, 227 тестов frontend vitest, typecheck и сборка без ошибок.
-- Следующий шаг: реализация UI-компонентов прогнозирования в Inventory Analytics (график прогноз-факт, доверительные интервалы, индикаторы риска исчерпания и сроки заказа). Phase 19 остаётся открытой.
+  - Unit-тесты доменного ядра [`ForecastingTest.php`](../../backend/tests/Unit/Modules/InventoryAnalytics/Domain/ForecastingTest.php) (8 тестов, 76 проверок).
+  - Feature-тесты эндпоинта [`ForecastApiTest.php`](../../backend/tests/Feature/Modules/InventoryAnalytics/ForecastApiTest.php) (4 теста, 63 проверки: 401 unauthenticated, 403 workspace boundary, 404 not found, 200 full payload).
+  - Frontend unit-тесты шлюза [`inventory-gateway.test.ts`](../../frontend/src/features/inventory-analytics/api/inventory-gateway.test.ts) (7 тестов) и UI-компонентов [`forecast-components.test.tsx`](../../frontend/src/features/inventory-analytics/ui/forecast-components.test.tsx) (12 тестов).
+  - Полный прогон `make check` успешен: контракты валидны, 403 теста backend, 59 тестов notification, 242 теста frontend vitest, typecheck, lint, prettier и сборка Next.js без ошибок.
+
+## Проверка завершения
+
+- **Дата:** 2026-09-25
+- **Статус этапа:** Завершен ([x])
+
+### Подтверждение Exit Criteria
+
+| Критерий | Статус | Подтверждение |
+| --- | --- | --- |
+| Воспроизводимость прогноза и изоляция workspace | Выполнен | Проверено в `ForecastingTest.php` и `ForecastApiTest.php`: проверка детерминированности по as_of и версиям данных, отказ 403 при межорганизационном доступе |
+| Воспроизводимый backtest, quality gate и обработка дефицита | Выполнен | `BacktestEngine` рассчитывает WAPE/MAE/Signed Bias на скользящих окнах; `SalesTimeSeries` цензурирует дни дефицита; при недостатке истории выставляется статус `insufficient_data` / `limited_by_stockouts` |
+| Разделение факта, прогноза, доверительных интервалов и сценария остатков в UI/OpenAPI | Выполнен | Спецификация OpenAPI и компоненты `ForecastChart`, `ForecastStockRiskCard`, `ForecastQualityBadge` наглядно разделяют факт, прогноз спроса, доверительный коридор (80%) и расчет срока заказа с явным дисклеймером об отсутствии будущих поступлений |
+| Фоновый расчет, очередь, идемпотентность и версии датасетов | Выполнен | Миграция с составным уникальным индексом `uq_forecast_dedup` по версиям входных датасетов; очереди `GenerateForecastJob` и `GenerateWorkspaceForecastsJob` |
+| Пройден integration checkpoint: контракт → backend → client → frontend, линтеры, анализ, тесты и сборка | Выполнен | `make check` (контракты, фронтенд, бэкенд, уведомления) завершен с кодом 0 |
+
+### Команды верификации
+
+```bash
+make check-contracts   # OpenAPI валидация и генерация TypeScript-схемы
+make check-backend     # composer validate, pint, phpstan (0 errors), phpunit (403 tests, 33716 assertions)
+make check-notification # composer validate, pint, phpstan (0 errors), phpunit (59 tests)
+make check-frontend    # eslint, format:check, typecheck, vitest (51 suites, 242 tests), next build
+make check             # сквозная проверка всех сервисов репозитория
+```
+

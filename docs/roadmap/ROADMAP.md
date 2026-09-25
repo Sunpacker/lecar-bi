@@ -35,7 +35,7 @@
 - [x] [Phase 16 — Performance and Caching](16-performance-caching.md)
 - [x] [Phase 17 — Observability](17-observability.md)
 - [x] [Phase 18 — Production Hardening](18-production-hardening.md)
-- [ ] [Phase 19 — Forecasting Extension](19-forecasting.md)
+- [x] [Phase 19 — Forecasting Extension](19-forecasting.md)
 
 ## Как обновлять прогресс
 
