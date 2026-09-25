@@ -61,7 +61,7 @@ services:
         condition: service_healthy
     healthcheck:
       test:
-        ["CMD-SHELL", "curl -fsS http://localhost:8080/api/v1/health || exit 1"]
+        ["CMD-SHELL", "curl -fsS http://localhost:8080/api/v1/health/ready || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -105,7 +105,7 @@ services:
     environment:
       APP_NAME: ${NOTIFICATION_APP_NAME:-NotificationService}
       APP_ENV: ${APP_ENV:-local}
-      APP_KEY: ${NOTIFICATION_APP_KEY:-base64:6Wf3dY1v8s4p2n0m9k7j5h3g1f0d8c6b4a2z1x0w=}
+      APP_KEY: ${NOTIFICATION_APP_KEY:?NOTIFICATION_APP_KEY must be set}
       APP_DEBUG: ${APP_DEBUG:-true}
       APP_URL: ${NOTIFICATION_APP_URL:-http://localhost:8081}
       LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
@@ -115,7 +115,7 @@ services:
       DB_PORT: 5432
       DB_DATABASE: ${NOTIFICATION_POSTGRES_DB:-notification}
       DB_USERNAME: ${NOTIFICATION_POSTGRES_USER:-notification}
-      DB_PASSWORD: ${NOTIFICATION_POSTGRES_PASSWORD:-notification}
+      DB_PASSWORD: ${NOTIFICATION_POSTGRES_PASSWORD:?NOTIFICATION_POSTGRES_PASSWORD must be set}
       REDIS_CLIENT: predis
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -146,7 +146,7 @@ services:
     environment:
       APP_NAME: ${NOTIFICATION_APP_NAME:-NotificationService}
       APP_ENV: ${APP_ENV:-local}
-      APP_KEY: ${NOTIFICATION_APP_KEY:-base64:6Wf3dY1v8s4p2n0m9k7j5h3g1f0d8c6b4a2z1x0w=}
+      APP_KEY: ${NOTIFICATION_APP_KEY:?NOTIFICATION_APP_KEY must be set}
       APP_DEBUG: ${APP_DEBUG:-true}
       APP_URL: ${NOTIFICATION_APP_URL:-http://localhost:8081}
       LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
@@ -156,7 +156,7 @@ services:
       DB_PORT: 5432
       DB_DATABASE: ${NOTIFICATION_POSTGRES_DB:-notification}
       DB_USERNAME: ${NOTIFICATION_POSTGRES_USER:-notification}
-      DB_PASSWORD: ${NOTIFICATION_POSTGRES_PASSWORD:-notification}
+      DB_PASSWORD: ${NOTIFICATION_POSTGRES_PASSWORD:?NOTIFICATION_POSTGRES_PASSWORD must be set}
       REDIS_CLIENT: predis
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -171,6 +171,13 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    healthcheck:
+      test:
+        ["CMD-SHELL", "php artisan notifications:worker-health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     restart: unless-stopped
 
   notification-postgres:
