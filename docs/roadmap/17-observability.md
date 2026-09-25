@@ -1,15 +1,52 @@
 # Phase 17 — Observability
 
-[Индекс и правила roadmap](README.md) · [Маршрутизатор агентов](../../AGENTS.md)
+[Индекс и правила roadmap](ROADMAP.md) · [Маршрутизатор агентов](../../AGENTS.md) · [Инфраструктурная архитектура](../architecture/09-infrastructure-deployment-observability.md)
 
 ## Цель
 
-Сделать multi-service behavior диагностируемым.
+По одному пользовательскому запросу или `event_id` находить связанные события в frontend, analytics, outbox и notification; видеть состояние HTTP-сервисов, workers и импорта; получать эксплуатационный сигнал до того, как проблему обнаружит пользователь.
 
-## Функциональность
+Этап выполняется после [Phase 16](16-performance-caching.md). Продуктовые правила и инциденты из [Phase 12](12-alerting.md) остаются отдельными от эксплуатационных оповещений.
 
-Structured logs, request/correlation IDs, health endpoints, application/queue/import metrics, error tracking, tracing preparation.
+## Исходное состояние
+
+- `frontend` уже предоставляет `GET /api/health`; analytics — `GET /api/v1/health` со статическим ответом без проверки зависимостей.
+- Notification предоставляет `GET /api/v1/health/live` и `/ready`; readiness проверяет собственную PostgreSQL и Redis, но не состояние `notification-worker`.
+- HTTP- и worker-процессы analytics/notification работают отдельно. В интеграционном событии уже есть `event_id`; сквозной идентификатор запроса и trace context пока не являются его контрактом.
+- Логи сервисов идут в stderr; стек централизованного сбора, метрик и дашбордов ещё не развёрнут.
+
+## Целевой стек
+
+Для локального и production-like Docker-окружения: **Grafana** для дашбордов и эксплуатационных оповещений, **Prometheus** для метрик, **Loki** для логов, **Grafana Alloy** для сбора логов контейнеров. Конфигурацию источников данных, дашбордов и правил хранить в репозитории; образы фиксировать по совместимым версиям, без `latest`. Хранилищам задать отдельные volumes и ограниченный срок хранения. Доступ к Grafana, Prometheus, Loki и техническим endpoints ограничить внутренней сетью или администраторским доступом; не публиковать их как пользовательский API.
+
+Это базовый состав этапа. **OpenTelemetry** использовать как стандарт контекста и путь расширения до traces. **Tempo** подключать только вместе с реальной инструментализацией и сквозным сценарием просмотра трассы; пустой trace backend не входит в критерии завершения. Отдельный **Sentry** не обязателен: сначала обеспечить диагностику ошибок через структурные логи, метрики и Grafana. Не вводить второй канал оповещений или новый broker ради наблюдаемости.
+
+## Порядок реализации
+
+1. **Контекст и логи.** На границе доверия создавать или валидировать `request_id`; передавать его при серверном вызове Next.js → analytics и возвращать в ответе для диагностики. Прямые вызовы из браузера в analytics учитывать отдельно: они не проходят через Next.js HTTP-процесс. Добавить единый JSON-формат логов со временем, уровнем, именем сервиса, окружением, операцией/шаблоном маршрута, `request_id` и кодом ошибки. Для jobs, outbox и notification фиксировать `job_id`/`event_id`, попытку и результат; при необходимости переносить `correlation_id` из исходного запроса через очередь и versioned event envelope с совместимым изменением [event contract](../../contracts/events/alert-triggered.v1.schema.json). Очищать контекст между заданиями долгоживущего worker. Не логировать токены, содержимое импорта, персональные данные и полные payload событий. `request_id`, `event_id` и `trace_id` оставлять полями записи, не Loki labels.
+2. **Health и worker-сигналы.** Развести liveness (процесс принимает запросы) и readiness (только необходимые локальные зависимости) для HTTP-сервисов; у analytics заменить статический ответ проверяемой готовностью, сохранив совместимость текущего `GET /api/v1/health` и обновив OpenAPI/клиент при изменении контракта. Зависимость от другого deployable-сервиса не включать в readiness. Работоспособность `notification-worker`, очередей и outbox измерять отдельно по heartbeat, возрасту последней успешной обработки и накоплению задач; живой HTTP-процесс не означает живой worker.
+3. **Сбор сигналов.** Подключить Alloy → Loki для stdout/stderr контейнеров и Prometheus для scrape внутренних metrics endpoints/экспортеров. Обеспечить метрики HTTP rate/error/latency по шаблону маршрута, длительность и исход jobs/импорта, backlog и возраст outbox, состояние Redis Stream consumer group/pending и dead-letter, свежесть worker heartbeat, доступность зависимостей и `up` для targets. Источник worker-метрик должен учитывать отдельные процессы и перезапуски; метрики только в памяти HTTP-процесса не покрывают worker. Использовать низкокардинальные labels (`service`, `environment`, `route`, `result`); не помещать в них URL с параметрами, user/workspace ID или идентификаторы событий.
+4. **Дашборды и реакции.** Provisioning Grafana: обзор сервисов (доступность, HTTP ошибки и latency), фоновые процессы (jobs, imports, outbox, stream lag/dead-letter), поиск логов по идентификатору. Добавить эксплуатационные правила для недоступного target/readiness, отсутствующего worker heartbeat, растущего backlog/старого сообщения outbox, dead-letter и устойчивого роста ошибок. Указать пороги, окна оценки, `No Data`/ошибку источника, получателя и runbook для каждого правила; проверить тестовое срабатывание и восстановление. Канал уведомлений конфигурировать через секреты окружения, без адресов и токенов в Git.
+5. **Трассировка по необходимости.** Сохранить возможность W3C `traceparent` на HTTP-границах, но не считать `request_id` полноценной распределённой трассой. Если ручной поиск логов не объясняет задержку между сервисами, добавить OpenTelemetry instrumentation → Alloy/OTLP → Tempo для конкретного пути `frontend → analytics → outbox → notification`; задать sampling и исключить чувствительные атрибуты. Решение о включении Tempo и его операционные затраты зафиксировать при реализации.
+
+При реализации стека обновить [архитектуру инфраструктуры](../architecture/09-infrastructure-deployment-observability.md) и ADR, если выбор становится устойчивым архитектурным решением. Инфраструктурные адаптеры не должны добавлять зависимости в Domain Layer.
 
 ## Exit Criteria
 
-Request прослеживается между frontend/backend logs, jobs имеют correlation context где нужно, health checks различают process/dependency state. Сверить с `docs/architecture/09-infrastructure-deployment-observability.md`.
+- Один тестовый серверный вызов frontend → analytics находится по `request_id` в логах обоих сервисов. Отдельный сценарий публикации события находится по `event_id` в outbox и notification, включая повторную доставку; если его запустил HTTP-запрос, видна связь с исходным `request_id`. Для прямых запросов браузера в analytics диагностический `request_id` виден в ответе и логах analytics. Отсутствие исходного HTTP-запроса у фонового события явно допускается.
+- Liveness и readiness различают работающий процесс и недоступную локальную зависимость; отказ worker виден отдельно. Проверены нормальный запуск, временная потеря PostgreSQL/Redis и восстановление.
+- Grafana после чистого запуска автоматически получает источники, дашборды и правила; на них видны реальные HTTP, job/import и outbox/notification сигналы, а не только sample data. Логи доступны в Loki и фильтруются по сервису и идентификатору.
+- Prometheus targets доступны; метрики сохраняют корректность после перезапуска процессов. Проверены хотя бы одно срабатывание, доставка и восстановление эксплуатационного оповещения, а также поведение при `No Data`.
+- Проверено отсутствие чувствительных данных и высококардинальных labels в логах/метриках; технические endpoints не доступны публично. Описаны запуск, retention, диагностика сбоя и базовые действия по каждому правилу.
+- Пройдён [integration checkpoint](ROADMAP.md#integration-checkpoints): применимые тесты, контракт при изменении health/event API, сборка, конфигурация стека и сценарий сквозной диагностики. Отметку завершения в индексе ставить только после этих проверок.
+
+## Источники для реализации
+
+- [Grafana Alloy: сбор Docker-логов](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.docker/) и [Loki: выбор labels](https://grafana.com/docs/loki/latest/get-started/labels/bp-labels/).
+- [Prometheus: рекомендации по инструментализации](https://prometheus.io/docs/practices/instrumentation/) и [Grafana: provisioning правил](https://grafana.com/docs/grafana/latest/alerting/set-up/provision-alerting-resources/file-provisioning/).
+- [OpenTelemetry: распространение контекста](https://opentelemetry.io/docs/concepts/context-propagation/) и [Tempo: условия подключения трассировки](https://grafana.com/docs/tempo/latest/set-up-for-tracing/).
+
+## Прогресс
+
+- Уточнены стек, порядок работ и проверяемые exit criteria. Реализация и integration checkpoint не выполнялись; Phase 17 остаётся открытой.
+- Следующий шаг после Phase 16: зафиксировать формат контекста/логов и совместимость HTTP/event contracts, затем внедрить сбор сигналов по шагам выше.
