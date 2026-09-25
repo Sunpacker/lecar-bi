@@ -1,0 +1,79 @@
+groups:
+  - name: operational_alerts
+    rules:
+      - alert: TargetDown
+        expr: up == 0
+        for: 30s
+        labels:
+          severity: critical
+          tier: platform
+        annotations:
+          summary: "Target {{ $labels.instance }} is unreachable"
+          description: "Service target {{ $labels.service }} (instance {{ $labels.instance }}) has been down for more than 30 seconds."
+          runbook_url: "docs/runbooks/operational-alerts.md#targetdown"
+
+      - alert: ReadinessFailed
+        expr: dependency_up == 0
+        for: 30s
+        labels:
+          severity: critical
+          tier: application
+        annotations:
+          summary: "Service dependency degraded on {{ $labels.service }}"
+          description: "Dependency '{{ $labels.dependency }}' on service {{ $labels.service }} is reporting degraded/unavailable for 30s."
+          runbook_url: "docs/runbooks/operational-alerts.md#readinessfailed"
+
+      - alert: NotificationWorkerHeartbeatMissing
+        expr: worker_up{service="notification"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          tier: worker
+        annotations:
+          summary: "Notification worker heartbeat is missing"
+          description: "Notification worker has not recorded a heartbeat for more than 60 seconds."
+          runbook_url: "docs/runbooks/operational-alerts.md#notificationworkerheartbeatmissing"
+
+      - alert: OutboxBacklogGrowing
+        expr: outbox_backlog_total > 50
+        for: 2m
+        labels:
+          severity: warning
+          tier: outbox
+        annotations:
+          summary: "Outbox backlog is growing on {{ $labels.service }}"
+          description: "Outbox pending message count is {{ $value }}, exceeding threshold of 50 for 2 minutes."
+          runbook_url: "docs/runbooks/operational-alerts.md#outboxbackloggrowing"
+
+      - alert: OutboxOldMessageStuck
+        expr: outbox_oldest_message_age_seconds > 120
+        for: 1m
+        labels:
+          severity: warning
+          tier: outbox
+        annotations:
+          summary: "Oldest outbox message stuck on {{ $labels.service }}"
+          description: "Oldest pending outbox message age is {{ $value }}s, exceeding threshold of 120s."
+          runbook_url: "docs/runbooks/operational-alerts.md#outboxoldmessagestuck"
+
+      - alert: IntegrationDeadLetterMessagesPresent
+        expr: integration_dead_letter_total > 0
+        for: 1m
+        labels:
+          severity: warning
+          tier: integration
+        annotations:
+          summary: "Dead letter messages detected in integration stream"
+          description: "Dead letter queue contains {{ $value }} unhandled messages for over 1 minute."
+          runbook_url: "docs/runbooks/operational-alerts.md#integrationdeadlettermessagespresent"
+
+      - alert: HttpHighErrorRate
+        expr: (sum by (service) (rate(http_requests_total{status_code=~"5.."}[5m])) / sum by (service) (rate(http_requests_total[5m]))) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          tier: api
+        annotations:
+          summary: "High HTTP 5xx error rate on {{ $labels.service }}"
+          description: "HTTP 5xx error rate on service {{ $labels.service }} is above 5% for 2 minutes."
+          runbook_url: "docs/runbooks/operational-alerts.md#httphigherrorrate"
