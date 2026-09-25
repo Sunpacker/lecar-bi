@@ -19,6 +19,18 @@ export type XyzDistributionItem = components['schemas']['XyzDistributionItem']
 export type AbcXyzItemsResponse = components['schemas']['AbcXyzItemsResponse']
 export type AbcXyzProductItem = components['schemas']['AbcXyzProductItem']
 
+export type ForecastResponse = components['schemas']['ForecastResponse']
+export type ForecastPoint = components['schemas']['ForecastPoint']
+export type ForecastQualityMetric = components['schemas']['ForecastQualityMetric']
+export type ForecastDataFreshness = components['schemas']['ForecastDataFreshness']
+export type ForecastStockRisk = components['schemas']['ForecastStockRisk']
+export type ForecastStatus = components['schemas']['ForecastStatus']
+
+export interface ForecastParams {
+  horizonDays?: 7 | 14 | 28
+  asOfDate?: string
+}
+
 export interface InventorySummaryParams {
   warehouseId?: string
   asOfDate?: string
@@ -207,6 +219,40 @@ export const inventoryGateway = {
 
     if (error || !data) {
       throw new Error((error as any)?.message ?? 'Failed to load ABC/XYZ items')
+    }
+
+    return data
+  },
+
+  async getForecast(
+    userId: string,
+    workspaceId: string,
+    productId: string,
+    warehouseId: string,
+    params?: ForecastParams,
+  ): Promise<ForecastResponse> {
+    const { data, error } = await analyticsClient.GET(
+      '/analytics/forecasts/{productId}/{warehouseId}',
+      {
+        headers: {
+          'X-User-Id': userId,
+          'X-Workspace-Id': workspaceId,
+        },
+        params: {
+          path: {
+            productId,
+            warehouseId,
+          },
+          query: {
+            horizon_days: params?.horizonDays,
+            as_of_date: params?.asOfDate,
+          },
+        },
+      },
+    )
+
+    if (error || !data) {
+      throw new Error((error as any)?.message ?? 'Failed to load forecast')
     }
 
     return data

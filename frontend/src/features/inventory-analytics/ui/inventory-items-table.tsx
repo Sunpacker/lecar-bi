@@ -18,12 +18,14 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 import {
   ArrowDownIcon,
   ArrowUpDownIcon,
   ArrowUpIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  TrendingUpIcon,
 } from 'lucide-react'
 import type { InventoryItem } from '../api/inventory-gateway'
 
@@ -164,13 +166,16 @@ export function InventoryItemsTable({
                 <TableHead className="text-xs font-semibold text-center py-3">
                   Статус
                 </TableHead>
+                <TableHead className="text-xs font-semibold text-center py-3">
+                  Прогноз
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 Array.from({ length: 5 }).map((_, idx) => (
                   <TableRow key={idx} className="border-border">
-                    <TableCell colSpan={8} className="py-4 text-center">
+                    <TableCell colSpan={9} className="py-4 text-center">
                       <div className="h-5 bg-muted/40 animate-pulse rounded-md mx-4" />
                     </TableCell>
                   </TableRow>
@@ -178,7 +183,7 @@ export function InventoryItemsTable({
               ) : items.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={9}
                     className="py-10 text-center text-sm text-muted-foreground"
                   >
                     По выбранным критериям позиций не найдено
@@ -237,6 +242,16 @@ export function InventoryItemsTable({
                     </TableCell>
                     <TableCell className="py-2.5 text-center">
                       {getStatusBadge(item.stock_health, item.stock_health_label)}
+                    </TableCell>
+                    <TableCell className="py-2.5 text-center">
+                      <Link
+                        href={`/inventory?tab=forecast&product_id=${item.product_id}&warehouse_id=${item.warehouse_id}`}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-primary hover:bg-primary/10 border border-primary/20 shadow-2xs transition-colors"
+                        title="Прогноз спроса и рисков"
+                      >
+                        <TrendingUpIcon className="h-3 w-3" />
+                        <span>Прогноз</span>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))

@@ -3,16 +3,16 @@
 import React from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { LayoutGridIcon, BoxesIcon } from 'lucide-react'
+import { LayoutGridIcon, BoxesIcon, TrendingUpIcon } from 'lucide-react'
 
 interface InventoryTabsNavProps {
-  activeTab: 'overview' | 'abc-xyz'
+  activeTab: 'overview' | 'abc-xyz' | 'forecast'
 }
 
 export function InventoryTabsNav({ activeTab }: InventoryTabsNavProps) {
   const searchParams = useSearchParams()
 
-  const createTabUrl = (tab: 'overview' | 'abc-xyz') => {
+  const createTabUrl = (tab: 'overview' | 'abc-xyz' | 'forecast') => {
     const params = new URLSearchParams(searchParams.toString())
     if (tab === 'overview') {
       params.delete('tab')
@@ -46,6 +46,17 @@ export function InventoryTabsNav({ activeTab }: InventoryTabsNavProps) {
       >
         <LayoutGridIcon className="h-4 w-4" />
         ABC / XYZ Анализ
+      </Link>
+      <Link
+        href={createTabUrl('forecast')}
+        className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+          activeTab === 'forecast'
+            ? 'bg-primary/10 text-primary border border-primary/20 shadow-xs'
+            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+        }`}
+      >
+        <TrendingUpIcon className="h-4 w-4" />
+        Прогноз спроса
       </Link>
     </div>
   )
