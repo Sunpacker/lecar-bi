@@ -48,5 +48,11 @@
 
 ## Прогресс
 
-- Уточнены стек, порядок работ и проверяемые exit criteria. Реализация и integration checkpoint не выполнялись; Phase 17 остаётся открытой.
-- Следующий шаг после Phase 16: зафиксировать формат контекста/логов и совместимость HTTP/event contracts, затем внедрить сбор сигналов по шагам выше.
+- Реализован шаг 1 («Контекст и логи»):
+  - Контракт событий: в [alert-triggered.v1.schema.json](../../contracts/events/alert-triggered.v1.schema.json) добавлено опциональное поле `correlation_id` с полной обратной совместимостью.
+  - Analytics (`backend`): внедрены [`TraceContextMiddleware`](../../backend/app/Shared/Infrastructure/Http/Middleware/TraceContextMiddleware.php) (генерация/проброс `X-Request-Id` и `X-Correlation-Id`), [`JsonLogFormatter`](../../backend/app/Shared/Infrastructure/Logging/JsonLogFormatter.php) (единый JSON-формат со временем, уровнем, сервисом, контекстом и маскированием чувствительных полей), сквозная передача `correlation_id` в [`AlertTriggeredIntegrationMapper`](../../backend/app/Modules/Alerting/Application/Mappers/AlertTriggeredIntegrationMapper.php) и [`PublishOutboxMessagesJob`](../../backend/app/Shared/Infrastructure/Jobs/PublishOutboxMessagesJob.php) с изоляцией контекста.
+  - Notification Service (`notification`): добавлены [`TraceContextMiddleware`](../../notification/app/Http/Middleware/TraceContextMiddleware.php), [`JsonLogFormatter`](../../notification/app/Shared/Infrastructure/Logging/JsonLogFormatter.php), поддержка `correlation_id` в [`AlertTriggeredV1`](../../notification/app/Notification/Application/AlertTriggeredV1.php) и декодере, изоляция и логирование контекста с очисткой в `finally` в [`RedisStreamConsumer`](../../notification/app/Integration/Infrastructure/Redis/RedisStreamConsumer.php).
+  - Frontend (`frontend`): добавлена генерация и проброс `x-request-id` в `middleware.ts`, настроен проброс заголовков в [`analytics-client.ts`](../../frontend/src/shared/api/analytics-client.ts), создан модуль [`logger.ts`](../../frontend/src/shared/lib/logger.ts) со стандартным JSON-форматом, обновлён health probe.
+  - Верификация: полный прогон `make check` успешен (валидация контрактов Redocly, генерация TypeScript-клиента, 362 теста и статический анализ backend без ошибок, 44 теста и статический анализ notification без ошибок, 226 тестов vitest, lint, typecheck и Turbopack build frontend).
+- Следующий шаг: шаг 2 («Health и worker-сигналы» — разделение liveness/readiness, проверка зависимостей, heartbeat и метрики воркеров). Phase 17 остаётся открытой.
+
