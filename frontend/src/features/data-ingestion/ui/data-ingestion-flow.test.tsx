@@ -121,8 +121,9 @@ describe('DataIngestionView E2E Flow', () => {
       expect(screen.getByText('50%')).toBeDefined()
     })
 
-    // Advance timer for polling
-    vi.advanceTimersByTime(3500)
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3500)
+    })
 
     await waitFor(() => {
       expect(importGateway.getBatches).toHaveBeenCalledTimes(2)
