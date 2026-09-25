@@ -33,10 +33,22 @@ use App\Modules\DataIngestion\Infrastructure\Repositories\EloquentStagingRecordR
 use App\Modules\DataIngestion\Infrastructure\Repositories\InMemoryImportBatchRepository;
 use App\Modules\DataIngestion\Infrastructure\Repositories\InMemoryImportFailureRepository;
 use App\Modules\DataIngestion\Infrastructure\Repositories\InMemoryStagingRecordRepository;
+use App\Modules\InventoryAnalytics\Application\Contracts\ForecastReadModelInterface;
+use App\Modules\InventoryAnalytics\Application\Contracts\ForecastRepositoryInterface;
 use App\Modules\InventoryAnalytics\Application\Contracts\InventoryAnalyticsReadModelInterface;
+use App\Modules\InventoryAnalytics\Application\Contracts\SalesTimeSeriesReaderInterface;
+use App\Modules\InventoryAnalytics\Domain\Forecasting\BacktestEngine;
+use App\Modules\InventoryAnalytics\Domain\Forecasting\ForecastEngine;
+use App\Modules\InventoryAnalytics\Domain\Forecasting\MovingAverageForecaster;
+use App\Modules\InventoryAnalytics\Domain\Forecasting\SeasonalNaiveForecaster;
+use App\Modules\InventoryAnalytics\Domain\Forecasting\StockRiskCalculator;
 use App\Modules\InventoryAnalytics\Infrastructure\Persistence\CachedInventoryAnalyticsReadModel;
+use App\Modules\InventoryAnalytics\Infrastructure\Persistence\InMemoryForecastReadModel;
 use App\Modules\InventoryAnalytics\Infrastructure\Persistence\InMemoryInventoryAnalyticsReadModel;
+use App\Modules\InventoryAnalytics\Infrastructure\Persistence\PostgresForecastReadModel;
+use App\Modules\InventoryAnalytics\Infrastructure\Persistence\PostgresForecastRepository;
 use App\Modules\InventoryAnalytics\Infrastructure\Persistence\PostgresInventoryAnalyticsReadModel;
+use App\Modules\InventoryAnalytics\Infrastructure\Persistence\PostgresSalesTimeSeriesReader;
 use App\Modules\SalesAnalytics\Application\Contracts\SalesAnalyticsReadModelInterface;
 use App\Modules\SalesAnalytics\Infrastructure\Persistence\CachedSalesAnalyticsReadModel;
 use App\Modules\SalesAnalytics\Infrastructure\Persistence\InMemorySalesAnalyticsReadModel;
@@ -305,6 +317,40 @@ class AppServiceProvider extends ServiceProvider
 
             return new PostgresInventoryAlertSource;
         });
+
+        $this->app->singleton(ForecastReadModelInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new InMemoryForecastReadModel;
+            }
+
+            return new PostgresForecastReadModel;
+        });
+
+        $this->app->bind(
+            ForecastRepositoryInterface::class,
+            PostgresForecastRepository::class,
+        );
+
+        $this->app->bind(
+            SalesTimeSeriesReaderInterface::class,
+            PostgresSalesTimeSeriesReader::class,
+        );
+
+        $this->app->singleton(ForecastEngine::class, function () {
+            $seasonal = new SeasonalNaiveForecaster;
+            $movingAvg = new MovingAverageForecaster;
+            $seasonalBacktest = new BacktestEngine($seasonal);
+            $movingAvgBacktest = new BacktestEngine($movingAvg);
+
+            return new ForecastEngine(
+                primary: $seasonal,
+                secondary: $movingAvg,
+                primaryBacktest: $seasonalBacktest,
+                secondaryBacktest: $movingAvgBacktest,
+            );
+        });
+
+        $this->app->singleton(StockRiskCalculator::class);
 
         // --- Outbox / Integration Events ---
 

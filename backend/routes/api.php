@@ -5,6 +5,7 @@ use App\Modules\Alerting\Presentation\Controllers\AlertRuleController;
 use App\Modules\Dashboard\Presentation\Controllers\DashboardController;
 use App\Modules\Dashboard\Presentation\Controllers\DashboardSavedViewController;
 use App\Modules\DataIngestion\Presentation\Controllers\ImportBatchController;
+use App\Modules\InventoryAnalytics\Presentation\Controllers\ForecastController;
 use App\Modules\InventoryAnalytics\Presentation\Controllers\InventoryAnalyticsController;
 use App\Modules\SalesAnalytics\Presentation\Controllers\SalesAnalyticsController;
 use App\Modules\SupplierAnalytics\Presentation\Controllers\SupplierAnalyticsController;
@@ -49,6 +50,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/analytics/inventory/filters', [InventoryAnalyticsController::class, 'filters']);
             Route::get('/analytics/inventory/abc-xyz/summary', [InventoryAnalyticsController::class, 'abcXyzSummary']);
             Route::get('/analytics/inventory/abc-xyz/items', [InventoryAnalyticsController::class, 'abcXyzItems']);
+            Route::get('/analytics/forecasts/{productId}/{warehouseId}', [ForecastController::class, 'show']);
 
             Route::get('/analytics/suppliers/overview', [SupplierAnalyticsController::class, 'overview']);
             Route::get('/analytics/suppliers/filters', [SupplierAnalyticsController::class, 'filters']);
