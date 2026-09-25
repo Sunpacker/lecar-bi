@@ -1,0 +1,4976 @@
+openapi: 3.0.3
+info:
+  title: AutoBI Analytics API
+  version: 1.0.0
+  description: Public API boundary for AutoBI analytics service.
+  license:
+    name: Proprietary
+servers:
+  - url: /api/v2
+security:
+  - BearerAuth: []
+paths:
+  /imports:
+    get:
+      operationId: getImportBatches
+      x-required-capability: imports.view
+      summary: List data ingestion batches for workspace
+      parameters:
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: status
+          required: false
+          schema:
+            $ref: '#/components/schemas/ImportStatus'
+        - in: query
+          name: dataset_type
+          required: false
+          schema:
+            $ref: '#/components/schemas/DatasetType'
+      responses:
+        '200':
+          description: List of import batches
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatchListResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      operationId: uploadImportBatch
+      x-required-capability: imports.manage
+      summary: Upload data ingestion file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+                - dataset_type
+              properties:
+                file:
+                  type: string
+                  format: binary
+                dataset_type:
+                  $ref: '#/components/schemas/DatasetType'
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatchDetailResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /imports/{id}:
+    get:
+      operationId: getImportBatch
+      x-required-capability: imports.view
+      summary: Get import batch details and progress
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Import batch detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatchDetailResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /imports/{id}/failures:
+    get:
+      operationId: getImportFailures
+      x-required-capability: imports.view
+      summary: List validation failure rows for import batch
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: List of failures
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportFailureListResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /imports/{id}/retry:
+    post:
+      operationId: retryImportBatch
+      x-required-capability: imports.manage
+      summary: Retry failed or incomplete import batch
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '202':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportBatchDetailResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+
+  /health:
+    get:
+      operationId: getHealth
+      summary: Technical health check
+      security: []
+      responses:
+        '200':
+          description: Service is available
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is degraded or dependencies unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /health/live:
+    get:
+      operationId: getHealthLive
+      summary: Liveness check (process accepting requests)
+      security: []
+      responses:
+        '200':
+          description: Service process is running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LivenessResponse'
+  /health/ready:
+    get:
+      operationId: getHealthReady
+      summary: Readiness check (local dependencies ready)
+      security: []
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+        '503':
+          description: Local dependencies not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+  /health/outbox:
+    get:
+      operationId: getHealthOutbox
+      summary: Outbox publisher and backlog health signals
+      security: []
+      responses:
+        '200':
+          description: Outbox metrics and health signals
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutboxHealthResponse'
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: Revoke current authenticated session token
+      responses:
+        '204':
+          description: Logged out successfully
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /auth/login:
+    post:
+      operationId: login
+      summary: Authenticate user with credentials
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: User authenticated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '401':
+          description: Invalid email or password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /me:
+    get:
+      operationId: getCurrentUser
+      summary: Get current authenticated user profile
+      responses:
+        '200':
+          description: Authenticated user details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Missing or invalid user identity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      operationId: updateProfile
+      summary: Update current user profile name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /me/password:
+    post:
+      operationId: changePassword
+      summary: Change password and revoke all active sessions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '204':
+          description: Password changed successfully
+        '401':
+          description: Invalid current password or unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /workspaces:
+    get:
+      operationId: listAccessibleWorkspaces
+      summary: List all workspaces accessible by the current user
+      responses:
+        '200':
+          description: List of accessible workspaces
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceListResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /workspaces/current:
+    get:
+      operationId: getCurrentWorkspace
+      summary: Get currently selected workspace for the user
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+      responses:
+        '200':
+          description: Current workspace context
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentWorkspaceResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - user does not belong to the requested workspace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /workspaces/{id}:
+    get:
+      operationId: getWorkspaceById
+      summary: Get workspace details by identifier
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Workspace identifier
+      responses:
+        '200':
+          description: Workspace details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - cross-workspace access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    patch:
+      operationId: renameWorkspace
+      summary: Rename workspace
+      x-required-capability: workspace.settings.manage
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameWorkspaceRequest'
+      responses:
+        '200':
+          description: Workspace renamed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /workspaces/{workspaceId}/members:
+    get:
+      operationId: getWorkspaceMembers
+      summary: List members of the workspace
+      x-required-capability: workspace.members.manage
+      parameters:
+        - in: path
+          name: workspaceId
+          required: true
+          schema:
+            type: string
+          description: Workspace identifier
+      responses:
+        '200':
+          description: List of workspace members
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceMemberListResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient capability or cross-workspace access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /workspaces/{workspaceId}/members/{userId}/role:
+    patch:
+      operationId: changeWorkspaceMemberRole
+      summary: Change the role of an existing workspace member
+      x-required-capability: workspace.members.manage
+      parameters:
+        - in: path
+          name: workspaceId
+          required: true
+          schema:
+            type: string
+          description: Workspace identifier
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+          description: User identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeWorkspaceMemberRoleRequest'
+      responses:
+        '200':
+          description: Role updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangeWorkspaceMemberRoleResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - insufficient capability or cross-workspace access denied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace or member not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict - cannot demote the last workspace owner
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/sales/overview:
+    get:
+      operationId: getSalesOverview
+      x-required-capability: analytics.view
+      summary: Get aggregated sales summary, trends, and breakdowns
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+        - in: query
+          name: date_from
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Start of date filter range (YYYY-MM-DD)
+        - in: query
+          name: date_to
+          required: false
+          schema:
+            type: string
+            format: date
+          description: End of date filter range (YYYY-MM-DD)
+        - in: query
+          name: category_id
+          required: false
+          schema:
+            type: string
+          description: Filter by specific category ID
+        - in: query
+          name: region_id
+          required: false
+          schema:
+            type: string
+          description: Filter by specific region ID
+      responses:
+        '200':
+          description: Aggregated sales overview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesOverviewResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/sales/filters:
+    get:
+      operationId: getSalesFilterOptions
+      x-required-capability: analytics.view
+      summary: Get available categories, regions, and date boundaries for sales filters
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+      responses:
+        '200':
+          description: Filter options
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesFilterOptionsResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/sales/records:
+    get:
+      operationId: getSalesRecords
+      x-required-capability: analytics.view
+      summary: Get paginated and sorted detail sales records for drill-down
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+        - in: query
+          name: date_from
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Start of date filter range (YYYY-MM-DD)
+        - in: query
+          name: date_to
+          required: false
+          schema:
+            type: string
+            format: date
+          description: End of date filter range (YYYY-MM-DD)
+        - in: query
+          name: category_id
+          required: false
+          schema:
+            type: string
+          description: Filter by specific category ID
+        - in: query
+          name: region_id
+          required: false
+          schema:
+            type: string
+          description: Filter by specific region ID
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+          description: Page number for pagination
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+          description: Number of items per page
+        - in: query
+          name: sort_by
+          required: false
+          schema:
+            type: string
+            enum: [order_date, order_number, product_name, total_price, quantity, gross_profit]
+            default: order_date
+          description: Field to sort records by
+        - in: query
+          name: sort_direction
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort direction
+      responses:
+        '200':
+          description: Paginated detail sales records
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalesRecordsResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/inventory/summary:
+    get:
+      operationId: getInventorySummary
+      x-required-capability: analytics.view
+      summary: Get current inventory summary, health breakdown, and warehouse metrics
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+        - in: query
+          name: warehouse_id
+          required: false
+          schema:
+            type: string
+          description: Optional filter by warehouse ID
+        - in: query
+          name: as_of_date
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Optional snapshot date (YYYY-MM-DD), defaults to latest available snapshot
+      responses:
+        '200':
+          description: Aggregated inventory summary and health distribution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventorySummaryResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden - user does not belong to the requested workspace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/inventory/items:
+    get:
+      operationId: getInventoryItems
+      x-required-capability: analytics.view
+      summary: Get paginated and sorted list of inventory items with sales velocity, DOS, and stock health
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+        - in: query
+          name: warehouse_id
+          required: false
+          schema:
+            type: string
+          description: Filter by warehouse ID
+        - in: query
+          name: stock_health
+          required: false
+          schema:
+            type: string
+            enum: [out_of_stock, critical, optimal, overstock]
+          description: Filter by stock health status
+        - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+          description: Search by product name or SKU
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number for pagination
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of items per page
+        - in: query
+          name: sort_by
+          required: false
+          schema:
+            type: string
+            enum: [product_name, quantity_on_hand, quantity_available, inventory_value, sales_velocity, days_of_stock]
+            default: quantity_available
+          description: Sort field
+        - in: query
+          name: sort_direction
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: asc
+          description: Sort direction
+      responses:
+        '200':
+          description: Paginated inventory items
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryItemsResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/inventory/filters:
+    get:
+      operationId: getInventoryFilters
+      x-required-capability: analytics.view
+      summary: Get available filter options for inventory analytics
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+      responses:
+        '200':
+          description: Available inventory filter options
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryFilterOptionsResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/inventory/abc-xyz/summary:
+    get:
+      operationId: getAbcXyzSummary
+      x-required-capability: analytics.view
+      summary: Get ABC/XYZ combined matrix and summary metrics
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+        - in: query
+          name: period_days
+          required: false
+          schema:
+            type: integer
+            enum: [30, 90, 180, 365]
+            default: 90
+          description: Analysis period in days
+        - in: query
+          name: warehouse_id
+          required: false
+          schema:
+            type: string
+          description: Optional filter by warehouse ID
+        - in: query
+          name: category_id
+          required: false
+          schema:
+            type: string
+          description: Optional filter by category ID
+        - in: query
+          name: supplier_id
+          required: false
+          schema:
+            type: string
+          description: Optional filter by supplier ID
+      responses:
+        '200':
+          description: ABC/XYZ matrix and summary distribution
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AbcXyzSummaryResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/inventory/abc-xyz/items:
+    get:
+      operationId: getAbcXyzItems
+      x-required-capability: analytics.view
+      summary: Get product-level items for ABC/XYZ analysis with variation and shares
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+        - in: query
+          name: period_days
+          required: false
+          schema:
+            type: integer
+            enum: [30, 90, 180, 365]
+            default: 90
+          description: Analysis period in days
+        - in: query
+          name: warehouse_id
+          required: false
+          schema:
+            type: string
+          description: Optional filter by warehouse ID
+        - in: query
+          name: category_id
+          required: false
+          schema:
+            type: string
+          description: Optional filter by category ID
+        - in: query
+          name: supplier_id
+          required: false
+          schema:
+            type: string
+          description: Optional filter by supplier ID
+        - in: query
+          name: abc_class
+          required: false
+          schema:
+            type: string
+            enum: [A, B, C]
+          description: Optional filter by ABC class
+        - in: query
+          name: xyz_class
+          required: false
+          schema:
+            type: string
+            enum: [X, Y, Z]
+          description: Optional filter by XYZ class
+        - in: query
+          name: group
+          required: false
+          schema:
+            type: string
+            enum: [AX, AY, AZ, BX, BY, BZ, CX, CY, CZ]
+          description: Optional filter by matrix group
+        - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+          description: Search by product name or SKU
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Items per page
+        - in: query
+          name: sort_by
+          required: false
+          schema:
+            type: string
+            enum: [product_name, total_revenue, revenue_share, cumulative_revenue_share, total_units_sold, coefficient_of_variation, current_stock, inventory_value]
+            default: total_revenue
+          description: Sort column
+        - in: query
+          name: sort_direction
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort direction
+      responses:
+        '200':
+          description: Paginated product-level ABC/XYZ items
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AbcXyzItemsResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/forecasts/{productId}/{warehouseId}:
+    get:
+      operationId: getProductWarehouseForecast
+      x-required-capability: analytics.view
+      summary: Get demand forecast for a specific product-warehouse pair
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: string
+          description: Product identifier
+        - in: path
+          name: warehouseId
+          required: true
+          schema:
+            type: string
+          description: Warehouse identifier
+        - in: query
+          name: horizon_days
+          required: false
+          schema:
+            type: integer
+            enum: [7, 14, 28]
+            default: 28
+          description: Forecast horizon in days
+        - in: query
+          name: as_of_date
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Optional data cutoff date (YYYY-MM-DD), defaults to latest available
+      responses:
+        '200':
+          description: Forecast data with quality metrics and stock risk assessment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForecastResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Forecast not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/suppliers/overview:
+    get:
+      operationId: getSupplierOverview
+      x-required-capability: analytics.view
+      summary: Get aggregated supplier metrics overview, delivery trends, and status breakdown
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+        - in: query
+          name: date_from
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Start of date filter range (YYYY-MM-DD)
+        - in: query
+          name: date_to
+          required: false
+          schema:
+            type: string
+            format: date
+          description: End of date filter range (YYYY-MM-DD)
+        - in: query
+          name: supplier_id
+          required: false
+          schema:
+            type: string
+          description: Filter by supplier ID
+        - in: query
+          name: warehouse_id
+          required: false
+          schema:
+            type: string
+          description: Filter by warehouse ID
+      responses:
+        '200':
+          description: Aggregated supplier metrics overview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplierOverviewResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/suppliers/filters:
+    get:
+      operationId: getSupplierFilterOptions
+      x-required-capability: analytics.view
+      summary: Get available suppliers, warehouses, statuses, and date bounds
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+      responses:
+        '200':
+          description: Available filter options
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplierFilterOptionsResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/suppliers/performance:
+    get:
+      operationId: getSupplierPerformance
+      x-required-capability: analytics.view
+      summary: Get comparative performance ranking of suppliers with sorting and pagination
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+        - in: query
+          name: date_from
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Start of date filter range (YYYY-MM-DD)
+        - in: query
+          name: date_to
+          required: false
+          schema:
+            type: string
+            format: date
+          description: End of date filter range (YYYY-MM-DD)
+        - in: query
+          name: warehouse_id
+          required: false
+          schema:
+            type: string
+          description: Filter by warehouse ID
+        - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+          description: Search by supplier name
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Items per page
+        - in: query
+          name: sort_by
+          required: false
+          schema:
+            type: string
+            enum: [supplier_name, total_deliveries, total_spend, on_time_rate, fulfillment_rate, defect_rate, avg_lead_time_days, reliability_score]
+            default: total_spend
+          description: Sort column
+        - in: query
+          name: sort_direction
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort direction
+      responses:
+        '200':
+          description: Paginated supplier performance ranking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplierPerformanceResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /analytics/suppliers/deliveries:
+    get:
+      operationId: getSupplierDeliveries
+      x-required-capability: analytics.view
+      summary: Get granular delivery records journal with sorting, filtering, and pagination
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+        - in: query
+          name: supplier_id
+          required: false
+          schema:
+            type: string
+          description: Filter by supplier ID
+        - in: query
+          name: warehouse_id
+          required: false
+          schema:
+            type: string
+          description: Filter by warehouse ID
+        - in: query
+          name: status
+          required: false
+          schema:
+            $ref: '#/components/schemas/DeliveryStatus'
+          description: Filter by delivery status
+        - in: query
+          name: date_from
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Start of date filter range (YYYY-MM-DD)
+        - in: query
+          name: date_to
+          required: false
+          schema:
+            type: string
+            format: date
+          description: End of date filter range (YYYY-MM-DD)
+        - in: query
+          name: search
+          required: false
+          schema:
+            type: string
+          description: Search by product name, SKU or supplier name
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Items per page
+        - in: query
+          name: sort_by
+          required: false
+          schema:
+            type: string
+            enum: [order_date, expected_delivery_date, actual_delivery_date, lead_time_days, delay_days, total_purchase_cost]
+            default: order_date
+          description: Sort column
+        - in: query
+          name: sort_direction
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+            default: desc
+          description: Sort direction
+      responses:
+        '200':
+          description: Paginated delivery records
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupplierDeliveriesResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /workspaces/{workspaceId}/invitations:
+    get:
+      operationId: listInvitations
+      summary: List pending invitations for workspace
+      x-required-capability: workspace.members.manage
+      parameters:
+        - in: path
+          name: workspaceId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of pending invitations
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationListResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      operationId: createInvitation
+      summary: Invite a new user by email
+      x-required-capability: workspace.members.manage
+      parameters:
+        - in: path
+          name: workspaceId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInvitationRequest'
+      responses:
+        '201':
+          description: Invitation created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /workspaces/{workspaceId}/invitations/{invitationId}/resend:
+    post:
+      operationId: resendInvitation
+      summary: Resend invitation and renew expiration
+      x-required-capability: workspace.members.manage
+      parameters:
+        - in: path
+          name: workspaceId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: invitationId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invitation resent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Invitation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /workspaces/{workspaceId}/invitations/{invitationId}:
+    delete:
+      operationId: cancelInvitation
+      summary: Cancel a pending invitation
+      x-required-capability: workspace.members.manage
+      parameters:
+        - in: path
+          name: workspaceId
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: invitationId
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Invitation cancelled
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Invitation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /invitations/{token}:
+    get:
+      operationId: getInvitationDetails
+      summary: Public endpoint to view invitation details
+      security: []
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invitation details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvitationPublicResponse'
+        '404':
+          description: Invitation not found or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /invitations/{token}/accept:
+    post:
+      operationId: acceptInvitation
+      summary: Accept invitation and join workspace
+      security: []
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptInvitationRequest'
+      responses:
+        '200':
+          description: Invitation accepted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptInvitationResponse'
+        '400':
+          description: Invitation expired or invalid state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Invitation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /dashboards:
+    get:
+      operationId: getDashboards
+      x-required-capability: dashboards.view
+      summary: List all custom dashboards for the current workspace
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+      responses:
+        '200':
+          description: List of dashboards
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardListResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      operationId: createDashboard
+      x-required-capability: dashboards.manage
+      summary: Create a new custom dashboard
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDashboardRequest'
+      responses:
+        '201':
+          description: Dashboard created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardDetailResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /dashboards/{id}:
+    get:
+      operationId: getDashboardById
+      x-required-capability: dashboards.view
+      summary: Get details and widget layout for a specific dashboard
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Dashboard identifier
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+      responses:
+        '200':
+          description: Dashboard detail and widget configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardDetailResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Dashboard not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      operationId: updateDashboard
+      x-required-capability: dashboards.manage
+      summary: Update a dashboard title, description, and widget layout
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Dashboard identifier
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDashboardRequest'
+      responses:
+        '200':
+          description: Dashboard updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardDetailResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Dashboard not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      operationId: deleteDashboard
+      x-required-capability: dashboards.manage
+      summary: Delete a custom dashboard
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Dashboard identifier
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+      responses:
+        '204':
+          description: Dashboard deleted successfully
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Dashboard not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /dashboards/{dashboardId}/views:
+    get:
+      tags:
+        - Dashboards
+      summary: List saved views and filter presets for a dashboard
+      operationId: getDashboardSavedViews
+      x-required-capability: dashboards.view
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: dashboardId
+          in: path
+          required: true
+          description: Dashboard identifier
+          schema:
+            type: string
+        - name: X-Workspace-Id
+          in: header
+          required: false
+          description: Active workspace identifier override
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of saved views for the dashboard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSavedViewListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Dashboard not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      tags:
+        - Dashboards
+      summary: Create a saved view or filter preset for a dashboard
+      operationId: createDashboardSavedView
+      x-required-capability: dashboards.manage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: dashboardId
+          in: path
+          required: true
+          description: Dashboard identifier
+          schema:
+            type: string
+        - name: X-Workspace-Id
+          in: header
+          required: false
+          description: Active workspace identifier override
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDashboardSavedViewRequest'
+      responses:
+        '201':
+          description: Saved view created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSavedViewResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Dashboard not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /dashboards/{dashboardId}/views/{viewId}:
+    get:
+      tags:
+        - Dashboards
+      summary: Get a specific saved view
+      operationId: getDashboardSavedViewById
+      x-required-capability: dashboards.view
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: dashboardId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: viewId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Workspace-Id
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Saved view details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSavedViewResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Saved view or dashboard not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags:
+        - Dashboards
+      summary: Update a saved view
+      operationId: updateDashboardSavedView
+      x-required-capability: dashboards.manage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: dashboardId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: viewId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Workspace-Id
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDashboardSavedViewRequest'
+      responses:
+        '200':
+          description: Saved view updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardSavedViewResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Saved view or dashboard not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags:
+        - Dashboards
+      summary: Delete a saved view
+      operationId: deleteDashboardSavedView
+      x-required-capability: dashboards.manage
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: dashboardId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: viewId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: X-Workspace-Id
+          in: header
+          required: false
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Saved view deleted successfully
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Saved view or dashboard not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alert-rules:
+    get:
+      operationId: getAlertRules
+      x-required-capability: alerts.view
+      summary: List alert rules for current workspace
+      parameters:
+        - in: query
+          name: is_enabled
+          required: false
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: List of alert rules
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRuleListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      operationId: createAlertRule
+      x-required-capability: alerts.manage
+      summary: Create alert rule
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAlertRuleRequest'
+      responses:
+        '201':
+          description: Alert rule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRuleDetailResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alert-rules/{id}:
+    get:
+      operationId: getAlertRuleById
+      x-required-capability: alerts.view
+      summary: Get alert rule details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Alert rule details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRuleDetailResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Alert rule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      operationId: updateAlertRule
+      x-required-capability: alerts.manage
+      summary: Update alert rule
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAlertRuleRequest'
+      responses:
+        '200':
+          description: Alert rule updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRuleDetailResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Alert rule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      operationId: deleteAlertRule
+      x-required-capability: alerts.manage
+      summary: Delete alert rule
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Alert rule deleted
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Alert rule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alert-rules/{id}/toggle:
+    post:
+      operationId: toggleAlertRule
+      x-required-capability: alerts.manage
+      summary: Toggle alert rule enabled status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Alert rule status toggled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertRuleDetailResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Alert rule not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alert-rules/evaluate:
+    post:
+      operationId: evaluateAlertRules
+      x-required-capability: alerts.manage
+      summary: Trigger evaluation of alert rules
+      responses:
+        '200':
+          description: Alert evaluation completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertEvaluationResultResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alerts:
+    get:
+      operationId: getAlerts
+      x-required-capability: alerts.view
+      summary: List alerts for workspace with optional filtering
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [all, active, open, acknowledged, resolved]
+            default: active
+        - in: query
+          name: severity
+          required: false
+          schema:
+            $ref: '#/components/schemas/AlertSeverity'
+        - in: query
+          name: warehouse_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: rule_id
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of alerts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alerts/summary:
+    get:
+      operationId: getAlertSummary
+      x-required-capability: alerts.view
+      summary: Get active alert counts by severity and status
+      responses:
+        '200':
+          description: Alert summary counters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertSummaryResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alerts/{id}:
+    get:
+      operationId: getAlertById
+      x-required-capability: alerts.view
+      summary: Get alert details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Alert details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertDetailResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Alert not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alerts/{id}/acknowledge:
+    post:
+      operationId: acknowledgeAlert
+      x-required-capability: alerts.manage
+      summary: Acknowledge active alert
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Alert acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertDetailResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Alert not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict with alert lifecycle state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /alerts/{id}/resolve:
+    post:
+      operationId: resolveAlert
+      x-required-capability: alerts.manage
+      summary: Resolve alert
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                resolution_note:
+                  type: string
+      responses:
+        '200':
+          description: Alert resolved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertDetailResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Alert not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Conflict with alert lifecycle state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Sanctum Personal Access Token
+  responses:
+    TooManyRequests:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    UpdateProfileRequest:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+    ChangePasswordRequest:
+      type: object
+      additionalProperties: false
+      required: [current_password, new_password, new_password_confirmation]
+      properties:
+        current_password:
+          type: string
+        new_password:
+          type: string
+          minLength: 8
+        new_password_confirmation:
+          type: string
+    RenameWorkspaceRequest:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name:
+          type: string
+          minLength: 1
+    InvitationStatus:
+      type: string
+      enum: [pending, accepted, cancelled]
+    InvitationResponse:
+      type: object
+      additionalProperties: false
+      required: [id, workspace_id, email, role, status, expires_at, created_at]
+      properties:
+        id:
+          type: string
+        workspace_id:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          $ref: '#/components/schemas/WorkspaceRole'
+        status:
+          $ref: '#/components/schemas/InvitationStatus'
+        expires_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+    InvitationListResponse:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvitationResponse'
+    CreateInvitationRequest:
+      type: object
+      additionalProperties: false
+      required: [email, role]
+      properties:
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [member, viewer]
+    InvitationPublicResponse:
+      type: object
+      additionalProperties: false
+      required: [email, workspace_name, role, is_expired, is_existing_user]
+      properties:
+        email:
+          type: string
+          format: email
+        workspace_name:
+          type: string
+        role:
+          $ref: '#/components/schemas/WorkspaceRole'
+        is_expired:
+          type: boolean
+        is_existing_user:
+          type: boolean
+    AcceptInvitationRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        password:
+          type: string
+    AcceptInvitationResponse:
+      type: object
+      additionalProperties: false
+      required: [user, workspace_id, token]
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        workspace_id:
+          type: string
+        token:
+          type: string
+
+    DatasetType:
+      type: string
+      enum: [sales, inventory]
+    ImportStatus:
+      type: string
+      enum: [pending, validating, processing, completed, completed_with_errors, failed]
+    SourceFormat:
+      type: string
+      enum: [csv, json]
+    ImportBatchSummary:
+      type: object
+      required: [id, workspace_id, dataset_type, source_format, original_filename, status, total_rows, processed_rows, successful_rows, failed_rows, created_at]
+      properties:
+        id:
+          type: string
+        workspace_id:
+          type: string
+        dataset_type:
+          $ref: '#/components/schemas/DatasetType'
+        source_format:
+          $ref: '#/components/schemas/SourceFormat'
+        original_filename:
+          type: string
+        status:
+          $ref: '#/components/schemas/ImportStatus'
+        total_rows:
+          type: integer
+        processed_rows:
+          type: integer
+        successful_rows:
+          type: integer
+        failed_rows:
+          type: integer
+        progress_percentage:
+          type: number
+        error_message:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+      additionalProperties: false
+    ImportBatchListResponse:
+      type: object
+      required: [items, total, page, per_page, total_pages]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportBatchSummary'
+        total:
+          type: integer
+        page:
+          type: integer
+        per_page:
+          type: integer
+        total_pages:
+          type: integer
+      additionalProperties: false
+    ImportBatchDetail:
+      type: object
+      required: [id, workspace_id, dataset_type, source_format, original_filename, status, total_rows, processed_rows, successful_rows, failed_rows, stored_file_path, created_at]
+      properties:
+        id:
+          type: string
+        workspace_id:
+          type: string
+        dataset_type:
+          $ref: '#/components/schemas/DatasetType'
+        source_format:
+          $ref: '#/components/schemas/SourceFormat'
+        original_filename:
+          type: string
+        status:
+          $ref: '#/components/schemas/ImportStatus'
+        total_rows:
+          type: integer
+        processed_rows:
+          type: integer
+        successful_rows:
+          type: integer
+        failed_rows:
+          type: integer
+        progress_percentage:
+          type: number
+        error_message:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        stored_file_path:
+          type: string
+      additionalProperties: false
+    ImportBatchDetailResponse:
+      type: object
+      required: [batch]
+      properties:
+        batch:
+          $ref: '#/components/schemas/ImportBatchDetail'
+      additionalProperties: false
+    ImportFailureItem:
+      type: object
+      required: [id, row_number, error_message, created_at]
+      properties:
+        id:
+          type: string
+        row_number:
+          type: integer
+        field:
+          type: string
+          nullable: true
+        value:
+          type: string
+          nullable: true
+        error_message:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+      additionalProperties: false
+    ImportFailureListResponse:
+      type: object
+      required: [items, total, page, per_page, total_pages]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImportFailureItem'
+        total:
+          type: integer
+        page:
+          type: integer
+        per_page:
+          type: integer
+        total_pages:
+          type: integer
+      additionalProperties: false
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    LoginResponse:
+      type: object
+      additionalProperties: false
+      required: [user, token]
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        token:
+          type: string
+    HealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status, service, version, checks]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        service: { type: string, enum: [analytics] }
+        version: { type: string, enum: [v1] }
+        checks:
+          $ref: '#/components/schemas/DependencyChecks'
+    LivenessResponse:
+      type: object
+      additionalProperties: false
+      required: [status, service]
+      properties:
+        status: { type: string, enum: [ok] }
+        service: { type: string, enum: [analytics] }
+    ReadinessResponse:
+      type: object
+      additionalProperties: false
+      required: [status, service, checks]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        service: { type: string, enum: [analytics] }
+        checks:
+          $ref: '#/components/schemas/DependencyChecks'
+    DependencyChecks:
+      type: object
+      additionalProperties: false
+      required: [database, redis]
+      properties:
+        database: { type: string, enum: [ok, error] }
+        redis: { type: string, enum: [ok, error] }
+    OutboxHealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status, service, outbox, publisher]
+      properties:
+        status: { type: string, enum: [ok, warning, degraded] }
+        service: { type: string, enum: [analytics] }
+        outbox:
+          type: object
+          additionalProperties: false
+          required: [pending_count, oldest_pending_age_seconds, failed_count]
+          properties:
+            pending_count: { type: integer, minimum: 0 }
+            oldest_pending_age_seconds: { type: integer, nullable: true, minimum: 0 }
+            failed_count: { type: integer, minimum: 0 }
+        publisher:
+          type: object
+          additionalProperties: false
+          required: [last_run_at, last_run_age_seconds]
+          properties:
+            last_run_at: { type: string, format: date-time, nullable: true }
+            last_run_age_seconds: { type: integer, nullable: true, minimum: 0 }
+    UserResponse:
+      type: object
+      additionalProperties: false
+      required: [id, email, name]
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+        name: { type: string }
+    WorkspaceRole:
+      type: string
+      enum: [owner, member, viewer]
+    WorkspaceCapability:
+      type: string
+      enum:
+        - analytics.view
+        - dashboards.view
+        - dashboards.manage
+        - imports.view
+        - imports.manage
+        - alerts.view
+        - alerts.manage
+        - workspace.members.manage
+        - workspace.settings.manage
+    WorkspaceMemberResponse:
+      type: object
+      additionalProperties: false
+      required: [user, role]
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        role:
+          $ref: '#/components/schemas/WorkspaceRole'
+    WorkspaceMemberListResponse:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspaceMemberResponse'
+    ChangeWorkspaceMemberRoleRequest:
+      type: object
+      additionalProperties: false
+      required: [role]
+      properties:
+        role:
+          $ref: '#/components/schemas/WorkspaceRole'
+    ChangeWorkspaceMemberRoleResponse:
+      type: object
+      additionalProperties: false
+      required: [member]
+      properties:
+        member:
+          $ref: '#/components/schemas/WorkspaceMemberResponse'
+    WorkspaceResponse:
+      type: object
+      additionalProperties: false
+      required: [id, name, slug, role, capabilities]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        slug: { type: string }
+        role:
+          $ref: '#/components/schemas/WorkspaceRole'
+        capabilities:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspaceCapability'
+    WorkspaceListResponse:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspaceResponse'
+    CurrentWorkspaceResponse:
+      type: object
+      additionalProperties: false
+      required: [user, workspace]
+      properties:
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        workspace:
+          $ref: '#/components/schemas/WorkspaceResponse'
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [message, code]
+      properties:
+        message: { type: string }
+        code: { type: string }
+    SalesOverviewResponse:
+      type: object
+      additionalProperties: false
+      required: [summary, trend, categories, regions]
+      properties:
+        summary:
+          $ref: '#/components/schemas/SalesSummary'
+        trend:
+          type: array
+          items:
+            $ref: '#/components/schemas/SalesTrendPoint'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/SalesCategoryBreakdown'
+        regions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SalesRegionBreakdown'
+    SalesSummary:
+      type: object
+      additionalProperties: false
+      required: [total_revenue, order_count, average_order_value, gross_profit, margin_rate]
+      properties:
+        total_revenue: { type: number, format: float }
+        order_count: { type: integer }
+        average_order_value: { type: number, format: float }
+        gross_profit: { type: number, format: float }
+        margin_rate: { type: number, format: float }
+    SalesTrendPoint:
+      type: object
+      additionalProperties: false
+      required: [date, revenue, order_count]
+      properties:
+        date: { type: string, format: date }
+        revenue: { type: number, format: float }
+        order_count: { type: integer }
+    SalesCategoryBreakdown:
+      type: object
+      additionalProperties: false
+      required: [category_id, category_name, revenue, order_count, revenue_share]
+      properties:
+        category_id: { type: string }
+        category_name: { type: string }
+        revenue: { type: number, format: float }
+        order_count: { type: integer }
+        revenue_share: { type: number, format: float }
+    SalesRegionBreakdown:
+      type: object
+      additionalProperties: false
+      required: [region_id, region_name, region_code, revenue, order_count, revenue_share]
+      properties:
+        region_id: { type: string }
+        region_name: { type: string }
+        region_code: { type: string }
+        revenue: { type: number, format: float }
+        order_count: { type: integer }
+        revenue_share: { type: number, format: float }
+    SalesFilterOptionsResponse:
+      type: object
+      additionalProperties: false
+      required: [categories, regions, min_date, max_date]
+      properties:
+        categories:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, name]
+            properties:
+              id: { type: string }
+              name: { type: string }
+        regions:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, name, code]
+            properties:
+              id: { type: string }
+              name: { type: string }
+              code: { type: string }
+        min_date: { type: string, format: date }
+        max_date: { type: string, format: date }
+    PaginationMetadata:
+      type: object
+      additionalProperties: false
+      required: [page, per_page, total, total_pages]
+      properties:
+        page: { type: integer }
+        per_page: { type: integer }
+        total: { type: integer }
+        total_pages: { type: integer }
+    SalesRecordItem:
+      type: object
+      additionalProperties: false
+      required: [id, order_id, order_number, order_date, product_id, product_name, product_sku, category_id, category_name, region_id, region_name, brand_name, quantity, unit_price, total_price, gross_profit, status]
+      properties:
+        id: { type: string }
+        order_id: { type: string }
+        order_number: { type: string }
+        order_date: { type: string, format: date }
+        product_id: { type: string }
+        product_name: { type: string }
+        product_sku: { type: string }
+        category_id: { type: string }
+        category_name: { type: string }
+        region_id: { type: string }
+        region_name: { type: string }
+        brand_name: { type: string }
+        quantity: { type: integer }
+        unit_price: { type: number, format: float }
+        total_price: { type: number, format: float }
+        gross_profit: { type: number, format: float }
+        status: { type: string }
+    SalesRecordsResponse:
+      type: object
+      additionalProperties: false
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SalesRecordItem'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+    InventorySummary:
+      type: object
+      additionalProperties: false
+      required:
+        - total_items
+        - total_quantity_on_hand
+        - total_quantity_reserved
+        - total_quantity_available
+        - total_inventory_value
+        - critical_count
+        - overstock_count
+        - out_of_stock_count
+        - optimal_count
+        - average_days_of_stock
+      properties:
+        total_items:
+          type: integer
+        total_quantity_on_hand:
+          type: integer
+        total_quantity_reserved:
+          type: integer
+        total_quantity_available:
+          type: integer
+        total_inventory_value:
+          type: number
+          format: float
+        critical_count:
+          type: integer
+        overstock_count:
+          type: integer
+        out_of_stock_count:
+          type: integer
+        optimal_count:
+          type: integer
+        average_days_of_stock:
+          type: number
+          format: float
+          nullable: true
+    StockHealthBreakdownItem:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - label
+        - items_count
+        - total_value
+        - share
+      properties:
+        status:
+          type: string
+          enum: [out_of_stock, critical, optimal, overstock]
+        label:
+          type: string
+        items_count:
+          type: integer
+        total_value:
+          type: number
+          format: float
+        share:
+          type: number
+          format: float
+    WarehouseStockBreakdownItem:
+      type: object
+      additionalProperties: false
+      required:
+        - warehouse_id
+        - warehouse_name
+        - warehouse_code
+        - total_quantity
+        - total_value
+        - items_count
+        - critical_count
+        - overstock_count
+      properties:
+        warehouse_id:
+          type: string
+        warehouse_name:
+          type: string
+        warehouse_code:
+          type: string
+        total_quantity:
+          type: integer
+        total_value:
+          type: number
+          format: float
+        items_count:
+          type: integer
+        critical_count:
+          type: integer
+        overstock_count:
+          type: integer
+    InventorySummaryResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - summary
+        - health_breakdown
+        - warehouses
+        - as_of_date
+      properties:
+        summary:
+          $ref: '#/components/schemas/InventorySummary'
+        health_breakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/StockHealthBreakdownItem'
+        warehouses:
+          type: array
+          items:
+            $ref: '#/components/schemas/WarehouseStockBreakdownItem'
+        as_of_date:
+          type: string
+          format: date
+    InventoryItem:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - product_id
+        - product_name
+        - product_sku
+        - category_id
+        - category_name
+        - warehouse_id
+        - warehouse_name
+        - warehouse_code
+        - quantity_on_hand
+        - quantity_reserved
+        - quantity_available
+        - unit_cost
+        - inventory_value
+        - sales_velocity
+        - days_of_stock
+        - stock_health
+        - stock_health_label
+        - safety_stock
+        - reorder_point
+      properties:
+        id:
+          type: string
+        product_id:
+          type: string
+        product_name:
+          type: string
+        product_sku:
+          type: string
+        category_id:
+          type: string
+        category_name:
+          type: string
+        warehouse_id:
+          type: string
+        warehouse_name:
+          type: string
+        warehouse_code:
+          type: string
+        quantity_on_hand:
+          type: integer
+        quantity_reserved:
+          type: integer
+        quantity_available:
+          type: integer
+        unit_cost:
+          type: number
+          format: float
+        inventory_value:
+          type: number
+          format: float
+        sales_velocity:
+          type: number
+          format: float
+        days_of_stock:
+          type: number
+          format: float
+          nullable: true
+        stock_health:
+          type: string
+          enum: [out_of_stock, critical, optimal, overstock]
+        stock_health_label:
+          type: string
+        safety_stock:
+          type: integer
+        reorder_point:
+          type: integer
+    InventoryItemsResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InventoryItem'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+    InventoryFilterOptionsResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - warehouses
+        - statuses
+        - latest_snapshot_date
+        - categories
+        - suppliers
+      properties:
+        warehouses:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, name, code]
+            properties:
+              id: { type: string }
+              name: { type: string }
+              code: { type: string }
+        statuses:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [value, label]
+            properties:
+              value: { type: string }
+              label: { type: string }
+        latest_snapshot_date:
+          type: string
+          format: date
+        categories:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, name, code]
+            properties:
+              id: { type: string }
+              name: { type: string }
+              code: { type: string }
+        suppliers:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, name]
+            properties:
+              id: { type: string }
+              name: { type: string }
+    AbcXyzSummaryResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - data
+      properties:
+        data:
+          $ref: '#/components/schemas/AbcXyzSummary'
+    AbcXyzSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - total_products
+        - total_revenue
+        - total_inventory_value
+        - matrix
+        - abc_distribution
+        - xyz_distribution
+        - period_days
+        - start_date
+        - end_date
+      properties:
+        total_products:
+          type: integer
+        total_revenue:
+          type: number
+          format: float
+        total_inventory_value:
+          type: number
+          format: float
+        matrix:
+          type: array
+          items:
+            $ref: '#/components/schemas/AbcXyzMatrixCell'
+        abc_distribution:
+          type: array
+          items:
+            $ref: '#/components/schemas/AbcDistributionItem'
+        xyz_distribution:
+          type: array
+          items:
+            $ref: '#/components/schemas/XyzDistributionItem'
+        period_days:
+          type: integer
+        start_date:
+          type: string
+          format: date
+        end_date:
+          type: string
+          format: date
+    AbcXyzMatrixCell:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - label
+        - description
+        - recommendation
+        - count
+        - count_share
+        - revenue
+        - revenue_share
+        - inventory_value
+        - inventory_value_share
+      properties:
+        code:
+          type: string
+          enum: [AX, AY, AZ, BX, BY, BZ, CX, CY, CZ]
+        label:
+          type: string
+        description:
+          type: string
+        recommendation:
+          type: string
+        count:
+          type: integer
+        count_share:
+          type: number
+          format: float
+        revenue:
+          type: number
+          format: float
+        revenue_share:
+          type: number
+          format: float
+        inventory_value:
+          type: number
+          format: float
+        inventory_value_share:
+          type: number
+          format: float
+    AbcDistributionItem:
+      type: object
+      additionalProperties: false
+      required:
+        - class
+        - label
+        - count
+        - count_share
+        - revenue
+        - revenue_share
+      properties:
+        class:
+          type: string
+          enum: [A, B, C]
+        label:
+          type: string
+        count:
+          type: integer
+        count_share:
+          type: number
+          format: float
+        revenue:
+          type: number
+          format: float
+        revenue_share:
+          type: number
+          format: float
+    XyzDistributionItem:
+      type: object
+      additionalProperties: false
+      required:
+        - class
+        - label
+        - count
+        - count_share
+        - revenue
+        - revenue_share
+      properties:
+        class:
+          type: string
+          enum: [X, Y, Z]
+        label:
+          type: string
+        count:
+          type: integer
+        count_share:
+          type: number
+          format: float
+        revenue:
+          type: number
+          format: float
+        revenue_share:
+          type: number
+          format: float
+    AbcXyzItemsResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AbcXyzProductItem'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+    AbcXyzProductItem:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - product_id
+        - product_name
+        - product_sku
+        - category_id
+        - category_name
+        - brand_name
+        - total_revenue
+        - total_units_sold
+        - revenue_share
+        - cumulative_revenue_share
+        - abc_class
+        - period_sales
+        - average_sales
+        - standard_deviation
+        - xyz_class
+        - abc_xyz_group
+        - current_stock
+        - inventory_value
+      properties:
+        id:
+          type: string
+        product_id:
+          type: string
+        product_name:
+          type: string
+        product_sku:
+          type: string
+        category_id:
+          type: string
+        category_name:
+          type: string
+        brand_name:
+          type: string
+        supplier_id:
+          type: string
+          nullable: true
+        supplier_name:
+          type: string
+          nullable: true
+        total_revenue:
+          type: number
+          format: float
+        total_units_sold:
+          type: integer
+        revenue_share:
+          type: number
+          format: float
+        cumulative_revenue_share:
+          type: number
+          format: float
+        abc_class:
+          type: string
+          enum: [A, B, C]
+        period_sales:
+          type: array
+          items:
+            type: number
+            format: float
+        average_sales:
+          type: number
+          format: float
+        standard_deviation:
+          type: number
+          format: float
+        coefficient_of_variation:
+          type: number
+          format: float
+          nullable: true
+        xyz_class:
+          type: string
+          enum: [X, Y, Z]
+        abc_xyz_group:
+          type: string
+          enum: [AX, AY, AZ, BX, BY, BZ, CX, CY, CZ]
+        current_stock:
+          type: integer
+        inventory_value:
+          type: number
+          format: float
+    DashboardSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - workspace_id
+        - title
+        - description
+        - widget_count
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        workspace_id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        widget_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    DashboardListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardSummary'
+    WidgetGridPosition:
+      type: object
+      additionalProperties: false
+      required:
+        - x
+        - y
+        - w
+        - h
+      properties:
+        x:
+          type: integer
+          minimum: 0
+          maximum: 11
+        y:
+          type: integer
+          minimum: 0
+        w:
+          type: integer
+          minimum: 1
+          maximum: 12
+        h:
+          type: integer
+          minimum: 1
+          maximum: 24
+    WidgetQueryConfig:
+      type: object
+      additionalProperties: false
+      required:
+        - dataset
+        - metric
+      properties:
+        dataset:
+          type: string
+          enum: [sales, inventory]
+        metric:
+          type: string
+          enum: [revenue, order_count, average_order_value, gross_profit, margin_rate, stock_quantity, stock_value, out_of_stock_count, overstock_count]
+        dimension:
+          type: string
+          nullable: true
+          enum: [date, category, region, warehouse, abc_class, xyz_class, supplier]
+        date_range:
+          type: string
+          nullable: true
+          enum: ['30d', '90d', '180d', '365d', 'all']
+        filters:
+          $ref: '#/components/schemas/DashboardFilterValues'
+    WidgetDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+        - type
+        - query_config
+        - position
+        - options
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+          enum: [kpi_card, line_chart, bar_chart, donut_chart, table]
+        query_config:
+          $ref: '#/components/schemas/WidgetQueryConfig'
+        position:
+          $ref: '#/components/schemas/WidgetGridPosition'
+        options:
+          type: object
+          additionalProperties: true
+    WidgetInput:
+      type: object
+      additionalProperties: false
+      required:
+        - title
+        - type
+        - query_config
+        - position
+      properties:
+        id:
+          type: string
+          nullable: true
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        type:
+          type: string
+          enum: [kpi_card, line_chart, bar_chart, donut_chart, table]
+        query_config:
+          $ref: '#/components/schemas/WidgetQueryConfig'
+        position:
+          $ref: '#/components/schemas/WidgetGridPosition'
+        options:
+          type: object
+          additionalProperties: true
+          default: {}
+    CreateDashboardRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - title
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+    UpdateDashboardRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - title
+        - widgets
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+        widgets:
+          type: array
+          items:
+            $ref: '#/components/schemas/WidgetInput'
+    DashboardDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - workspace_id
+        - title
+        - description
+        - widgets
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        workspace_id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        widgets:
+          type: array
+          items:
+            $ref: '#/components/schemas/WidgetDetail'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    DashboardDetailResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - dashboard
+      properties:
+        dashboard:
+          $ref: '#/components/schemas/DashboardDetail'
+    DashboardFilterValues:
+      type: object
+      additionalProperties: false
+      properties:
+        date_range:
+          type: string
+          nullable: true
+          enum: ['30d', '90d', '180d', '365d', 'all', 'custom']
+        date_from:
+          type: string
+          format: date
+          nullable: true
+        date_to:
+          type: string
+          format: date
+          nullable: true
+        category_id:
+          type: string
+          nullable: true
+        region_id:
+          type: string
+          nullable: true
+        warehouse_id:
+          type: string
+          nullable: true
+        stock_health:
+          type: string
+          nullable: true
+          enum: [in_stock, low_stock, out_of_stock, overstock]
+    DashboardSavedView:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - dashboard_id
+        - name
+        - filters
+        - is_default
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        dashboard_id:
+          type: string
+        name:
+          type: string
+        filters:
+          $ref: '#/components/schemas/DashboardFilterValues'
+        is_default:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    DashboardSavedViewListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardSavedView'
+    DashboardSavedViewResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - view
+      properties:
+        view:
+          $ref: '#/components/schemas/DashboardSavedView'
+    CreateDashboardSavedViewRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - filters
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        filters:
+          $ref: '#/components/schemas/DashboardFilterValues'
+        is_default:
+          type: boolean
+          default: false
+    UpdateDashboardSavedViewRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - filters
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        filters:
+          $ref: '#/components/schemas/DashboardFilterValues'
+        is_default:
+          type: boolean
+          default: false
+    DeliveryStatus:
+      type: string
+      enum: [on_time, delayed, partial]
+    SupplierReliabilityTier:
+      type: string
+      enum: [excellent, good, acceptable, poor]
+    SupplierSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - total_deliveries
+        - on_time_deliveries
+        - delayed_deliveries
+        - partial_deliveries
+        - total_spend
+        - total_ordered_quantity
+        - total_received_quantity
+        - total_defect_quantity
+        - on_time_rate
+        - delay_rate
+        - fulfillment_rate
+        - defect_rate
+        - average_lead_time_days
+        - average_delay_days
+      properties:
+        total_deliveries:
+          type: integer
+        on_time_deliveries:
+          type: integer
+        delayed_deliveries:
+          type: integer
+        partial_deliveries:
+          type: integer
+        total_spend:
+          type: number
+          format: float
+        total_ordered_quantity:
+          type: integer
+        total_received_quantity:
+          type: integer
+        total_defect_quantity:
+          type: integer
+        on_time_rate:
+          type: number
+          format: float
+        delay_rate:
+          type: number
+          format: float
+        fulfillment_rate:
+          type: number
+          format: float
+        defect_rate:
+          type: number
+          format: float
+        average_lead_time_days:
+          type: number
+          format: float
+        average_delay_days:
+          type: number
+          format: float
+    DeliveryStatusBreakdownItem:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - count
+        - share_percentage
+        - quantity
+      properties:
+        status:
+          $ref: '#/components/schemas/DeliveryStatus'
+        count:
+          type: integer
+        share_percentage:
+          type: number
+          format: float
+        quantity:
+          type: integer
+    SupplierTrendPoint:
+      type: object
+      additionalProperties: false
+      required:
+        - period
+        - deliveries_count
+        - on_time_deliveries
+        - total_spend
+        - on_time_rate
+        - fulfillment_rate
+        - avg_lead_time_days
+      properties:
+        period:
+          type: string
+          description: Year-Month period (YYYY-MM)
+        deliveries_count:
+          type: integer
+        on_time_deliveries:
+          type: integer
+        total_spend:
+          type: number
+          format: float
+        on_time_rate:
+          type: number
+          format: float
+        fulfillment_rate:
+          type: number
+          format: float
+        avg_lead_time_days:
+          type: number
+          format: float
+    SupplierPerformanceItem:
+      type: object
+      additionalProperties: false
+      required:
+        - supplier_id
+        - supplier_name
+        - total_deliveries
+        - on_time_deliveries
+        - delayed_deliveries
+        - partial_deliveries
+        - total_spend
+        - ordered_quantity
+        - received_quantity
+        - defect_quantity
+        - on_time_rate
+        - delay_rate
+        - fulfillment_rate
+        - defect_rate
+        - avg_lead_time_days
+        - avg_delay_days
+        - reliability_score
+        - reliability_tier
+      properties:
+        supplier_id:
+          type: string
+        supplier_name:
+          type: string
+        total_deliveries:
+          type: integer
+        on_time_deliveries:
+          type: integer
+        delayed_deliveries:
+          type: integer
+        partial_deliveries:
+          type: integer
+        total_spend:
+          type: number
+          format: float
+        ordered_quantity:
+          type: integer
+        received_quantity:
+          type: integer
+        defect_quantity:
+          type: integer
+        on_time_rate:
+          type: number
+          format: float
+        delay_rate:
+          type: number
+          format: float
+        fulfillment_rate:
+          type: number
+          format: float
+        defect_rate:
+          type: number
+          format: float
+        avg_lead_time_days:
+          type: number
+          format: float
+        avg_delay_days:
+          type: number
+          format: float
+        reliability_score:
+          type: number
+          format: float
+        reliability_tier:
+          $ref: '#/components/schemas/SupplierReliabilityTier'
+    SupplierOverviewResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - summary
+        - status_breakdown
+        - trends
+        - top_suppliers
+      properties:
+        summary:
+          $ref: '#/components/schemas/SupplierSummary'
+        status_breakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeliveryStatusBreakdownItem'
+        trends:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupplierTrendPoint'
+        top_suppliers:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupplierPerformanceItem'
+    SupplierPerformanceResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupplierPerformanceItem'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+    SupplierDeliveryItem:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - order_date
+        - expected_delivery_date
+        - supplier_id
+        - supplier_name
+        - product_id
+        - product_name
+        - product_sku
+        - warehouse_id
+        - warehouse_name
+        - ordered_quantity
+        - received_quantity
+        - defect_quantity
+        - unit_purchase_cost
+        - total_purchase_cost
+        - delivery_status
+        - lead_time_days
+        - delay_days
+      properties:
+        id:
+          type: string
+        order_date:
+          type: string
+          format: date
+        expected_delivery_date:
+          type: string
+          format: date
+        actual_delivery_date:
+          type: string
+          format: date
+          nullable: true
+        supplier_id:
+          type: string
+        supplier_name:
+          type: string
+        product_id:
+          type: string
+        product_name:
+          type: string
+        product_sku:
+          type: string
+        warehouse_id:
+          type: string
+        warehouse_name:
+          type: string
+        ordered_quantity:
+          type: integer
+        received_quantity:
+          type: integer
+        defect_quantity:
+          type: integer
+        unit_purchase_cost:
+          type: number
+          format: float
+        total_purchase_cost:
+          type: number
+          format: float
+        delivery_status:
+          $ref: '#/components/schemas/DeliveryStatus'
+        lead_time_days:
+          type: integer
+        delay_days:
+          type: integer
+    SupplierDeliveriesResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SupplierDeliveryItem'
+        pagination:
+          $ref: '#/components/schemas/PaginationMetadata'
+    SupplierFilterOptionsResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - suppliers
+        - warehouses
+        - statuses
+        - min_date
+        - max_date
+      properties:
+        suppliers:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, name]
+            properties:
+              id: { type: string }
+              name: { type: string }
+        warehouses:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [id, name]
+            properties:
+              id: { type: string }
+              name: { type: string }
+        statuses:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [value, label]
+            properties:
+              value: { type: string }
+              label: { type: string }
+        min_date:
+          type: string
+          format: date
+        max_date:
+          type: string
+          format: date
+
+    AlertSeverity:
+      type: string
+      enum:
+        - info
+        - warning
+        - critical
+
+    AlertStatus:
+      type: string
+      enum:
+        - open
+        - acknowledged
+        - resolved
+
+    RuleType:
+      type: string
+      enum:
+        - out_of_stock
+        - critical_stock
+        - overstock
+        - reorder_point
+
+    AlertRule:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - workspace_id
+        - name
+        - rule_type
+        - severity
+        - metric
+        - comparator
+        - threshold_value
+        - is_enabled
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        workspace_id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        rule_type:
+          $ref: '#/components/schemas/RuleType'
+        severity:
+          $ref: '#/components/schemas/AlertSeverity'
+        metric:
+          type: string
+        comparator:
+          type: string
+        threshold_value:
+          type: number
+        warehouse_id:
+          type: string
+          nullable: true
+        category_id:
+          type: string
+          nullable: true
+        product_id:
+          type: string
+          nullable: true
+        is_enabled:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AlertRuleListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlertRule'
+
+    AlertRuleDetailResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - rule
+      properties:
+        rule:
+          $ref: '#/components/schemas/AlertRule'
+
+    CreateAlertRuleRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - rule_type
+        - severity
+        - metric
+        - comparator
+        - threshold_value
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        rule_type:
+          $ref: '#/components/schemas/RuleType'
+        severity:
+          $ref: '#/components/schemas/AlertSeverity'
+        metric:
+          type: string
+        comparator:
+          type: string
+        threshold_value:
+          type: number
+        warehouse_id:
+          type: string
+          nullable: true
+        category_id:
+          type: string
+          nullable: true
+        product_id:
+          type: string
+          nullable: true
+        is_enabled:
+          type: boolean
+          default: true
+
+    UpdateAlertRuleRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - severity
+        - threshold_value
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        severity:
+          $ref: '#/components/schemas/AlertSeverity'
+        metric:
+          type: string
+        comparator:
+          type: string
+        threshold_value:
+          type: number
+        warehouse_id:
+          type: string
+          nullable: true
+        category_id:
+          type: string
+          nullable: true
+        product_id:
+          type: string
+          nullable: true
+        is_enabled:
+          type: boolean
+
+    AlertContext:
+      type: object
+      additionalProperties: true
+      required:
+        - target
+      properties:
+        target:
+          type: string
+          example: inventory
+        warehouse_id:
+          type: string
+          nullable: true
+        warehouse_name:
+          type: string
+          nullable: true
+        product_id:
+          type: string
+          nullable: true
+        product_name:
+          type: string
+          nullable: true
+        product_sku:
+          type: string
+          nullable: true
+        current_value:
+          type: number
+        threshold_value:
+          type: number
+
+    Alert:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - workspace_id
+        - rule_name
+        - severity
+        - status
+        - triggered_at
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+        workspace_id:
+          type: string
+        rule_id:
+          type: string
+          nullable: true
+        rule_name:
+          type: string
+        severity:
+          $ref: '#/components/schemas/AlertSeverity'
+        status:
+          $ref: '#/components/schemas/AlertStatus'
+        dedup_fingerprint:
+          type: string
+        product_id:
+          type: string
+          nullable: true
+        product_name:
+          type: string
+          nullable: true
+        product_sku:
+          type: string
+          nullable: true
+        warehouse_id:
+          type: string
+          nullable: true
+        warehouse_name:
+          type: string
+          nullable: true
+        current_value:
+          type: number
+          nullable: true
+        threshold_value:
+          type: number
+          nullable: true
+        context_data:
+          $ref: '#/components/schemas/AlertContext'
+        triggered_at:
+          type: string
+          format: date-time
+        acknowledged_at:
+          type: string
+          format: date-time
+          nullable: true
+        acknowledged_by:
+          type: string
+          nullable: true
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+        resolved_by:
+          type: string
+          nullable: true
+        resolution_note:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AlertListResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Alert'
+        pagination:
+          type: object
+          additionalProperties: false
+          required:
+            - page
+            - per_page
+            - total
+            - total_pages
+          properties:
+            page:
+              type: integer
+            per_page:
+              type: integer
+            total:
+              type: integer
+            total_pages:
+              type: integer
+
+    AlertDetailResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - alert
+      properties:
+        alert:
+          $ref: '#/components/schemas/Alert'
+
+    AlertSummaryResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - total_active
+        - critical_count
+        - warning_count
+        - info_count
+        - acknowledged_count
+      properties:
+        total_active:
+          type: integer
+        critical_count:
+          type: integer
+        warning_count:
+          type: integer
+        info_count:
+          type: integer
+        acknowledged_count:
+          type: integer
+
+    AlertEvaluationResultResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - rules_evaluated
+        - alerts_triggered
+        - alerts_created
+        - alerts_updated
+      properties:
+        rules_evaluated:
+          type: integer
+        alerts_triggered:
+          type: integer
+        alerts_created:
+          type: integer
+        alerts_updated:
+          type: integer
+
+    ForecastStatus:
+      type: string
+      enum:
+        - ready
+        - stale
+        - insufficient_data
+        - limited_by_stockouts
+        - failed
+
+    ForecastPoint:
+      type: object
+      additionalProperties: false
+      required:
+        - date
+        - point_estimate
+        - is_stockout_day
+      properties:
+        date:
+          type: string
+          format: date
+        point_estimate:
+          type: number
+          format: float
+        lower_bound:
+          type: number
+          format: float
+          nullable: true
+        upper_bound:
+          type: number
+          format: float
+          nullable: true
+        interval_level:
+          type: number
+          format: float
+          nullable: true
+        actual_value:
+          type: number
+          format: float
+          nullable: true
+        is_stockout_day:
+          type: boolean
+
+    ForecastQualityMetric:
+      type: object
+      additionalProperties: false
+      required:
+        - metric_name
+        - metric_value
+        - horizon_days
+        - evaluation_windows
+      properties:
+        metric_name:
+          type: string
+        metric_value:
+          type: number
+          format: float
+        horizon_days:
+          type: integer
+        segment:
+          type: string
+          nullable: true
+        evaluation_windows:
+          type: integer
+
+    ForecastDataFreshness:
+      type: object
+      additionalProperties: false
+      properties:
+        sales_date:
+          type: string
+          format: date
+          nullable: true
+        inventory_date:
+          type: string
+          format: date
+          nullable: true
+        supplier_date:
+          type: string
+          format: date
+          nullable: true
+
+    ForecastStockRisk:
+      type: object
+      additionalProperties: false
+      required:
+        - current_quantity_available
+        - current_safety_stock
+        - current_reorder_point
+        - assumptions
+      properties:
+        current_quantity_available:
+          type: integer
+        current_safety_stock:
+          type: integer
+        current_reorder_point:
+          type: integer
+        estimated_depletion_date:
+          type: string
+          format: date
+          nullable: true
+        estimated_reorder_threshold_date:
+          type: string
+          format: date
+          nullable: true
+        estimated_order_placement_date:
+          type: string
+          format: date
+          nullable: true
+        median_lead_time_days:
+          type: integer
+          nullable: true
+        lead_time_source:
+          type: string
+          nullable: true
+        assumptions:
+          type: string
+
+    ForecastResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - workspace_id
+        - product_id
+        - product_name
+        - product_sku
+        - warehouse_id
+        - warehouse_name
+        - as_of_date
+        - generated_at
+        - horizon_days
+        - model_method
+        - model_version
+        - status
+        - data_freshness
+        - points
+        - measured_history
+        - quality_metrics
+        - assumptions
+      properties:
+        workspace_id:
+          type: string
+        product_id:
+          type: string
+        product_name:
+          type: string
+        product_sku:
+          type: string
+        warehouse_id:
+          type: string
+        warehouse_name:
+          type: string
+        as_of_date:
+          type: string
+          format: date
+        generated_at:
+          type: string
+          format: date-time
+        horizon_days:
+          type: integer
+        model_method:
+          type: string
+        model_version:
+          type: string
+        status:
+          $ref: '#/components/schemas/ForecastStatus'
+        status_reason:
+          type: string
+          nullable: true
+        data_freshness:
+          $ref: '#/components/schemas/ForecastDataFreshness'
+        points:
+          type: array
+          items:
+            $ref: '#/components/schemas/ForecastPoint'
+        measured_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/ForecastPoint'
+        quality_metrics:
+          type: array
+          items:
+            $ref: '#/components/schemas/ForecastQualityMetric'
+        stock_risk:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/ForecastStockRisk'
+          nullable: true
+        assumptions:
+          type: array
+          items:
+            type: string
+

@@ -13,8 +13,8 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "contracts:validate": "redocly lint ../contracts/openapi/analytics-v1.yaml",
-    "api:generate": "openapi-typescript ../contracts/openapi/analytics-v1.yaml -o src/shared/api/generated/schema.ts && prettier --write src/shared/api/generated/schema.ts"
+    "contracts:validate": "redocly lint ../contracts/openapi/analytics-v2.yaml && redocly lint ../contracts/openapi/notification-v1.yaml",
+    "api:generate": "openapi-typescript ../contracts/openapi/analytics-v2.yaml -o src/shared/api/generated/schema.ts && prettier --write src/shared/api/generated/schema.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

@@ -1,0 +1,304 @@
+openapi: 3.0.3
+info:
+  title: AutoBI Notification API
+  version: 1.0.0
+  description: API boundary for AutoBI Notification Service.
+  license:
+    name: Proprietary
+servers:
+  - url: /api/v1
+security:
+  - SharedSecretAuth: []
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Overall health check
+      security: []
+      responses:
+        '200':
+          description: Service health report
+  /health/live:
+    get:
+      operationId: getLiveness
+      summary: Liveness probe
+      security: []
+      responses:
+        '200':
+          description: Service is live
+  /health/ready:
+    get:
+      operationId: getReadiness
+      summary: Readiness probe
+      security: []
+      responses:
+        '200':
+          description: Service is ready
+  /health/worker:
+    get:
+      operationId: getWorkerHealth
+      summary: Background worker heartbeat check
+      security: []
+      responses:
+        '200':
+          description: Worker is healthy
+  /metrics:
+    get:
+      operationId: getMetrics
+      summary: Prometheus metrics endpoint
+      security: []
+      responses:
+        '200':
+          description: Metrics text format
+  /notifications:
+    get:
+      operationId: listNotifications
+      summary: List in-app notifications for authenticated user & workspace context
+      parameters:
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: per_page
+          required: false
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: unread_only
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - in: query
+          name: severity
+          required: false
+          schema:
+            type: string
+            enum: [info, warning, critical]
+      responses:
+        '200':
+          description: Paginated notification list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationListResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /notifications/unread-count:
+    get:
+      operationId: getUnreadCount
+      summary: Get unread notifications counter for user & workspace
+      responses:
+        '200':
+          description: Count of unread notifications
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnreadCountResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /notifications/{id}/read:
+    post:
+      operationId: markNotificationRead
+      summary: Mark a single notification as read
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Marked as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /notifications/read-all:
+    post:
+      operationId: markAllNotificationsRead
+      summary: Mark all currently visible notifications as read (bounded snapshot)
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                up_to_notification_id:
+                  type: string
+      responses:
+        '200':
+          description: Marked all as read
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  updated_count:
+                    type: integer
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /notification-preferences:
+    get:
+      operationId: getNotificationPreferences
+      summary: Get importance preferences for user & workspace
+      responses:
+        '200':
+          description: Current preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferencesResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      operationId: updateNotificationPreferences
+      summary: Update importance preferences
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNotificationPreferencesRequest'
+      responses:
+        '200':
+          description: Updated preferences
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferencesResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    SharedSecretAuth:
+      type: apiKey
+      in: header
+      name: X-Server-Secret
+      description: Trusted inter-service shared secret
+  schemas:
+    NotificationResponse:
+      type: object
+      additionalProperties: false
+      required: [id, severity, title, body, occurred_at]
+      properties:
+        id:
+          type: string
+        alert_id:
+          type: string
+          nullable: true
+        rule_id:
+          type: string
+          nullable: true
+        severity:
+          type: string
+          enum: [info, warning, critical]
+        title:
+          type: string
+        body:
+          type: string
+        occurred_at:
+          type: string
+          format: date-time
+        read_at:
+          type: string
+          format: date-time
+          nullable: true
+    NotificationListResponse:
+      type: object
+      additionalProperties: false
+      required: [items, total, page, per_page, unread_count]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationResponse'
+        total:
+          type: integer
+        page:
+          type: integer
+        per_page:
+          type: integer
+        unread_count:
+          type: integer
+    UnreadCountResponse:
+      type: object
+      additionalProperties: false
+      required: [unread_count]
+      properties:
+        unread_count:
+          type: integer
+    NotificationPreferences:
+      type: object
+      additionalProperties: false
+      required: [info, warning, critical]
+      properties:
+        info:
+          type: boolean
+        warning:
+          type: boolean
+        critical:
+          type: boolean
+    NotificationPreferencesResponse:
+      type: object
+      additionalProperties: false
+      required: [preferences]
+      properties:
+        preferences:
+          $ref: '#/components/schemas/NotificationPreferences'
+    UpdateNotificationPreferencesRequest:
+      type: object
+      additionalProperties: false
+      required: [preferences]
+      properties:
+        preferences:
+          $ref: '#/components/schemas/NotificationPreferences'
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [message, code]
+      properties:
+        message:
+          type: string
+        code:
+          type: string

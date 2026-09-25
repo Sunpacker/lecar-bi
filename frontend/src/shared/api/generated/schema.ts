@@ -141,6 +141,23 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/auth/logout': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Revoke current authenticated session token */
+    post: operations['logout']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/auth/login': {
     parameters: {
       query?: never
@@ -169,6 +186,24 @@ export interface paths {
     get: operations['getCurrentUser']
     put?: never
     post?: never
+    delete?: never
+    options?: never
+    head?: never
+    /** Update current user profile name */
+    patch: operations['updateProfile']
+    trace?: never
+  }
+  '/me/password': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Change password and revoke all active sessions */
+    post: operations['changePassword']
     delete?: never
     options?: never
     head?: never
@@ -223,7 +258,8 @@ export interface paths {
     delete?: never
     options?: never
     head?: never
-    patch?: never
+    /** Rename workspace */
+    patch: operations['renameWorkspace']
     trace?: never
   }
   '/workspaces/{workspaceId}/members': {
@@ -481,6 +517,92 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/workspaces/{workspaceId}/invitations': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** List pending invitations for workspace */
+    get: operations['listInvitations']
+    put?: never
+    /** Invite a new user by email */
+    post: operations['createInvitation']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/workspaces/{workspaceId}/invitations/{invitationId}/resend': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Resend invitation and renew expiration */
+    post: operations['resendInvitation']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/workspaces/{workspaceId}/invitations/{invitationId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    post?: never
+    /** Cancel a pending invitation */
+    delete: operations['cancelInvitation']
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/invitations/{token}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Public endpoint to view invitation details */
+    get: operations['getInvitationDetails']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/invitations/{token}/accept': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    get?: never
+    put?: never
+    /** Accept invitation and join workspace */
+    post: operations['acceptInvitation']
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/dashboards': {
     parameters: {
       query?: never
@@ -715,6 +837,57 @@ export interface paths {
 export type webhooks = Record<string, never>
 export interface components {
   schemas: {
+    UpdateProfileRequest: {
+      name: string
+    }
+    ChangePasswordRequest: {
+      current_password: string
+      new_password: string
+      new_password_confirmation: string
+    }
+    RenameWorkspaceRequest: {
+      name: string
+    }
+    /** @enum {string} */
+    InvitationStatus: 'pending' | 'accepted' | 'cancelled'
+    InvitationResponse: {
+      id: string
+      workspace_id: string
+      /** Format: email */
+      email: string
+      role: components['schemas']['WorkspaceRole']
+      status: components['schemas']['InvitationStatus']
+      /** Format: date-time */
+      expires_at: string
+      /** Format: date-time */
+      created_at: string
+    }
+    InvitationListResponse: {
+      items: components['schemas']['InvitationResponse'][]
+    }
+    CreateInvitationRequest: {
+      /** Format: email */
+      email: string
+      /** @enum {string} */
+      role: 'member' | 'viewer'
+    }
+    InvitationPublicResponse: {
+      /** Format: email */
+      email: string
+      workspace_name: string
+      role: components['schemas']['WorkspaceRole']
+      is_expired: boolean
+      is_existing_user: boolean
+    }
+    AcceptInvitationRequest: {
+      name?: string
+      password?: string
+    }
+    AcceptInvitationResponse: {
+      user: components['schemas']['UserResponse']
+      workspace_id: string
+      token: string
+    }
     /** @enum {string} */
     DatasetType: 'sales' | 'inventory'
     /** @enum {string} */
@@ -797,6 +970,7 @@ export interface components {
     }
     LoginResponse: {
       user: components['schemas']['UserResponse']
+      token: string
     }
     HealthResponse: {
       /** @enum {string} */
@@ -860,6 +1034,7 @@ export interface components {
       | 'alerts.view'
       | 'alerts.manage'
       | 'workspace.members.manage'
+      | 'workspace.settings.manage'
     WorkspaceMemberResponse: {
       user: components['schemas']['UserResponse']
       role: components['schemas']['WorkspaceRole']
@@ -1990,6 +2165,33 @@ export interface operations {
       }
     }
   }
+  logout: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Logged out successfully */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
   login: {
     parameters: {
       query?: never
@@ -2053,6 +2255,88 @@ export interface operations {
       }
       /** @description Missing or invalid user identity */
       401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  updateProfile: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdateProfileRequest']
+      }
+    }
+    responses: {
+      /** @description Profile updated */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['UserResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  changePassword: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['ChangePasswordRequest']
+      }
+    }
+    responses: {
+      /** @description Password changed successfully */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Invalid current password or unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Validation error */
+      422: {
         headers: {
           [name: string]: unknown
         }
@@ -2172,6 +2456,59 @@ export interface operations {
         }
       }
       /** @description Forbidden - cross-workspace access denied */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Workspace not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  renameWorkspace: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        id: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['RenameWorkspaceRequest']
+      }
+    }
+    responses: {
+      /** @description Workspace renamed */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['WorkspaceResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
       403: {
         headers: {
           [name: string]: unknown
@@ -3144,6 +3481,281 @@ export interface operations {
         }
       }
       /** @description Workspace not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  listInvitations: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        workspaceId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description List of pending invitations */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['InvitationListResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  createInvitation: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        workspaceId: string
+      }
+      cookie?: never
+    }
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['CreateInvitationRequest']
+      }
+    }
+    responses: {
+      /** @description Invitation created */
+      201: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['InvitationResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Validation error */
+      422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  resendInvitation: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        workspaceId: string
+        invitationId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Invitation resent */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['InvitationResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Invitation not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  cancelInvitation: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        workspaceId: string
+        invitationId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Invitation cancelled */
+      204: {
+        headers: {
+          [name: string]: unknown
+        }
+        content?: never
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Invitation not found */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getInvitationDetails: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        token: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Invitation details */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['InvitationPublicResponse']
+        }
+      }
+      /** @description Invitation not found or expired */
+      404: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  acceptInvitation: {
+    parameters: {
+      query?: never
+      header?: never
+      path: {
+        token: string
+      }
+      cookie?: never
+    }
+    requestBody?: {
+      content: {
+        'application/json': components['schemas']['AcceptInvitationRequest']
+      }
+    }
+    responses: {
+      /** @description Invitation accepted successfully */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['AcceptInvitationResponse']
+        }
+      }
+      /** @description Invitation expired or invalid state */
+      400: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Invitation not found */
       404: {
         headers: {
           [name: string]: unknown
