@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { loadWidgetData, formatMetricValue, clearInFlightRequests } from './widget-data-loader'
+import {
+  loadWidgetData,
+  formatMetricValue,
+  clearInFlightRequests,
+} from './widget-data-loader'
 import { salesGateway } from '../../sales-analytics/api/sales-gateway'
 import { inventoryGateway } from '../../inventory-analytics/api/inventory-gateway'
 import type { WidgetDetail } from '../api/dashboard-gateway'
