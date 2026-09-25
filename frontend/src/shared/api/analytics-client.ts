@@ -4,6 +4,8 @@ import type { paths } from './generated/schema'
 import { env } from '../config/env'
 import { sanitizeOrGenerateRequestId } from '../observability/request-id'
 
+const DEFAULT_HTTP_TIMEOUT_MS = 15000
+
 const requestIdMiddleware: Middleware = {
   async onRequest({ request }) {
     if (!request.headers.has('x-request-id')) {
@@ -25,6 +27,16 @@ const requestIdMiddleware: Middleware = {
 
 export const analyticsClient = createClient<paths>({
   baseUrl: env.analyticsApiUrl,
+  fetch: (request: Request) => {
+    if (
+      !request.signal &&
+      typeof AbortSignal !== 'undefined' &&
+      'timeout' in AbortSignal
+    ) {
+      return fetch(request, { signal: AbortSignal.timeout(DEFAULT_HTTP_TIMEOUT_MS) })
+    }
+    return fetch(request)
+  },
 })
 
 analyticsClient.use(requestIdMiddleware)
