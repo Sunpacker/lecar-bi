@@ -1,0 +1,35 @@
+env:
+  contexts:
+    - name: "AutoBI Analytics API"
+      urls:
+        - "http://backend:8080/api/v1/"
+      includePaths:
+        - "http://backend:8080/api/v1/.*"
+      excludePaths:
+        - "http://backend:8080/up"
+  vars: {}
+  parameters:
+    failOnError: false
+    failOnWarning: false
+    progressToStdout: true
+
+jobs:
+  - type: openapi
+    parameters:
+      apiFile: "/zap/wrk/contracts/openapi/analytics-v1.yaml"
+      targetUrl: "http://backend:8080"
+
+  - type: passiveScan-config
+    parameters:
+      maxAlertsPerRule: 10
+      scanOnlyInScope: true
+
+  - type: passiveScan-wait
+    parameters:
+      maxDuration: 5
+
+  - type: report
+    parameters:
+      template: "traditional-html"
+      reportDir: "/zap/wrk/docs/security/reports"
+      reportFile: "zap-security-report.html"
