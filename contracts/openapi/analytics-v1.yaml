@@ -1068,6 +1068,70 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /analytics/forecasts/{productId}/{warehouseId}:
+    get:
+      operationId: getProductWarehouseForecast
+      x-required-capability: analytics.view
+      summary: Get demand forecast for a specific product-warehouse pair
+      parameters:
+        - in: header
+          name: X-Workspace-Id
+          required: false
+          schema:
+            type: string
+          description: Optional requested workspace identifier
+        - in: path
+          name: productId
+          required: true
+          schema:
+            type: string
+          description: Product identifier
+        - in: path
+          name: warehouseId
+          required: true
+          schema:
+            type: string
+          description: Warehouse identifier
+        - in: query
+          name: horizon_days
+          required: false
+          schema:
+            type: integer
+            enum: [7, 14, 28]
+            default: 28
+          description: Forecast horizon in days
+        - in: query
+          name: as_of_date
+          required: false
+          schema:
+            type: string
+            format: date
+          description: Optional data cutoff date (YYYY-MM-DD), defaults to latest available
+      responses:
+        '200':
+          description: Forecast data with quality metrics and stock risk assessment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForecastResponse'
+        '401':
+          description: Unauthenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Forecast not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /analytics/suppliers/overview:
     get:
       operationId: getSupplierOverview
@@ -4286,4 +4350,195 @@ components:
         alerts_updated:
           type: integer
 
+    ForecastStatus:
+      type: string
+      enum:
+        - ready
+        - stale
+        - insufficient_data
+        - limited_by_stockouts
+        - failed
+
+    ForecastPoint:
+      type: object
+      additionalProperties: false
+      required:
+        - date
+        - point_estimate
+        - is_stockout_day
+      properties:
+        date:
+          type: string
+          format: date
+        point_estimate:
+          type: number
+          format: float
+        lower_bound:
+          type: number
+          format: float
+          nullable: true
+        upper_bound:
+          type: number
+          format: float
+          nullable: true
+        interval_level:
+          type: number
+          format: float
+          nullable: true
+        actual_value:
+          type: number
+          format: float
+          nullable: true
+        is_stockout_day:
+          type: boolean
+
+    ForecastQualityMetric:
+      type: object
+      additionalProperties: false
+      required:
+        - metric_name
+        - metric_value
+        - horizon_days
+        - evaluation_windows
+      properties:
+        metric_name:
+          type: string
+        metric_value:
+          type: number
+          format: float
+        horizon_days:
+          type: integer
+        segment:
+          type: string
+          nullable: true
+        evaluation_windows:
+          type: integer
+
+    ForecastDataFreshness:
+      type: object
+      additionalProperties: false
+      properties:
+        sales_date:
+          type: string
+          format: date
+          nullable: true
+        inventory_date:
+          type: string
+          format: date
+          nullable: true
+        supplier_date:
+          type: string
+          format: date
+          nullable: true
+
+    ForecastStockRisk:
+      type: object
+      additionalProperties: false
+      required:
+        - current_quantity_available
+        - current_safety_stock
+        - current_reorder_point
+        - assumptions
+      properties:
+        current_quantity_available:
+          type: integer
+        current_safety_stock:
+          type: integer
+        current_reorder_point:
+          type: integer
+        estimated_depletion_date:
+          type: string
+          format: date
+          nullable: true
+        estimated_reorder_threshold_date:
+          type: string
+          format: date
+          nullable: true
+        estimated_order_placement_date:
+          type: string
+          format: date
+          nullable: true
+        median_lead_time_days:
+          type: integer
+          nullable: true
+        lead_time_source:
+          type: string
+          nullable: true
+        assumptions:
+          type: string
+
+    ForecastResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - workspace_id
+        - product_id
+        - product_name
+        - product_sku
+        - warehouse_id
+        - warehouse_name
+        - as_of_date
+        - generated_at
+        - horizon_days
+        - model_method
+        - model_version
+        - status
+        - data_freshness
+        - points
+        - measured_history
+        - quality_metrics
+        - assumptions
+      properties:
+        workspace_id:
+          type: string
+        product_id:
+          type: string
+        product_name:
+          type: string
+        product_sku:
+          type: string
+        warehouse_id:
+          type: string
+        warehouse_name:
+          type: string
+        as_of_date:
+          type: string
+          format: date
+        generated_at:
+          type: string
+          format: date-time
+        horizon_days:
+          type: integer
+        model_method:
+          type: string
+        model_version:
+          type: string
+        status:
+          $ref: '#/components/schemas/ForecastStatus'
+        status_reason:
+          type: string
+          nullable: true
+        data_freshness:
+          $ref: '#/components/schemas/ForecastDataFreshness'
+        points:
+          type: array
+          items:
+            $ref: '#/components/schemas/ForecastPoint'
+        measured_history:
+          type: array
+          items:
+            $ref: '#/components/schemas/ForecastPoint'
+        quality_metrics:
+          type: array
+          items:
+            $ref: '#/components/schemas/ForecastQualityMetric'
+        stock_risk:
+          type: object
+          allOf:
+            - $ref: '#/components/schemas/ForecastStockRisk'
+          nullable: true
+        assumptions:
+          type: array
+          items:
+            type: string
 

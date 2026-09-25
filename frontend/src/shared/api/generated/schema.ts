@@ -396,6 +396,23 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/analytics/forecasts/{productId}/{warehouseId}': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Get demand forecast for a specific product-warehouse pair */
+    get: operations['getProductWarehouseForecast']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/analytics/suppliers/overview': {
     parameters: {
       query?: never
@@ -1552,6 +1569,77 @@ export interface components {
       alerts_triggered: number
       alerts_created: number
       alerts_updated: number
+    }
+    /** @enum {string} */
+    ForecastStatus:
+      'ready' | 'stale' | 'insufficient_data' | 'limited_by_stockouts' | 'failed'
+    ForecastPoint: {
+      /** Format: date */
+      date: string
+      /** Format: float */
+      point_estimate: number
+      /** Format: float */
+      lower_bound?: number | null
+      /** Format: float */
+      upper_bound?: number | null
+      /** Format: float */
+      interval_level?: number | null
+      /** Format: float */
+      actual_value?: number | null
+      is_stockout_day: boolean
+    }
+    ForecastQualityMetric: {
+      metric_name: string
+      /** Format: float */
+      metric_value: number
+      horizon_days: number
+      segment?: string | null
+      evaluation_windows: number
+    }
+    ForecastDataFreshness: {
+      /** Format: date */
+      sales_date?: string | null
+      /** Format: date */
+      inventory_date?: string | null
+      /** Format: date */
+      supplier_date?: string | null
+    }
+    ForecastStockRisk: {
+      current_quantity_available: number
+      current_safety_stock: number
+      current_reorder_point: number
+      /** Format: date */
+      estimated_depletion_date?: string | null
+      /** Format: date */
+      estimated_reorder_threshold_date?: string | null
+      /** Format: date */
+      estimated_order_placement_date?: string | null
+      median_lead_time_days?: number | null
+      lead_time_source?: string | null
+      assumptions: string
+    }
+    ForecastResponse: {
+      workspace_id: string
+      product_id: string
+      product_name: string
+      product_sku: string
+      warehouse_id: string
+      warehouse_name: string
+      /** Format: date */
+      as_of_date: string
+      /** Format: date-time */
+      generated_at: string
+      horizon_days: number
+      model_method: string
+      model_version: string
+      status: components['schemas']['ForecastStatus']
+      status_reason?: string | null
+      data_freshness: components['schemas']['ForecastDataFreshness']
+      points: components['schemas']['ForecastPoint'][]
+      measured_history: components['schemas']['ForecastPoint'][]
+      quality_metrics: components['schemas']['ForecastQualityMetric'][]
+      stock_risk?: components['schemas']['ForecastStockRisk'] | null
+      assumptions: string[]
     }
   }
   responses: {
@@ -2718,6 +2806,66 @@ export interface operations {
       }
       /** @description Validation error */
       422: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+    }
+  }
+  getProductWarehouseForecast: {
+    parameters: {
+      query?: {
+        /** @description Forecast horizon in days */
+        horizon_days?: 7 | 14 | 28
+        /** @description Optional data cutoff date (YYYY-MM-DD), defaults to latest available */
+        as_of_date?: string
+      }
+      header?: {
+        /** @description Optional requested workspace identifier */
+        'X-Workspace-Id'?: string
+      }
+      path: {
+        /** @description Product identifier */
+        productId: string
+        /** @description Warehouse identifier */
+        warehouseId: string
+      }
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Forecast data with quality metrics and stock risk assessment */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ForecastResponse']
+        }
+      }
+      /** @description Unauthenticated */
+      401: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forbidden */
+      403: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ErrorResponse']
+        }
+      }
+      /** @description Forecast not found */
+      404: {
         headers: {
           [name: string]: unknown
         }
