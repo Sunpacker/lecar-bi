@@ -23,13 +23,14 @@ Bounded context должен иметь:
 - **Рабочие пространства:** изолированные тенанты (`WorkspaceId`, `slug`, `name`).
 - **Ролевая модель:** фиксированный набор ролей (`owner`, `member`, `viewer`), хранящийся в таблице `workspace_members`.
 - **Инвариант агрегата Workspace:** в рабочем пространстве обязан оставаться хотя бы один активный владелец (`owner`). Попытка понизить роль последнего владельца блокируется на уровне доменной логики и транзакционной блокировки агрегата (`LastWorkspaceOwnerException` → HTTP `409 LAST_WORKSPACE_OWNER`).
-- **Система возможностей (Capabilities):** чистое доменное сопоставление роли замкнутому набору из 8 атомарных прав:
-  - `owner`: все 8 прав, включая `workspace.members.manage`;
-  - `member`: операционные права (`analytics.view`, `dashboards.view`, `dashboards.manage`, `imports.view`, `imports.manage`, `alerts.view`, `alerts.manage`), без управления участниками;
+- **Система возможностей (Capabilities):** чистое доменное сопоставление роли замкнутому набору из 9 атомарных прав:
+  - `owner`: все 9 прав, включая `workspace.members.manage` и `workspace.settings.manage`;
+  - `member`: операционные права (`analytics.view`, `dashboards.view`, `dashboards.manage`, `imports.view`, `imports.manage`, `alerts.view`, `alerts.manage`), без управления участниками и параметрами;
   - `viewer`: только права на чтение (`analytics.view`, `dashboards.view`, `imports.view`, `alerts.view`).
+- **Приглашения (Invitations):** агрегат `Invitation` со статусами (`pending`, `accepted`, `cancelled`), хешированным токеном ссылки со сроком 7 дней, доставкой через очередь `mail` Laravel Mail и атомарным принятием (`AcceptInvitationCommand`).
 - **CQRS-операции:**
-  - Commands: `ChangeWorkspaceMemberRoleCommand` (с транзакционным локом строки воркспейса для предотвращения race condition).
-  - Queries: `GetWorkspaceMembersQuery`, `GetCurrentWorkspaceQuery`, `GetAccessibleWorkspacesQuery`.
+  - Commands: `ChangeWorkspaceMemberRoleCommand`, `RenameWorkspaceCommand`, `CreateInvitationCommand`, `ResendInvitationCommand`, `CancelInvitationCommand`, `AcceptInvitationCommand`, `UpdateProfileCommand`, `ChangePasswordCommand`.
+  - Queries: `GetWorkspaceMembersQuery`, `GetCurrentWorkspaceQuery`, `GetAccessibleWorkspacesQuery`, `ListInvitationsQuery`, `GetInvitationDetailsQuery`.
 - **Централизованный Guard:** `WorkspaceAccessGuard` проверяет членство и наличие требуемой capability для входящего запроса.
 
 ### Data Ingestion
