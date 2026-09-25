@@ -55,5 +55,22 @@
 
 ## Прогресс
 
-- Детализированы источники данных, технологические кандидаты, порядок реализации и проверяемые exit criteria. Код, backtest и integration checkpoint ещё не выполнялись; Phase 19 остаётся открытой.
-- Следующий шаг после Phase 18: подтвердить семантику полных дат продаж и stockout, затем зафиксировать historical evaluation и OpenAPI-контракт первого среза.
+- Реализован контракт API и схемы данных:
+  - В [`contracts/openapi/analytics-v1.yaml`](../../contracts/openapi/analytics-v1.yaml) добавлен эндпоинт `GET /analytics/forecasts/{productId}/{warehouseId}` с параметрами `horizon_days` (7, 14, 28) и `as_of_date`.
+  - Описаны схемы `ForecastResponse`, `ForecastStatus` (`ready`, `stale`, `insufficient_data`, `limited_by_stockouts`, `failed`), `ForecastPoint` с доверительными интервалами и отметкой дефицита, `ForecastQualityMetric` (MAE, WAPE, signed bias, coverage), `ForecastStockRisk` (остаток, страховой запас, точка заказа, дата исчерпания, дата порога и расчетный срок размещения заказа без фиктивных поставок).
+  - Сгенерирован актуальный TypeScript-клиент в [`frontend/src/shared/api/generated/schema.ts`](../../frontend/src/shared/api/generated/schema.ts).
+- Реализовано доменное ядро прогнозирования:
+  - Базовые модели: [`SeasonalNaiveForecaster`](../../backend/app/Modules/InventoryAnalytics/Domain/Forecasting/SeasonalNaiveForecaster.php) (повторение дня недели) и [`MovingAverageForecaster`](../../backend/app/Modules/InventoryAnalytics/Domain/Forecasting/MovingAverageForecaster.php) (28-дневное среднее).
+  - Обработка дефицита: [`SalesTimeSeries`](../../backend/app/Modules/InventoryAnalytics/Domain/Forecasting/SalesTimeSeries.php) цензурирует спрос в дни stockout, исключая искажение обучающей выборки.
+  - Оценка качества и доверительные интервалы: [`BacktestEngine`](../../backend/app/Modules/InventoryAnalytics/Domain/Forecasting/BacktestEngine.php) выполняет rolling-origin backtest по историческим срезам, вычисляет эмпирические prediction intervals и метрики MAE/WAPE.
+  - Оценка рисков запасов: [`StockRiskCalculator`](../../backend/app/Modules/InventoryAnalytics/Domain/Forecasting/StockRiskCalculator.php) последовательно рассчитывает дату исчерпания остатков и срок заказа на основе подтверждённого медианного lead time без неутверждённых поступлений.
+  - Диспетчер качества: [`DataQualityAssessment`](../../backend/app/Modules/InventoryAnalytics/Domain/Forecasting/DataQualityAssessment.php) и [`ForecastEngine`](../../backend/app/Modules/InventoryAnalytics/Domain/Forecasting/ForecastEngine.php) проверяют полноту ряда, свежесть данных и долю дефицита.
+- Реализована инфраструктура, персистентность и API:
+  - Миграция [`2026_09_25_000090_create_forecasts_tables.php`](../../backend/database/migrations/2026_09_25_000090_create_forecasts_tables.php) для таблиц `forecast_runs`, `forecast_points` и `forecast_quality_metrics`.
+  - Чтение и персистентность: [`PostgresSalesTimeSeriesReader`](../../backend/app/Modules/InventoryAnalytics/Infrastructure/Persistence/PostgresSalesTimeSeriesReader.php), [`PostgresForecastRepository`](../../backend/app/Modules/InventoryAnalytics/Infrastructure/Persistence/PostgresForecastRepository.php) и [`PostgresForecastReadModel`](../../backend/app/Modules/InventoryAnalytics/Infrastructure/Persistence/PostgresForecastReadModel.php).
+  - Фоновый пересчёт: джобы [`GenerateForecastJob`](../../backend/app/Modules/InventoryAnalytics/Infrastructure/Jobs/GenerateForecastJob.php) и [`GenerateWorkspaceForecastsJob`](../../backend/app/Modules/InventoryAnalytics/Infrastructure/Jobs/GenerateWorkspaceForecastsJob.php).
+  - API Controller [`ForecastController`](../../backend/app/Modules/InventoryAnalytics/Presentation/Controllers/ForecastController.php) с проверкой capabilities и workspace boundary.
+- Верификация:
+  - Unit-тесты доменного ядра [`ForecastingTest.php`](../../backend/tests/Unit/Modules/InventoryAnalytics/Domain/ForecastingTest.php) и feature-тесты эндпоинта [`ForecastApiTest.php`](../../backend/tests/Feature/Modules/InventoryAnalytics/ForecastApiTest.php) проходят успешно.
+  - Полный прогон `make check` успешен: контракты валидны, 403 теста backend, 59 тестов notification, 227 тестов frontend vitest, typecheck и сборка без ошибок.
+- Следующий шаг: реализация UI-компонентов прогнозирования в Inventory Analytics (график прогноз-факт, доверительные интервалы, индикаторы риска исчерпания и сроки заказа). Phase 19 остаётся открытой.
