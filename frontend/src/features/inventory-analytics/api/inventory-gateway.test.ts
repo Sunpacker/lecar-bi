@@ -45,7 +45,6 @@ describe('inventoryGateway', () => {
       '/analytics/inventory/summary',
       expect.objectContaining({
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
         params: {
@@ -82,7 +81,6 @@ describe('inventoryGateway', () => {
       '/analytics/inventory/items',
       expect.objectContaining({
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
         params: {
@@ -119,7 +117,6 @@ describe('inventoryGateway', () => {
       '/analytics/inventory/filters',
       expect.objectContaining({
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
       }),
@@ -156,7 +153,6 @@ describe('inventoryGateway', () => {
       '/analytics/inventory/abc-xyz/summary',
       expect.objectContaining({
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
         params: {
@@ -194,7 +190,6 @@ describe('inventoryGateway', () => {
       '/analytics/inventory/abc-xyz/items',
       expect.objectContaining({
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
         params: {
@@ -294,7 +289,6 @@ describe('inventoryGateway', () => {
       '/analytics/forecasts/{productId}/{warehouseId}',
       expect.objectContaining({
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
         params: {

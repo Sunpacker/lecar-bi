@@ -21,7 +21,7 @@ describe('authGateway', () => {
     }
 
     vi.mocked(analyticsClient.POST).mockResolvedValueOnce({
-      data: { user: mockUser },
+      data: { user: mockUser, token: 'test-token' } as any,
       response: { status: 200 } as Response,
       error: undefined,
     })
@@ -31,7 +31,7 @@ describe('authGateway', () => {
       password: 'password123',
     })
 
-    expect(result).toEqual(mockUser)
+    expect(result).toEqual({ user: mockUser, token: 'test-token' })
     expect(analyticsClient.POST).toHaveBeenCalledWith('/auth/login', {
       body: {
         email: 'elena@autobi.internal',

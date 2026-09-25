@@ -29,8 +29,8 @@ export default async function DashboardLayout({
   let accessibleWorkspaces: Workspace[] = []
 
   try {
-    workspaceContext = await workspaceGateway.getCurrentWorkspace(userId)
-    accessibleWorkspaces = await workspaceGateway.listWorkspaces(userId)
+    workspaceContext = await workspaceGateway.getCurrentWorkspace()
+    accessibleWorkspaces = await workspaceGateway.listWorkspaces()
   } catch {
     // Backend may not have database seeded or may be starting
   }

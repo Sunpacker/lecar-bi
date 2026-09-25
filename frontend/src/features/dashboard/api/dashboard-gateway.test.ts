@@ -41,7 +41,6 @@ describe('dashboardGateway', () => {
 
     expect(analyticsClient.GET).toHaveBeenCalledWith('/dashboards', {
       headers: {
-        'X-User-Id': 'user-1',
         'X-Workspace-Id': 'ws-1',
       },
     })
@@ -74,7 +73,6 @@ describe('dashboardGateway', () => {
         path: { id: 'dash-1' },
       },
       headers: {
-        'X-User-Id': 'user-1',
         'X-Workspace-Id': 'ws-1',
       },
     })
@@ -109,7 +107,6 @@ describe('dashboardGateway', () => {
     expect(analyticsClient.POST).toHaveBeenCalledWith('/dashboards', {
       body: { title: 'Новый дашборд', description: 'Новое описание' },
       headers: {
-        'X-User-Id': 'user-1',
         'X-Workspace-Id': 'ws-1',
       },
     })
@@ -146,7 +143,6 @@ describe('dashboardGateway', () => {
       params: { path: { id: 'dash-1' } },
       body: { title: 'Обновлённый дашборд', description: 'Новое описание', widgets: [] },
       headers: {
-        'X-User-Id': 'user-1',
         'X-Workspace-Id': 'ws-1',
       },
     })
@@ -165,7 +161,6 @@ describe('dashboardGateway', () => {
     expect(analyticsClient.DELETE).toHaveBeenCalledWith('/dashboards/{id}', {
       params: { path: { id: 'dash-1' } },
       headers: {
-        'X-User-Id': 'user-1',
         'X-Workspace-Id': 'ws-1',
       },
     })
@@ -209,7 +204,6 @@ describe('dashboardGateway', () => {
     expect(analyticsClient.GET).toHaveBeenCalledWith('/dashboards/{dashboardId}/views', {
       params: { path: { dashboardId: 'dash-1' } },
       headers: {
-        'X-User-Id': 'user-1',
         'X-Workspace-Id': 'ws-1',
       },
     })
@@ -247,7 +241,6 @@ describe('dashboardGateway', () => {
       {
         params: { path: { dashboardId: 'dash-1', viewId: 'view-1' } },
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
       },
@@ -293,7 +286,6 @@ describe('dashboardGateway', () => {
         is_default: false,
       },
       headers: {
-        'X-User-Id': 'user-1',
         'X-Workspace-Id': 'ws-1',
       },
     })
@@ -341,7 +333,6 @@ describe('dashboardGateway', () => {
           is_default: true,
         },
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
       },
@@ -363,7 +354,6 @@ describe('dashboardGateway', () => {
       {
         params: { path: { dashboardId: 'dash-1', viewId: 'view-1' } },
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
       },

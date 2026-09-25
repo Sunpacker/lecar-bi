@@ -90,7 +90,6 @@ export const inventoryGateway = {
   ): Promise<InventorySummaryResponse> {
     const { data, error } = await analyticsClient.GET('/analytics/inventory/summary', {
       headers: {
-        'X-User-Id': userId,
         'X-Workspace-Id': workspaceId,
       },
       params: {
@@ -115,7 +114,6 @@ export const inventoryGateway = {
   ): Promise<InventoryItemsResponse> {
     const { data, error } = await analyticsClient.GET('/analytics/inventory/items', {
       headers: {
-        'X-User-Id': userId,
         'X-Workspace-Id': workspaceId,
       },
       params: {
@@ -144,7 +142,6 @@ export const inventoryGateway = {
   ): Promise<InventoryFilterOptionsResponse> {
     const { data, error } = await analyticsClient.GET('/analytics/inventory/filters', {
       headers: {
-        'X-User-Id': userId,
         'X-Workspace-Id': workspaceId,
       },
     })
@@ -165,7 +162,6 @@ export const inventoryGateway = {
       '/analytics/inventory/abc-xyz/summary',
       {
         headers: {
-          'X-User-Id': userId,
           'X-Workspace-Id': workspaceId,
         },
         params: {
@@ -195,7 +191,6 @@ export const inventoryGateway = {
       '/analytics/inventory/abc-xyz/items',
       {
         headers: {
-          'X-User-Id': userId,
           'X-Workspace-Id': workspaceId,
         },
         params: {
@@ -235,7 +230,6 @@ export const inventoryGateway = {
       '/analytics/forecasts/{productId}/{warehouseId}',
       {
         headers: {
-          'X-User-Id': userId,
           'X-Workspace-Id': workspaceId,
         },
         params: {

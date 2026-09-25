@@ -48,6 +48,7 @@ describe('ImportsPage', () => {
       userId: 'user-42',
       email: 'user@example.com',
       name: 'User',
+      token: 'mock-token',
       expiresAt: Date.now() + 10000,
     })
 

@@ -70,7 +70,6 @@ export const supplierGateway = {
   ): Promise<SupplierOverviewResponse> {
     const { data, error } = await analyticsClient.GET('/analytics/suppliers/overview', {
       headers: {
-        'X-User-Id': userId,
         'X-Workspace-Id': workspaceId,
       },
       params: {
@@ -101,7 +100,6 @@ export const supplierGateway = {
       '/analytics/suppliers/performance',
       {
         headers: {
-          'X-User-Id': userId,
           'X-Workspace-Id': workspaceId,
         },
         params: {
@@ -135,7 +133,6 @@ export const supplierGateway = {
   ): Promise<SupplierDeliveriesResponse> {
     const { data, error } = await analyticsClient.GET('/analytics/suppliers/deliveries', {
       headers: {
-        'X-User-Id': userId,
         'X-Workspace-Id': workspaceId,
       },
       params: {
@@ -169,7 +166,6 @@ export const supplierGateway = {
   ): Promise<SupplierFilterOptionsResponse> {
     const { data, error } = await analyticsClient.GET('/analytics/suppliers/filters', {
       headers: {
-        'X-User-Id': userId,
         'X-Workspace-Id': workspaceId,
       },
     })

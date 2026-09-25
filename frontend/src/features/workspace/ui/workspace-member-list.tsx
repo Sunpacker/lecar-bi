@@ -52,7 +52,7 @@ export function WorkspaceMemberList({
       setError(null)
 
       workspaceGateway
-        .listWorkspaceMembers(currentUserId, workspaceId)
+        .listWorkspaceMembers(workspaceId)
         .then((data) => {
           if (isMounted) {
             setMembers(data)
@@ -88,7 +88,6 @@ export function WorkspaceMemberList({
 
     try {
       const updatedMember = await workspaceGateway.changeMemberRole(
-        currentUserId,
         workspaceId,
         memberUserId,
         newRole,

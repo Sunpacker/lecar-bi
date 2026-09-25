@@ -81,7 +81,6 @@ describe('WorkspaceMemberList', () => {
 
     await waitFor(() => {
       expect(workspaceGateway.changeMemberRole).toHaveBeenCalledWith(
-        'u-1',
         'ws-1',
         'u-2',
         'viewer',

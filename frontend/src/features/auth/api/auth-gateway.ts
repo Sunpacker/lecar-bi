@@ -6,7 +6,9 @@ export type LoginResponse = components['schemas']['LoginResponse']
 export type AuthenticatedUser = components['schemas']['UserResponse']
 
 export const authGateway = {
-  async login(credentials: LoginRequest): Promise<AuthenticatedUser> {
+  async login(
+    credentials: LoginRequest,
+  ): Promise<{ user: AuthenticatedUser; token: string }> {
     const { data, error, response } = await analyticsClient.POST('/auth/login', {
       body: credentials,
     })
@@ -28,6 +30,6 @@ export const authGateway = {
       throw customError
     }
 
-    return data.user
+    return { user: data.user, token: (data as any).token }
   },
 }

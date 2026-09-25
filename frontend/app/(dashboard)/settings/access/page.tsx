@@ -7,7 +7,7 @@ import {
   type CurrentWorkspace,
 } from '../../../../src/features/workspace/api/workspace-gateway'
 import { hasCapability } from '../../../../src/features/workspace/model/workspace-access'
-import { WorkspaceMemberList } from '../../../../src/features/workspace/ui/workspace-member-list'
+import { WorkspaceAccessView } from '../../../../src/features/workspace/ui/workspace-access-view'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,7 +22,7 @@ export default async function WorkspaceAccessPage() {
   let workspaceContext: CurrentWorkspace | null = null
 
   try {
-    workspaceContext = await workspaceGateway.getCurrentWorkspace(userId)
+    workspaceContext = await workspaceGateway.getCurrentWorkspace()
   } catch {
     // Backend fallback
   }
@@ -32,7 +32,7 @@ export default async function WorkspaceAccessPage() {
 
   if (!canManageMembers) {
     return (
-      <main className="px-4 sm:px-6 lg:px-8 py-6 pb-16">
+      <div className="space-y-6">
         <div className="mb-6 space-y-2">
           <span className="text-xs font-semibold text-emerald-400 tracking-wider uppercase">
             AUTOBI / WORKSPACE
@@ -56,14 +56,14 @@ export default async function WorkspaceAccessPage() {
             пространства. Обратитесь к владельцу воркспейса.
           </p>
         </div>
-      </main>
+      </div>
     )
   }
 
   const workspaceId = workspaceContext?.workspace.id ?? ''
 
   return (
-    <main className="px-4 sm:px-6 lg:px-8 py-6 pb-16">
+    <div className="space-y-6">
       <div className="mb-6 space-y-2">
         <span className="text-xs font-semibold text-emerald-400 tracking-wider uppercase">
           AUTOBI / WORKSPACE
@@ -72,12 +72,16 @@ export default async function WorkspaceAccessPage() {
           Управление доступом
         </h1>
         <p className="text-sm sm:text-base text-muted-foreground max-w-2xl leading-relaxed">
-          Просмотр участников рабочего пространства и управление ролями доступа (Владелец,
-          Участник, Наблюдатель).
+          Просмотр участников рабочего пространства, управление ролями доступа и отправка
+          приглашений.
         </p>
       </div>
 
-      <WorkspaceMemberList workspaceId={workspaceId} currentUserId={userId} />
-    </main>
+      <WorkspaceAccessView
+        workspaceId={workspaceId}
+        currentUserId={userId}
+        canManage={canManageMembers}
+      />
+    </div>
   )
 }

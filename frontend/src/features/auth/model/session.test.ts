@@ -4,6 +4,7 @@ import { parseSessionValue, serializeSession, type SessionUser } from './session
 describe('session serialization and security', () => {
   it('serializes and parses valid signed session', () => {
     const user = {
+      token: 'mock-token',
       id: 'user-1',
       email: 'test@autobi.internal',
       name: 'Test User',
@@ -22,6 +23,7 @@ describe('session serialization and security', () => {
 
   it('rejects tampered session payload', () => {
     const user = {
+      token: 'mock-token',
       id: 'user-1',
       email: 'test@autobi.internal',
       name: 'Test User',
@@ -45,6 +47,7 @@ describe('session serialization and security', () => {
 
   it('rejects invalid signature', () => {
     const user = {
+      token: 'mock-token',
       id: 'user-1',
       email: 'test@autobi.internal',
       name: 'Test User',
@@ -62,6 +65,7 @@ describe('session serialization and security', () => {
       userId: 'user-1',
       email: 'test@autobi.internal',
       name: 'Test User',
+      token: 'mock-token',
       expiresAt: Date.now() - 10000,
     }
 

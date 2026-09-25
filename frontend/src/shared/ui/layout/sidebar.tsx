@@ -33,13 +33,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
   { name: 'Импорт данных', href: '/imports', icon: UploadCloud },
   { name: 'Поставщики', href: '/suppliers', icon: Users },
   { name: 'Алерты', href: '/alerts', icon: Bell },
-  {
-    name: 'Доступ',
-    href: '/settings/access',
-    icon: ShieldCheck,
-    requiredCapability: 'workspace.members.manage',
-  },
-  { name: 'Settings', href: '/settings', icon: Settings, disabled: true, badge: 'Скоро' },
+  { name: 'Настройки', href: '/settings', icon: Settings },
 ]
 
 export function NavigationList({ onItemClick }: { onItemClick?: () => void }) {
@@ -78,7 +72,10 @@ export function NavigationList({ onItemClick }: { onItemClick?: () => void }) {
           )
         }
 
-        const isActive = pathname === item.href
+        const isActive =
+          item.href === '/settings'
+            ? pathname.startsWith('/settings')
+            : pathname === item.href
         return (
           <Link
             key={item.href}

@@ -37,7 +37,7 @@ export const salesGateway = {
     workspaceId?: string,
     filters?: SalesFilterParams,
   ): Promise<SalesOverview> {
-    const headers: Record<string, string> = { 'X-User-Id': userId }
+    const headers: Record<string, string> = {}
     if (workspaceId) {
       headers['X-Workspace-Id'] = workspaceId
     }
@@ -65,7 +65,7 @@ export const salesGateway = {
     userId: string,
     workspaceId?: string,
   ): Promise<SalesFilterOptions> {
-    const headers: Record<string, string> = { 'X-User-Id': userId }
+    const headers: Record<string, string> = {}
     if (workspaceId) {
       headers['X-Workspace-Id'] = workspaceId
     }
@@ -86,7 +86,7 @@ export const salesGateway = {
     workspaceId?: string,
     params?: SalesRecordsQueryParams,
   ): Promise<SalesRecordsResponse> {
-    const headers: Record<string, string> = { 'X-User-Id': userId }
+    const headers: Record<string, string> = {}
     if (workspaceId) {
       headers['X-Workspace-Id'] = workspaceId
     }

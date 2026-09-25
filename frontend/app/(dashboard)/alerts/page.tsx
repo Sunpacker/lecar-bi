@@ -13,9 +13,7 @@ export default async function AlertsPage() {
   }
 
   const userId = session.userId
-  const currentWorkspace = await workspaceGateway
-    .getCurrentWorkspace(userId)
-    .catch(() => null)
+  const currentWorkspace = await workspaceGateway.getCurrentWorkspace().catch(() => null)
   const workspaceId = currentWorkspace?.workspace.id ?? 'ws-1'
 
   return (

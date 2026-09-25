@@ -14,9 +14,7 @@ export default async function DashboardsPage() {
   }
 
   const userId = session.userId
-  const currentWorkspace = await workspaceGateway
-    .getCurrentWorkspace(userId)
-    .catch(() => null)
+  const currentWorkspace = await workspaceGateway.getCurrentWorkspace().catch(() => null)
   const workspaceId = currentWorkspace?.workspace.id ?? 'ws-1'
 
   const dashboards = await dashboardGateway.list(userId, workspaceId).catch(() => [])

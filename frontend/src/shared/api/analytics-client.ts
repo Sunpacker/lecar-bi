@@ -1,10 +1,18 @@
 import createClient, { type Middleware } from 'openapi-fetch'
 
 import type { paths } from './generated/schema'
-import { env } from '../config/env'
 import { sanitizeOrGenerateRequestId } from '../observability/request-id'
 
 const DEFAULT_HTTP_TIMEOUT_MS = 15000
+
+function getBaseUrl(): string {
+  if (typeof window === 'undefined') {
+    // Server-side: go directly to backend
+    return process.env.ANALYTICS_INTERNAL_URL || 'http://localhost:8080/api/v2'
+  }
+  // Client-side: go through BFF proxy
+  return '/api/backend'
+}
 
 const requestIdMiddleware: Middleware = {
   async onRequest({ request }) {
@@ -25,8 +33,25 @@ const requestIdMiddleware: Middleware = {
   },
 }
 
+const authMiddleware: Middleware = {
+  async onRequest({ request }) {
+    if (typeof window === 'undefined') {
+      try {
+        const { getSession } = await import('@/src/features/auth/model/session')
+        const session = await getSession()
+        if (session?.token) {
+          request.headers.set('Authorization', `Bearer ${session.token}`)
+        }
+      } catch {
+        // outside request context
+      }
+    }
+    return request
+  },
+}
+
 export const analyticsClient = createClient<paths>({
-  baseUrl: env.analyticsApiUrl,
+  baseUrl: getBaseUrl(),
   fetch: (request: Request) => {
     if (
       !request.signal &&
@@ -40,3 +65,4 @@ export const analyticsClient = createClient<paths>({
 })
 
 analyticsClient.use(requestIdMiddleware)
+analyticsClient.use(authMiddleware)

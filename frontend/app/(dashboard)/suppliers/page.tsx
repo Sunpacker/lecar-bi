@@ -21,7 +21,7 @@ export default async function SuppliersPage() {
   let workspaceContext: CurrentWorkspace | null = null
 
   try {
-    workspaceContext = await workspaceGateway.getCurrentWorkspace(userId)
+    workspaceContext = await workspaceGateway.getCurrentWorkspace()
   } catch {
     // Backend may not have database seeded or may be starting
   }

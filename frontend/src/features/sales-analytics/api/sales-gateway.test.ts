@@ -66,7 +66,6 @@ describe('salesGateway', () => {
         },
       },
       headers: {
-        'X-User-Id': 'user-1',
         'X-Workspace-Id': 'ws-1',
       },
     })
@@ -145,7 +144,6 @@ describe('salesGateway', () => {
         },
       },
       headers: {
-        'X-User-Id': 'user-1',
         'X-Workspace-Id': 'ws-1',
       },
     })

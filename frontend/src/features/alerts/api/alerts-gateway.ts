@@ -35,7 +35,6 @@ export const alertsGateway = {
   ): Promise<AlertRuleListResponse> {
     const { data, error } = await analyticsClient.GET('/alert-rules', {
       headers: {
-        'X-User-Id': userId,
         'X-Workspace-Id': workspaceId,
       },
       params: {
@@ -59,7 +58,6 @@ export const alertsGateway = {
   ): Promise<AlertRuleDetailResponse> {
     const { data, error } = await analyticsClient.POST('/alert-rules', {
       headers: {
-        'X-User-Id': userId,
         'X-Workspace-Id': workspaceId,
       },
       body: payload,
@@ -79,7 +77,6 @@ export const alertsGateway = {
   ): Promise<AlertRuleDetailResponse> {
     const { data, error } = await analyticsClient.GET('/alert-rules/{id}', {
       headers: {
-        'X-User-Id': userId,
         'X-Workspace-Id': workspaceId,
       },
       params: {
@@ -102,7 +99,6 @@ export const alertsGateway = {
   ): Promise<AlertRuleDetailResponse> {
     const { data, error } = await analyticsClient.PUT('/alert-rules/{id}', {
       headers: {
-        'X-User-Id': userId,
         'X-Workspace-Id': workspaceId,
       },
       params: {
@@ -121,7 +117,6 @@ export const alertsGateway = {
   async deleteRule(userId: string, workspaceId: string, id: string): Promise<void> {
     const { error } = await analyticsClient.DELETE('/alert-rules/{id}', {
       headers: {
-        'X-User-Id': userId,
         'X-Workspace-Id': workspaceId,
       },
       params: {
@@ -141,7 +136,6 @@ export const alertsGateway = {
   ): Promise<AlertRuleDetailResponse> {
     const { data, error } = await analyticsClient.POST('/alert-rules/{id}/toggle', {
       headers: {
-        'X-User-Id': userId,
         'X-Workspace-Id': workspaceId,
       },
       params: {
@@ -162,7 +156,6 @@ export const alertsGateway = {
   ): Promise<AlertEvaluationResultResponse> {
     const { data, error } = await analyticsClient.POST('/alert-rules/evaluate', {
       headers: {
-        'X-User-Id': userId,
         'X-Workspace-Id': workspaceId,
       },
     })
@@ -181,7 +174,6 @@ export const alertsGateway = {
   ): Promise<AlertListResponse> {
     const { data, error } = await analyticsClient.GET('/alerts', {
       headers: {
-        'X-User-Id': userId,
         'X-Workspace-Id': workspaceId,
       },
       params: {
@@ -206,7 +198,6 @@ export const alertsGateway = {
   async getSummary(userId: string, workspaceId: string): Promise<AlertSummaryResponse> {
     const { data, error } = await analyticsClient.GET('/alerts/summary', {
       headers: {
-        'X-User-Id': userId,
         'X-Workspace-Id': workspaceId,
       },
     })
@@ -225,7 +216,6 @@ export const alertsGateway = {
   ): Promise<AlertDetailResponse> {
     const { data, error } = await analyticsClient.GET('/alerts/{id}', {
       headers: {
-        'X-User-Id': userId,
         'X-Workspace-Id': workspaceId,
       },
       params: {
@@ -247,7 +237,6 @@ export const alertsGateway = {
   ): Promise<AlertDetailResponse> {
     const { data, error } = await analyticsClient.POST('/alerts/{id}/acknowledge', {
       headers: {
-        'X-User-Id': userId,
         'X-Workspace-Id': workspaceId,
       },
       params: {
@@ -270,7 +259,6 @@ export const alertsGateway = {
   ): Promise<AlertDetailResponse> {
     const { data, error } = await analyticsClient.POST('/alerts/{id}/resolve', {
       headers: {
-        'X-User-Id': userId,
         'X-Workspace-Id': workspaceId,
       },
       params: {

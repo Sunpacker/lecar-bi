@@ -19,12 +19,12 @@ export async function POST(request: Request) {
       )
     }
 
-    const user = await authGateway.login({
+    const { user, token } = await authGateway.login({
       email: email.trim(),
       password,
     })
 
-    await createSession(user)
+    await createSession({ ...user, token })
 
     return NextResponse.json({ user })
   } catch (error: unknown) {

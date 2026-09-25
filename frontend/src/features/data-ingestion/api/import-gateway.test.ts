@@ -61,7 +61,6 @@ describe('importGateway', () => {
         },
       },
       headers: {
-        'X-User-Id': 'user-1',
         'X-Workspace-Id': 'ws-1',
       },
     })
@@ -100,7 +99,6 @@ describe('importGateway', () => {
       '/imports',
       expect.objectContaining({
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
       }),
@@ -138,7 +136,6 @@ describe('importGateway', () => {
     expect(analyticsClient.GET).toHaveBeenCalledWith('/imports/{id}', {
       params: { path: { id: 'batch-1' } },
       headers: {
-        'X-User-Id': 'user-1',
         'X-Workspace-Id': 'ws-1',
       },
     })
@@ -180,7 +177,6 @@ describe('importGateway', () => {
         query: { page: 1, per_page: 50 },
       },
       headers: {
-        'X-User-Id': 'user-1',
         'X-Workspace-Id': 'ws-1',
       },
     })
@@ -216,7 +212,6 @@ describe('importGateway', () => {
     expect(analyticsClient.POST).toHaveBeenCalledWith('/imports/{id}/retry', {
       params: { path: { id: 'batch-1' } },
       headers: {
-        'X-User-Id': 'user-1',
         'X-Workspace-Id': 'ws-1',
       },
     })

@@ -45,7 +45,6 @@ describe('alertsGateway', () => {
       '/alert-rules',
       expect.objectContaining({
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
         params: {
@@ -99,7 +98,6 @@ describe('alertsGateway', () => {
       '/alert-rules',
       expect.objectContaining({
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
         body: payload,
@@ -141,7 +139,6 @@ describe('alertsGateway', () => {
       '/alert-rules/{id}',
       expect.objectContaining({
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
         params: { path: { id: 'rule-1' } },
@@ -163,7 +160,6 @@ describe('alertsGateway', () => {
       '/alert-rules/{id}',
       expect.objectContaining({
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
         params: { path: { id: 'rule-1' } },
@@ -198,7 +194,6 @@ describe('alertsGateway', () => {
       '/alert-rules/{id}/toggle',
       expect.objectContaining({
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
         params: { path: { id: 'rule-1' } },
@@ -226,7 +221,6 @@ describe('alertsGateway', () => {
       '/alert-rules/evaluate',
       expect.objectContaining({
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
       }),
@@ -254,7 +248,6 @@ describe('alertsGateway', () => {
       '/alerts/summary',
       expect.objectContaining({
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
       }),
@@ -309,7 +302,6 @@ describe('alertsGateway', () => {
       '/alerts',
       expect.objectContaining({
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
         params: {
@@ -345,7 +337,6 @@ describe('alertsGateway', () => {
       '/alerts/{id}/acknowledge',
       expect.objectContaining({
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
         params: { path: { id: 'alert-1' } },
@@ -378,7 +369,6 @@ describe('alertsGateway', () => {
       '/alerts/{id}/resolve',
       expect.objectContaining({
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
         params: { path: { id: 'alert-1' } },

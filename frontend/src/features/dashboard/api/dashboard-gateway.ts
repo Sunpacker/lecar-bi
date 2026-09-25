@@ -18,7 +18,7 @@ export type UpdateDashboardSavedViewRequest =
 
 export const dashboardGateway = {
   async list(userId: string, workspaceId?: string): Promise<DashboardSummary[]> {
-    const headers: Record<string, string> = { 'X-User-Id': userId }
+    const headers: Record<string, string> = {}
     if (workspaceId) {
       headers['X-Workspace-Id'] = workspaceId
     }
@@ -41,7 +41,7 @@ export const dashboardGateway = {
     userId: string,
     workspaceId?: string,
   ): Promise<DashboardDetail> {
-    const headers: Record<string, string> = { 'X-User-Id': userId }
+    const headers: Record<string, string> = {}
     if (workspaceId) {
       headers['X-Workspace-Id'] = workspaceId
     }
@@ -67,7 +67,7 @@ export const dashboardGateway = {
     request: CreateDashboardRequest,
     workspaceId?: string,
   ): Promise<DashboardDetail> {
-    const headers: Record<string, string> = { 'X-User-Id': userId }
+    const headers: Record<string, string> = {}
     if (workspaceId) {
       headers['X-Workspace-Id'] = workspaceId
     }
@@ -92,7 +92,7 @@ export const dashboardGateway = {
     request: UpdateDashboardRequest,
     workspaceId?: string,
   ): Promise<DashboardDetail> {
-    const headers: Record<string, string> = { 'X-User-Id': userId }
+    const headers: Record<string, string> = {}
     if (workspaceId) {
       headers['X-Workspace-Id'] = workspaceId
     }
@@ -115,7 +115,7 @@ export const dashboardGateway = {
   },
 
   async delete(id: string, userId: string, workspaceId?: string): Promise<void> {
-    const headers: Record<string, string> = { 'X-User-Id': userId }
+    const headers: Record<string, string> = {}
     if (workspaceId) {
       headers['X-Workspace-Id'] = workspaceId
     }
@@ -139,7 +139,7 @@ export const dashboardGateway = {
     userId: string,
     workspaceId?: string,
   ): Promise<DashboardSavedView[]> {
-    const headers: Record<string, string> = { 'X-User-Id': userId }
+    const headers: Record<string, string> = {}
     if (workspaceId) {
       headers['X-Workspace-Id'] = workspaceId
     }
@@ -166,7 +166,7 @@ export const dashboardGateway = {
     userId: string,
     workspaceId?: string,
   ): Promise<DashboardSavedView> {
-    const headers: Record<string, string> = { 'X-User-Id': userId }
+    const headers: Record<string, string> = {}
     if (workspaceId) {
       headers['X-Workspace-Id'] = workspaceId
     }
@@ -196,7 +196,7 @@ export const dashboardGateway = {
     request: CreateDashboardSavedViewRequest,
     workspaceId?: string,
   ): Promise<DashboardSavedView> {
-    const headers: Record<string, string> = { 'X-User-Id': userId }
+    const headers: Record<string, string> = {}
     if (workspaceId) {
       headers['X-Workspace-Id'] = workspaceId
     }
@@ -228,7 +228,7 @@ export const dashboardGateway = {
     request: UpdateDashboardSavedViewRequest,
     workspaceId?: string,
   ): Promise<DashboardSavedView> {
-    const headers: Record<string, string> = { 'X-User-Id': userId }
+    const headers: Record<string, string> = {}
     if (workspaceId) {
       headers['X-Workspace-Id'] = workspaceId
     }
@@ -259,7 +259,7 @@ export const dashboardGateway = {
     userId: string,
     workspaceId?: string,
   ): Promise<void> {
-    const headers: Record<string, string> = { 'X-User-Id': userId }
+    const headers: Record<string, string> = {}
     if (workspaceId) {
       headers['X-Workspace-Id'] = workspaceId
     }

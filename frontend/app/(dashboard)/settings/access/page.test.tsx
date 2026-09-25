@@ -47,6 +47,7 @@ describe('WorkspaceAccessPage', () => {
       userId: 'user-viewer',
       email: 'viewer@example.com',
       name: 'Viewer User',
+      token: 'mock-token',
       expiresAt: Date.now() + 10000,
     })
 
@@ -76,6 +77,7 @@ describe('WorkspaceAccessPage', () => {
       userId: 'user-owner',
       email: 'owner@example.com',
       name: 'Owner User',
+      token: 'mock-token',
       expiresAt: Date.now() + 10000,
     })
 

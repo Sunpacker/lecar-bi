@@ -48,6 +48,7 @@ describe('SuppliersPage', () => {
       userId: 'user-77',
       email: 'user@example.com',
       name: 'User',
+      token: 'mock-token',
       expiresAt: Date.now() + 10000,
     })
 

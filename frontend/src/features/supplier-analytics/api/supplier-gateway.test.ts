@@ -51,7 +51,6 @@ describe('supplierGateway', () => {
       '/analytics/suppliers/overview',
       expect.objectContaining({
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
         params: {
@@ -175,7 +174,6 @@ describe('supplierGateway', () => {
       '/analytics/suppliers/filters',
       expect.objectContaining({
         headers: {
-          'X-User-Id': 'user-1',
           'X-Workspace-Id': 'ws-1',
         },
       }),

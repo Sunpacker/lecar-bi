@@ -24,10 +24,12 @@ export function proxy(request: NextRequest) {
     return nextRes
   }
 
-  // Allow technical and auth API routes, static assets, etc.
   if (
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/api/health') ||
+    pathname.startsWith('/api/backend') ||
+    pathname.startsWith('/api/notifications') ||
+    pathname.startsWith('/invite') ||
     pathname.startsWith('/_next') ||
     pathname.includes('.')
   ) {

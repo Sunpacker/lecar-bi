@@ -5,6 +5,7 @@ import { LayoutDashboard, Menu, Moon, Sun } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { WorkspaceContextBar } from '../../../features/workspace/ui/workspace-context-bar'
+import { NotificationBell } from '../../../features/notifications/ui/notification-bell'
 import {
   type CurrentWorkspace,
   type Workspace,
@@ -83,7 +84,10 @@ export function Header({ workspaceContext, accessibleWorkspaces }: HeaderProps) 
             />
           )}
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-1 sm:gap-2">
+          <NotificationBell />
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   )

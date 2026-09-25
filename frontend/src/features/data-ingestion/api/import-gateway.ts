@@ -27,7 +27,7 @@ export const importGateway = {
     workspaceId?: string,
     params?: ImportBatchesQueryParams,
   ): Promise<ImportBatchListResponse> {
-    const headers: Record<string, string> = { 'X-User-Id': userId }
+    const headers: Record<string, string> = {}
     if (workspaceId) {
       headers['X-Workspace-Id'] = workspaceId
     }
@@ -58,7 +58,6 @@ export const importGateway = {
     datasetType: DatasetType,
   ): Promise<ImportBatchDetail> {
     const headers: Record<string, string> = {
-      'X-User-Id': userId,
       'X-Workspace-Id': workspaceId,
     }
 
@@ -87,7 +86,7 @@ export const importGateway = {
     userId: string,
     workspaceId?: string,
   ): Promise<ImportBatchDetail> {
-    const headers: Record<string, string> = { 'X-User-Id': userId }
+    const headers: Record<string, string> = {}
     if (workspaceId) {
       headers['X-Workspace-Id'] = workspaceId
     }
@@ -112,7 +111,7 @@ export const importGateway = {
     workspaceId?: string,
     params?: ImportFailuresQueryParams,
   ): Promise<ImportFailureListResponse> {
-    const headers: Record<string, string> = { 'X-User-Id': userId }
+    const headers: Record<string, string> = {}
     if (workspaceId) {
       headers['X-Workspace-Id'] = workspaceId
     }
@@ -140,7 +139,7 @@ export const importGateway = {
     userId: string,
     workspaceId?: string,
   ): Promise<ImportBatchDetail> {
-    const headers: Record<string, string> = { 'X-User-Id': userId }
+    const headers: Record<string, string> = {}
     if (workspaceId) {
       headers['X-Workspace-Id'] = workspaceId
     }

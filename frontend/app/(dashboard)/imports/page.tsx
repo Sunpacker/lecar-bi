@@ -20,7 +20,7 @@ export default async function ImportsPage() {
   let workspaceContext: CurrentWorkspace | null = null
 
   try {
-    workspaceContext = await workspaceGateway.getCurrentWorkspace(userId)
+    workspaceContext = await workspaceGateway.getCurrentWorkspace()
   } catch {
     // Backend fallback
   }
