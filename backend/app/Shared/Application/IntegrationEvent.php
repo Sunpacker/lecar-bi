@@ -35,12 +35,13 @@ final class IntegrationEvent
         public readonly string $workspaceId,
         public readonly array $aggregate,
         public readonly array $payload,
+        public readonly ?string $correlationId = null,
     ) {}
 
     /** @return array<string, mixed> */
     public function toEnvelope(): array
     {
-        return [
+        $envelope = [
             'event_id' => $this->eventId,
             'event_type' => $this->eventType,
             'event_version' => $this->eventVersion,
@@ -50,5 +51,11 @@ final class IntegrationEvent
             'aggregate' => $this->aggregate,
             'payload' => $this->payload,
         ];
+
+        if ($this->correlationId !== null) {
+            $envelope['correlation_id'] = $this->correlationId;
+        }
+
+        return $envelope;
     }
 }

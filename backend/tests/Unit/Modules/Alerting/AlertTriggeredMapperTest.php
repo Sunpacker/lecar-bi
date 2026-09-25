@@ -15,7 +15,8 @@ use App\Modules\Alerting\Domain\RuleMetric;
 use App\Shared\Application\IntegrationEvent;
 use App\Shared\Domain\DomainEventId;
 use DateTimeImmutable;
-use PHPUnit\Framework\TestCase;
+use Illuminate\Support\Facades\Context;
+use Tests\TestCase;
 
 /**
  * Tests that AlertTriggeredIntegrationMapper produces an envelope
@@ -27,7 +28,14 @@ final class AlertTriggeredMapperTest extends TestCase
 
     protected function setUp(): void
     {
+        parent::setUp();
         $this->mapper = new AlertTriggeredIntegrationMapper;
+    }
+
+    protected function tearDown(): void
+    {
+        Context::flush();
+        parent::tearDown();
     }
 
     public function test_maps_domain_event_to_integration_event_with_correct_envelope_structure(): void
@@ -42,6 +50,19 @@ final class AlertTriggeredMapperTest extends TestCase
         self::assertSame(1, $integration->eventVersion);
         self::assertSame('analytics', $integration->producer);
         self::assertSame('ws-abc', $integration->workspaceId);
+    }
+
+    public function test_maps_correlation_id_from_context_when_available(): void
+    {
+        Context::add('correlation_id', 'corr-ctx-12345');
+
+        $integration = $this->mapper->map($this->createFixedAlertTriggered());
+        $envelope = $integration->toEnvelope();
+
+        self::assertSame('corr-ctx-12345', $integration->correlationId);
+        self::assertSame('corr-ctx-12345', $envelope['correlation_id']);
+
+        Context::flush();
     }
 
     public function test_maps_aggregate_correctly(): void

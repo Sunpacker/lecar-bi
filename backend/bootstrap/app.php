@@ -6,6 +6,7 @@ use App\Modules\Alerting\Infrastructure\Commands\EvaluateAlertsConsoleCommand;
 use App\Modules\Workspace\Presentation\Middleware\RequireWorkspaceCapabilityMiddleware;
 use App\Shared\Infrastructure\Commands\OutboxPublishCommand;
 use App\Shared\Infrastructure\Commands\OutboxRetryCommand;
+use App\Shared\Infrastructure\Http\Middleware\TraceContextMiddleware;
 use App\Shared\Infrastructure\Jobs\PublishOutboxMessagesJob;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -34,6 +35,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->job(PublishOutboxMessagesJob::class, 'outbox')->everyMinute()->withoutOverlapping();
     })
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->append(TraceContextMiddleware::class);
         $middleware->alias([
             'workspace.can' => RequireWorkspaceCapabilityMiddleware::class,
         ]);

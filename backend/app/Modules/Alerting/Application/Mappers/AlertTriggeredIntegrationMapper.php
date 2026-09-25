@@ -6,6 +6,8 @@ namespace App\Modules\Alerting\Application\Mappers;
 
 use App\Modules\Alerting\Domain\Events\AlertTriggered;
 use App\Shared\Application\IntegrationEvent;
+use Illuminate\Support\Facades\Context;
+use Illuminate\Support\Facades\Facade;
 
 /**
  * Maps the AlertTriggered domain event to an IntegrationEvent envelope
@@ -13,8 +15,15 @@ use App\Shared\Application\IntegrationEvent;
  */
 final class AlertTriggeredIntegrationMapper
 {
-    public function map(AlertTriggered $event): IntegrationEvent
+    public function map(AlertTriggered $event, ?string $correlationId = null): IntegrationEvent
     {
+        if ($correlationId === null && class_exists(Context::class) && Facade::getFacadeApplication() !== null) {
+            $ctxCorrelation = Context::get('correlation_id') ?? Context::get('request_id');
+            if (is_string($ctxCorrelation) && $ctxCorrelation !== '') {
+                $correlationId = $ctxCorrelation;
+            }
+        }
+
         return new IntegrationEvent(
             eventId: $event->eventId()->value(),
             eventType: 'alert.triggered',
@@ -43,6 +52,7 @@ final class AlertTriggeredIntegrationMapper
                     'warehouse_name' => $event->context()->warehouseName(),
                 ],
             ],
+            correlationId: $correlationId,
         );
     }
 }

@@ -14,7 +14,9 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * Publishes a batch of pending outbox messages to the integration event transport.
@@ -45,36 +47,62 @@ final class PublishOutboxMessagesJob implements ShouldBeUnique, ShouldQueue
         OutboxRepositoryInterface $outboxRepository,
         IntegrationEventTransportInterface $transport,
     ): void {
-        $batchSize = (int) config('outbox.batch_size', 100);
-        $messages = $outboxRepository->claimPendingBatch($batchSize);
+        Context::flush();
+        $jobId = $this->job?->getJobId() ?? Str::uuid()->toString();
+        Context::add([
+            'job_id' => (string) $jobId,
+            'operation' => 'PublishOutboxMessagesJob',
+        ]);
 
-        if (count($messages) === 0) {
-            return;
-        }
+        try {
+            $batchSize = (int) config('outbox.batch_size', 100);
+            $messages = $outboxRepository->claimPendingBatch($batchSize);
 
-        foreach ($messages as $message) {
-            $eventId = (string) $message['id'];
-
-            try {
-                $integrationEvent = $this->toIntegrationEvent($message);
-                $transportMessageId = $transport->publish($integrationEvent);
-                $outboxRepository->markPublished($eventId, $transportMessageId);
-            } catch (\Throwable $e) {
-                $currentAttempts = (int) ($message['attempt_count'] ?? 0);
-                $nextAttemptAt = EloquentOutboxRepository::nextRetryAt($currentAttempts);
-                $sanitizedError = $this->sanitizeError($e->getMessage());
-
-                $outboxRepository->scheduleRetry($eventId, $nextAttemptAt, $sanitizedError);
-
-                // Log only error type and sanitized message — no payload, no credentials.
-                Log::warning('Outbox publish failed', [
-                    'event_id' => $eventId,
-                    'event_type' => $message['event_type'] ?? 'unknown',
-                    'attempt' => $currentAttempts + 1,
-                    'next_attempt_at' => $nextAttemptAt->format('Y-m-d H:i:s'),
-                    'error' => $sanitizedError,
-                ]);
+            if (count($messages) === 0) {
+                return;
             }
+
+            foreach ($messages as $message) {
+                $eventId = (string) $message['id'];
+                $envelope = is_array($message['envelope'])
+                    ? $message['envelope']
+                    : json_decode((string) $message['envelope'], true, 512, JSON_THROW_ON_ERROR);
+                $correlationId = isset($envelope['correlation_id']) && is_string($envelope['correlation_id'])
+                    ? $envelope['correlation_id']
+                    : null;
+
+                try {
+                    $integrationEvent = $this->toIntegrationEvent($message);
+                    $transportMessageId = $transport->publish($integrationEvent);
+                    $outboxRepository->markPublished($eventId, $transportMessageId);
+
+                    Log::info('Outbox message published', [
+                        'event_id' => $eventId,
+                        'correlation_id' => $correlationId,
+                        'event_type' => $message['event_type'] ?? 'unknown',
+                        'outcome' => 'published',
+                    ]);
+                } catch (\Throwable $e) {
+                    $currentAttempts = (int) ($message['attempt_count'] ?? 0);
+                    $nextAttemptAt = EloquentOutboxRepository::nextRetryAt($currentAttempts);
+                    $sanitizedError = $this->sanitizeError($e->getMessage());
+
+                    $outboxRepository->scheduleRetry($eventId, $nextAttemptAt, $sanitizedError);
+
+                    // Log only error type and sanitized message — no payload, no credentials.
+                    Log::warning('Outbox publish failed', [
+                        'event_id' => $eventId,
+                        'correlation_id' => $correlationId,
+                        'event_type' => $message['event_type'] ?? 'unknown',
+                        'attempt' => $currentAttempts + 1,
+                        'next_attempt_at' => $nextAttemptAt->format('Y-m-d H:i:s'),
+                        'error' => $sanitizedError,
+                        'outcome' => 'retry_scheduled',
+                    ]);
+                }
+            }
+        } finally {
+            Context::flush();
         }
     }
 
@@ -99,6 +127,7 @@ final class PublishOutboxMessagesJob implements ShouldBeUnique, ShouldQueue
                 'id' => (string) $message['aggregate_id'],
             ],
             payload: (array) ($envelope['payload'] ?? []),
+            correlationId: isset($envelope['correlation_id']) && is_string($envelope['correlation_id']) ? $envelope['correlation_id'] : null,
         );
     }
 
