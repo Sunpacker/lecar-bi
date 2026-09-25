@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use NotificationService\Console\Commands\ConsumeNotificationsCommand;
+use NotificationService\Console\Commands\WorkerHealthCommand;
 use NotificationService\Http\Middleware\TraceContextMiddleware;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -14,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withCommands([
         ConsumeNotificationsCommand::class,
+        WorkerHealthCommand::class,
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(TraceContextMiddleware::class);

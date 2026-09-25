@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace NotificationService\Console\Commands;
 
+use DateTimeImmutable;
 use Illuminate\Console\Command;
 use NotificationService\Integration\Infrastructure\Redis\RedisStreamConsumer;
+use NotificationService\Integration\Infrastructure\Services\WorkerHeartbeatService;
 
 final class ConsumeNotificationsCommand extends Command
 {
@@ -15,7 +17,7 @@ final class ConsumeNotificationsCommand extends Command
 
     private bool $shouldStop = false;
 
-    public function handle(RedisStreamConsumer $consumer): int
+    public function handle(RedisStreamConsumer $consumer, WorkerHeartbeatService $heartbeatService): int
     {
         $this->setupSignalHandlers();
 
@@ -24,9 +26,19 @@ final class ConsumeNotificationsCommand extends Command
         $this->info('Consumer group verified. Listening for integration events...');
 
         $runOnce = (bool) $this->option('once');
+        $processedTotal = 0;
+        $lastProcessedAt = null;
+
+        $heartbeatService->recordHeartbeat('notification-worker', null, 0, 0, 'running');
 
         while (! $this->shouldStop) {
             $processed = $consumer->consumeCycle();
+            if ($processed > 0) {
+                $processedTotal += $processed;
+                $lastProcessedAt = (new DateTimeImmutable)->format(DATE_ATOM);
+            }
+
+            $heartbeatService->recordHeartbeat('notification-worker', $lastProcessedAt, $processedTotal, 0, 'running');
 
             if ($runOnce) {
                 $this->info("Cycle finished. Processed {$processed} message(s).");
@@ -43,6 +55,7 @@ final class ConsumeNotificationsCommand extends Command
             }
         }
 
+        $heartbeatService->recordHeartbeat('notification-worker', $lastProcessedAt, $processedTotal, 0, 'stopped');
         $this->info('Graceful shutdown completed.');
 
         return 0;
@@ -62,7 +75,7 @@ final class ConsumeNotificationsCommand extends Command
             });
 
             pcntl_signal(SIGINT, function (): void {
-                $this->info('SIGINT received, shutting down...');
+                $this->info('SIGINT received, finishing current message and shutting down...');
                 $this->shouldStop = true;
             });
         }

@@ -17,6 +17,8 @@ use NotificationService\Notification\Application\Contracts\NotificationRepositor
 use NotificationService\Notification\Application\Contracts\TransactionManager;
 use NotificationService\Notification\Infrastructure\Persistence\EloquentConsumedEventRepository;
 use NotificationService\Notification\Infrastructure\Persistence\EloquentNotificationRepository;
+use NotificationService\Shared\Infrastructure\Health\DefaultDependencyHealthChecker;
+use NotificationService\Shared\Infrastructure\Health\DependencyHealthCheckerInterface;
 use NotificationService\Shared\Infrastructure\LaravelTransactionManager;
 use Psr\Log\LoggerInterface;
 
@@ -24,6 +26,8 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(DependencyHealthCheckerInterface::class, DefaultDependencyHealthChecker::class);
+
         $this->app->bind(NotificationRepository::class, EloquentNotificationRepository::class);
         $this->app->bind(ConsumedEventRepository::class, EloquentConsumedEventRepository::class);
         $this->app->bind(TransactionManager::class, LaravelTransactionManager::class);
