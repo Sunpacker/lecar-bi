@@ -5,7 +5,7 @@ set -eu
 FRONTEND_URL="${FRONTEND_URL:-http://127.0.0.1:3000}"
 BACKEND_URL="${BACKEND_URL:-http://127.0.0.1:8080}"
 NOTIFICATION_URL="${NOTIFICATION_URL:-http://127.0.0.1:8081}"
-INFRA_ENV_FILE="${INFRA_ENV_FILE:-infra/.env.example}"
+INFRA_ENV_FILE="${INFRA_ENV_FILE:-$(test -f infra/.env && echo infra/.env || echo infra/.env.example)}"
 MAX_ATTEMPTS="${MAX_ATTEMPTS:-30}"
 
 wait_for_service() {
@@ -583,5 +583,41 @@ if command -v docker >/dev/null 2>&1; then
     fi
 fi
 
-echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records, inventory intelligence, ABC/XYZ matrix, dashboard builder, dashboard saved views, alerting & incident management lifecycle, notification service event streaming & isolation, workspace RBAC capability matrix, and analytics selective caching are verified."
+# 57. Production Hardening: Security headers verification on Backend and Frontend
+backend_headers="$(curl --silent --include "$BACKEND_URL/api/v1/health")"
+assert_response_contains "$backend_headers" "X-Content-Type-Options: nosniff" "Backend X-Content-Type-Options"
+assert_response_contains "$backend_headers" "X-Frame-Options: DENY" "Backend X-Frame-Options"
+
+frontend_headers="$(curl --silent --include "$FRONTEND_URL/login")"
+assert_response_contains "$frontend_headers" "X-Content-Type-Options: nosniff" "Frontend X-Content-Type-Options"
+assert_response_contains "$frontend_headers" "X-Frame-Options: DENY" "Frontend X-Frame-Options"
+
+# 58. Production Hardening: Rate limiting on login endpoint returns 429
+echo "Verifying rate limiting protection on login endpoint..."
+rate_limited=0
+for i in $(seq 1 7); do
+    code="$(curl --silent -o /dev/null -w "%{http_code}" -H "Content-Type: application/json" \
+        -d '{"email":"invalid@autobi.internal","password":"bad"}' \
+        "$BACKEND_URL/api/v1/auth/login")"
+    if [ "$code" = "429" ]; then
+        rate_limited=1
+        break
+    fi
+done
+
+if [ "$rate_limited" -ne 1 ]; then
+    echo "Expected rate limiter to return 429 Too Many Requests after consecutive attempts, but none was returned" >&2
+    exit 1
+fi
+echo "Rate limiter verified: returned 429 Too Many Requests upon exceeding threshold."
+
+# 59. Production Hardening: Error responses do not leak sensitive debug details
+error_resp="$(curl --silent -H "Content-Type: application/json" -d '{"invalid": true}' "$BACKEND_URL/api/v1/auth/login")"
+if printf '%s' "$error_resp" | grep -qiE '(stack trace|xdebug|whoops|sqlstate)'; then
+    echo "Security leak failure: API response leaks internal debug/stack trace information" >&2
+    exit 1
+fi
+
+echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records, inventory intelligence, ABC/XYZ matrix, dashboard builder, dashboard saved views, alerting & incident management lifecycle, notification service event streaming & isolation, workspace RBAC capability matrix, analytics selective caching, security headers, and rate limiting are verified."
+
 

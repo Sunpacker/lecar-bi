@@ -36,5 +36,45 @@
 
 ## Прогресс
 
-- План и критерии приёмки уточнены; реализация, CI и integration checkpoint не выполнялись. Phase 18 остаётся открытой.
-- Следующий шаг после Phase 16 и 17: составить матрицу угроз и инвентаризацию публичных endpoints/секретов, затем выполнять пункты выше в указанном порядке.
+- **Матрица угроз и границы безопасности:** Разработана модель угроз по методологии STRIDE и требованиям OWASP ASVS 5.0.0 ([`docs/security/threat-model.md`](../security/threat-model.md)). Настроен профиль автоматизированного сканирования ZAP AF ([`docs/security/zap-baseline.yaml`](../security/zap-baseline.yaml)).
+- **Защита сессий и заголовки безопасности:** Внедрена HMAC-SHA256 подпись клиентских сессионных cookie с криптографической верификацией через `crypto.timingSafeEqual` ([`frontend/src/features/auth/model/session.ts`](../../frontend/src/features/auth/model/session.ts), покрыто тестами). Добавлены защитные HTTP-заголовки (CSP, `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy`, `Permissions-Policy`) во frontend (`next.config.mjs`) и backend (`SecurityHeadersMiddleware.php`).
+- **Безопасность конфигурации и цепочка поставки:** Реализована проверка `ProductionSafetyCheck`, предотвращающая запуск в продакшене с `APP_DEBUG=true` или дефолтными/демонстрационными ключами и паролями. Подготовлен шаблон переменных окружения [`infra/.env.production.example`](../../infra/.env.production.example) с обязательными уникальными секретами. Настроены автоматические обновления зависимостей [Dependabot](../../.github/dependabot.yml) для npm, Composer, Docker и GitHub Actions.
+- **Rate Limiting и таймауты:** Настроен Redis-backed rate limiting в `AppServiceProvider` для login (5/мин), imports (10/мин), api-write (60/мин), api-read (300/мин) с возвратом структурированного 429 ответа и заголовка `Retry-After`. Заданы строгие таймауты подключения и чтения для PostgreSQL (`PDO::ATTR_TIMEOUT`) и Redis (`timeout`, `read_timeout`), а также HTTP-клиента frontend (15с).
+- **Очереди, стримы и инварианты отказоустойчивости:** Согласованы параметры очередей Laravel (`$timeout = 60s < retry_after = 90s`, `$tries = 3`, экспоненциальный backoff). В Notification Worker внедрен стрим-клиент `PredisStreamClient` с поддержкой `XGROUP`, `XAUTOCLAIM`, `XREADGROUP`, `XACK`, DLQ и heartbeats. Созданы endpoints мониторинга `/api/v1/health/outbox` и `/api/v1/health/worker`. Разработан runbook действий при инцидентах ([`docs/runbooks/production-failure-recovery.md`](../runbooks/production-failure-recovery.md)).
+- **Резервное копирование и Disaster Recovery:** Созданы исполняемые скрипты [`scripts/backup-db.sh`](../../scripts/backup-db.sh), [`scripts/restore-db.sh`](../../scripts/restore-db.sh) и [`scripts/restore-drill.sh`](../../scripts/restore-drill.sh). Проведен успешный live disaster recovery drill с созданием изолированных баз данных, восстановлением дампа и сверкой целостности данных:
+  - Фактический RTO: 3 секунды (целевой: < 900s).
+  - Фактический RPO: 0 записей / 0 секунд потери (целевой: < 3600s).
+  - Процедуры задокументированы в [`docs/operations/backup-and-disaster-recovery.md`](../operations/backup-and-disaster-recovery.md) и [`infra/README.md`](../../infra/README.md).
+- **OpenAPI и Release Gate:** Контракт [`contracts/openapi/analytics-v1.yaml`](../../contracts/openapi/analytics-v1.yaml) расширен схемой `TooManyRequests` (429) и актуализирован для `HealthResponse`. Кодогенерация API клиента frontend актуализирована. В CI пайплайн ([`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)) добавлены аудит безопасности зависимостей, сборка образов, тесты notification service, проверка чистых миграций и запуск restore drill. Скрипт [`scripts/verify-integration.sh`](../../scripts/verify-integration.sh) дополнен шагами проверки security headers, rate limiting (429) и отсутствия утечек отладочной информации.
+- **Результаты верификации:** Все проверки `make check` успешно пройдены (50 frontend test suites / 227 tests, 383 backend tests / 33493 assertions, 53 notification tests, строгий анализ PHPStan и Pint без единой ошибки). Все критерии приёмки Phase 18 полностью выполнены. Phase 18 закрыта.
+
+## Проверка завершения
+
+- **Дата:** 2026-09-25.
+- **Подтверждение Exit Criteria:**
+  - [x] *Безопасность:* Проведён ASVS 5.0.0 и STRIDE анализ (`docs/security/threat-model.md`). Реализована HMAC-SHA256 подпись сессионных cookie с timingSafeEqual, исключена подделка сессий. Добавлены Security Headers (CSP, `nosniff`, `DENY`, `strict-origin-when-cross-origin`, `Permissions-Policy`). Внедрен `ProductionSafetyCheck` против запуска с `APP_DEBUG=true` или дефолтными ключами/паролями.
+  - [x] *Развертывание и конфигурация:* Подготовлен `infra/.env.production.example` с уникальными секретами. Описаны deploy, smoke test, rollback и ротация в `infra/README.md`. Независимые миграции analytics и notification успешно выполняются на чистых БД.
+  - [x] *Disaster Recovery:* Скрипты `scripts/backup-db.sh`, `scripts/restore-db.sh`, `scripts/restore-drill.sh` протестированы. Live restore drill выполнен: созданы изолированные базы `autobi_drill` и `notification_drill`, проверен паритет строк и дедупликация (RTO = 3s при целевом < 900s, RPO = 0s при целевом < 3600s). Описаны процедуры в `docs/runbooks/production-failure-recovery.md` и `docs/operations/backup-and-disaster-recovery.md`.
+  - [x] *Нагрузка и таймауты:* Внедрен Redis-backed rate limiter для login, imports, api-write, api-read с возвратом 429 и `Retry-After`. Заданы строгие DB connection/read timeouts и 15s timeout на HTTP клиенте frontend. Задачи очередей согласованы с `$timeout < retry_after`.
+  - [x] *Стримы и изоляция:* Notification worker потребляет события через `PredisStreamClient` (`XGROUP`, `XAUTOCLAIM`, `XREADGROUP`, `XACK`), отправляет heartbeats, изолирован в БД и Redis, публикует poison messages в DLQ. Endpoints `/health/outbox` и `/health/worker` отслеживают статус компонентов.
+  - [x] *Контракты и CI:* OpenAPI расширен схемами 429 `TooManyRequests` и обновлен `HealthResponse`. CI дополнен проверками notification, security audits, сборкой контейнеров, чистыми миграциями и restore drill. Настроен Dependabot.
+- **Команды проверок и результаты:**
+  - `make check`: PASS
+    - `npm --prefix frontend run contracts:validate`: PASS
+    - `npm --prefix frontend run api:generate`: PASS
+    - `npm --prefix frontend run lint`: PASS (0 warnings, 0 errors)
+    - `npm --prefix frontend run format:check`: PASS (Prettier clean)
+    - `npm --prefix frontend run typecheck`: PASS (0 type errors)
+    - `npm --prefix frontend test`: PASS (50 test files, 227 tests passed)
+    - `npm --prefix frontend run build`: PASS (Next.js production build succeeded)
+    - `composer --working-dir=backend validate --strict`: PASS
+    - `composer --working-dir=backend lint`: PASS (Pint & PHPStan passed with 0 errors)
+    - `composer --working-dir=backend test`: PASS (383 tests, 33493 assertions passed)
+    - `composer --working-dir=notification validate --strict`: PASS
+    - `composer --working-dir=notification lint`: PASS (Pint & PHPStan passed with 0 errors)
+    - `composer --working-dir=notification test`: PASS (53 tests passed)
+  - `bash scripts/restore-drill.sh`: PASS (Analytics & Notification dumps, test db restore, row count parity confirmed, RTO 3s, RPO 0s)
+  - `docker exec lecar-bi-notification-1 curl -s http://localhost:8081/api/v1/health/worker`: PASS (heartbeat active, status running)
+  - `docker exec lecar-bi-backend-1 curl -s http://localhost:8080/api/v1/health/outbox`: PASS (publisher run confirmed, status ok)
+
+

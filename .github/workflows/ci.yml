@@ -28,6 +28,7 @@ jobs:
       - run: npm run format:check
       - run: npm run typecheck
       - run: npm test
+      - run: npm audit --audit-level=high || true
       - run: npm run build
 
   backend:
@@ -40,10 +41,29 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: pdo_pgsql
+          extensions: pdo_pgsql, redis
           coverage: none
       - run: composer install --no-interaction --prefer-dist
       - run: composer validate --strict
+      - run: composer audit --locked --no-interaction || true
+      - run: composer lint
+      - run: composer test
+
+  notification:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: notification
+    steps:
+      - uses: actions/checkout@v7
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_pgsql, redis
+          coverage: none
+      - run: composer install --no-interaction --prefer-dist
+      - run: composer validate --strict
+      - run: composer audit --locked --no-interaction || true
       - run: composer lint
       - run: composer test
 
@@ -51,15 +71,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
-      - run: docker compose --env-file infra/.env.example -f infra/docker-compose.yml build frontend
-      - run: docker compose --env-file infra/.env.example -f infra/docker-compose.yml build backend
+      - run: docker compose --env-file infra/.env.example -f infra/docker-compose.yml build frontend backend notification
+
+  clean-migrations:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: docker compose --env-file infra/.env.example -f infra/docker-compose.yml up -d postgres notification-postgres
+      - run: |
+          until docker compose --env-file infra/.env.example -f infra/docker-compose.yml exec -T postgres pg_isready -U autobi -d autobi; do
+            sleep 1
+          done
+          until docker compose --env-file infra/.env.example -f infra/docker-compose.yml exec -T notification-postgres pg_isready -U notification -d notification; do
+            sleep 1
+          done
+      - run: docker compose --env-file infra/.env.example -f infra/docker-compose.yml run --rm backend php artisan migrate --force
+      - run: docker compose --env-file infra/.env.example -f infra/docker-compose.yml run --rm notification php artisan migrate --force
+      - if: always()
+        run: docker compose --env-file infra/.env.example -f infra/docker-compose.yml down --volumes
 
   integration:
     runs-on: ubuntu-latest
-    needs: [frontend-and-contracts, backend, container-builds]
+    needs: [frontend-and-contracts, backend, notification, container-builds, clean-migrations]
     steps:
       - uses: actions/checkout@v7
       - run: docker compose --env-file infra/.env.example -f infra/docker-compose.yml up --build --detach
       - run: ./scripts/verify-integration.sh
+      - run: ./scripts/restore-drill.sh
       - if: always()
         run: docker compose --env-file infra/.env.example -f infra/docker-compose.yml down --volumes

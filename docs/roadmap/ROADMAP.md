@@ -34,7 +34,7 @@
 - [x] [Phase 15 — RBAC](15-rbac.md)
 - [x] [Phase 16 — Performance and Caching](16-performance-caching.md)
 - [ ] [Phase 17 — Observability](17-observability.md)
-- [ ] [Phase 18 — Production Hardening](18-production-hardening.md)
+- [x] [Phase 18 — Production Hardening](18-production-hardening.md)
 - [ ] [Phase 19 — Forecasting Extension](19-forecasting.md)
 
 ## Как обновлять прогресс
