@@ -39,4 +39,23 @@ final class User
 
         return password_verify($plainPassword, $this->passwordHash);
     }
+
+    public function changeName(string $name): void
+    {
+        $trimmed = trim($name);
+        if ($trimmed === '') {
+            throw new \InvalidArgumentException('User name cannot be empty.');
+        }
+
+        $this->name = $trimmed;
+    }
+
+    public function changePasswordHash(string $newPasswordHash): void
+    {
+        if ($newPasswordHash === '') {
+            throw new \InvalidArgumentException('Password hash cannot be empty.');
+        }
+
+        $this->passwordHash = $newPasswordHash;
+    }
 }

@@ -28,6 +28,16 @@ final class Workspace
         return $this->name;
     }
 
+    public function rename(string $name): void
+    {
+        $trimmed = trim($name);
+        if ($trimmed === '') {
+            throw new \InvalidArgumentException('Workspace name cannot be empty.');
+        }
+
+        $this->name = $trimmed;
+    }
+
     public function slug(): string
     {
         return $this->slug;

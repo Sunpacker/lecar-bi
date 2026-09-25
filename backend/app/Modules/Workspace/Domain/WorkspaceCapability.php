@@ -14,4 +14,5 @@ enum WorkspaceCapability: string
     case ALERTS_VIEW = 'alerts.view';
     case ALERTS_MANAGE = 'alerts.manage';
     case WORKSPACE_MEMBERS_MANAGE = 'workspace.members.manage';
+    case WORKSPACE_SETTINGS_MANAGE = 'workspace.settings.manage';
 }

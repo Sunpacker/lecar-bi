@@ -2,6 +2,8 @@
 
 namespace App\Modules\Workspace\Presentation\Controllers;
 
+use App\Modules\Workspace\Application\Commands\RenameWorkspaceCommand;
+use App\Modules\Workspace\Application\Commands\RenameWorkspaceHandler;
 use App\Modules\Workspace\Application\Queries\GetAccessibleWorkspacesHandler;
 use App\Modules\Workspace\Application\Queries\GetAccessibleWorkspacesQuery;
 use App\Modules\Workspace\Application\Queries\GetWorkspaceByIdHandler;
@@ -48,6 +50,33 @@ final class WorkspaceController
                 'message' => $e->getMessage(),
                 'code' => 'FORBIDDEN',
             ], 403);
+        } catch (WorkspaceNotFoundException $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'code' => 'NOT_FOUND',
+            ], 404);
+        }
+    }
+
+    public function rename(string $id, Request $request, RenameWorkspaceHandler $handler): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'min:1', 'max:255'],
+        ]);
+
+        try {
+            $workspace = $handler->handle(new RenameWorkspaceCommand(
+                workspaceId: $id,
+                name: (string) $validated['name'],
+            ));
+
+            return response()->json([
+                'id' => $workspace->id,
+                'name' => $workspace->name,
+                'slug' => $workspace->slug,
+                'role' => $workspace->role,
+                'capabilities' => $workspace->capabilities,
+            ]);
         } catch (WorkspaceNotFoundException $e) {
             return response()->json([
                 'message' => $e->getMessage(),

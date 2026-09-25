@@ -57,13 +57,19 @@ use App\Modules\SupplierAnalytics\Application\Contracts\SupplierAnalyticsReadMod
 use App\Modules\SupplierAnalytics\Infrastructure\Persistence\CachedSupplierAnalyticsReadModel;
 use App\Modules\SupplierAnalytics\Infrastructure\Persistence\InMemorySupplierAnalyticsReadModel;
 use App\Modules\SupplierAnalytics\Infrastructure\Persistence\PostgresSupplierAnalyticsReadModel;
+use App\Modules\Workspace\Application\Contracts\AuthTokenServiceInterface;
 use App\Modules\Workspace\Application\Contracts\WorkspaceMemberReadModelInterface;
 use App\Modules\Workspace\Application\Contracts\WorkspaceTransactionManagerInterface;
+use App\Modules\Workspace\Domain\Repositories\InvitationRepositoryInterface;
 use App\Modules\Workspace\Domain\Repositories\UserRepositoryInterface;
 use App\Modules\Workspace\Domain\Repositories\WorkspaceRepositoryInterface;
+use App\Modules\Workspace\Infrastructure\Auth\InMemoryTokenService;
+use App\Modules\Workspace\Infrastructure\Auth\SanctumTokenService;
+use App\Modules\Workspace\Infrastructure\Persistence\Eloquent\Repositories\EloquentInvitationRepository;
 use App\Modules\Workspace\Infrastructure\Persistence\Eloquent\Repositories\EloquentUserRepository;
 use App\Modules\Workspace\Infrastructure\Persistence\Eloquent\Repositories\EloquentWorkspaceRepository;
 use App\Modules\Workspace\Infrastructure\Persistence\EloquentWorkspaceMemberReadModel;
+use App\Modules\Workspace\Infrastructure\Persistence\InMemory\InMemoryInvitationRepository;
 use App\Modules\Workspace\Infrastructure\Persistence\InMemory\InMemoryUserRepository;
 use App\Modules\Workspace\Infrastructure\Persistence\InMemory\InMemoryWorkspaceRepository;
 use App\Modules\Workspace\Infrastructure\Persistence\InMemoryWorkspaceMemberReadModel;
@@ -128,6 +134,22 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return new LaravelWorkspaceTransactionManager;
+        });
+
+        $this->app->singleton(AuthTokenServiceInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new InMemoryTokenService;
+            }
+
+            return new SanctumTokenService;
+        });
+
+        $this->app->singleton(InvitationRepositoryInterface::class, function () {
+            if ($this->app->environment('testing')) {
+                return new InMemoryInvitationRepository;
+            }
+
+            return new EloquentInvitationRepository;
         });
 
         $this->app->singleton(DependencyHealthCheckerInterface::class, function () {
@@ -406,7 +428,6 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('imports', function (Request $request) {
             $workspaceId = (string) (
                 $request->attributes->get('current_workspace_id')
-                ?: $request->header('X-Workspace-Id')
                 ?: $request->ip()
                 ?: 'default'
             );
@@ -424,7 +445,6 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('api-write', function (Request $request) {
             $key = (string) (
                 $request->attributes->get('authenticated_user_id')
-                ?: $request->header('X-User-Id')
                 ?: $request->ip()
                 ?: 'default'
             );
@@ -442,7 +462,6 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('api-read', function (Request $request) {
             $key = (string) (
                 $request->attributes->get('authenticated_user_id')
-                ?: $request->header('X-User-Id')
                 ?: $request->ip()
                 ?: 'default'
             );

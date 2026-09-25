@@ -25,6 +25,7 @@ enum MembershipRole: string
                 WorkspaceCapability::ALERTS_VIEW,
                 WorkspaceCapability::ALERTS_MANAGE,
                 WorkspaceCapability::WORKSPACE_MEMBERS_MANAGE,
+                WorkspaceCapability::WORKSPACE_SETTINGS_MANAGE,
             ],
             self::MEMBER => [
                 WorkspaceCapability::ANALYTICS_VIEW,

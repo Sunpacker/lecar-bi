@@ -11,6 +11,7 @@ use App\Modules\SalesAnalytics\Presentation\Controllers\SalesAnalyticsController
 use App\Modules\SupplierAnalytics\Presentation\Controllers\SupplierAnalyticsController;
 use App\Modules\Workspace\Presentation\Controllers\AuthController;
 use App\Modules\Workspace\Presentation\Controllers\CurrentWorkspaceController;
+use App\Modules\Workspace\Presentation\Controllers\InvitationController;
 use App\Modules\Workspace\Presentation\Controllers\ProfileController;
 use App\Modules\Workspace\Presentation\Controllers\WorkspaceController;
 use App\Modules\Workspace\Presentation\Controllers\WorkspaceMemberController;
@@ -25,18 +26,37 @@ Route::prefix('v1')->group(function () {
     Route::get('/health/ready', [HealthController::class, 'ready']);
     Route::get('/health/outbox', [HealthController::class, 'outbox']);
     Route::get('/metrics', MetricsController::class);
+
+    Route::any('/{any}', function () {
+        return response()->json(['message' => 'Gone'], 410);
+    })->where('any', '.*');
+});
+
+Route::prefix('v2')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
+    Route::get('/invitations/{token}', [InvitationController::class, 'showPublic'])->middleware('throttle:api-read');
+    Route::post('/invitations/{token}/accept', [InvitationController::class, 'accept'])->middleware('throttle:api-write');
 
     Route::middleware(AuthenticateUserIdMiddleware::class)->group(function () {
+        Route::post('/auth/logout', [AuthController::class, 'logout']);
+
         Route::get('/me', [ProfileController::class, 'me'])->middleware('throttle:api-read');
+        Route::patch('/me', [ProfileController::class, 'update'])->middleware('throttle:api-write');
+        Route::post('/me/password', [ProfileController::class, 'changePassword'])->middleware('throttle:api-write');
+
         Route::get('/workspaces', [WorkspaceController::class, 'index'])->middleware('throttle:api-read');
         Route::get('/workspaces/current', [CurrentWorkspaceController::class, 'show'])->middleware('throttle:api-read');
         Route::get('/workspaces/{id}', [WorkspaceController::class, 'show'])->middleware('throttle:api-read');
+        Route::patch('/workspaces/{id}', [WorkspaceController::class, 'rename'])->middleware(['workspace.can:workspace.settings.manage', 'throttle:api-write']);
 
-        // Workspace Members
+        // Workspace Members & Invitations
         Route::middleware('workspace.can:workspace.members.manage')->group(function () {
             Route::get('/workspaces/{workspaceId}/members', [WorkspaceMemberController::class, 'index'])->middleware('throttle:api-read');
             Route::patch('/workspaces/{workspaceId}/members/{userId}/role', [WorkspaceMemberController::class, 'updateRole'])->middleware('throttle:api-write');
+            Route::get('/workspaces/{workspaceId}/invitations', [InvitationController::class, 'index'])->middleware('throttle:api-read');
+            Route::post('/workspaces/{workspaceId}/invitations', [InvitationController::class, 'store'])->middleware('throttle:api-write');
+            Route::post('/workspaces/{workspaceId}/invitations/{invitationId}/resend', [InvitationController::class, 'resend'])->middleware('throttle:api-write');
+            Route::delete('/workspaces/{workspaceId}/invitations/{invitationId}', [InvitationController::class, 'destroy'])->middleware('throttle:api-write');
         });
 
         // Analytics (view)

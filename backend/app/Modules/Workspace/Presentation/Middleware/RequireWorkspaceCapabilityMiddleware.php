@@ -25,13 +25,10 @@ final class RequireWorkspaceCapabilityMiddleware
     public function handle(Request $request, Closure $next, string $capability): Response
     {
         $userId = (string) $request->attributes->get('authenticated_user_id');
-        if ($userId === '') {
-            $userId = (string) $request->header('X-User-Id');
-        }
 
         if ($userId === '') {
             return response()->json([
-                'message' => 'Unauthenticated: missing X-User-Id header',
+                'message' => 'Unauthenticated',
                 'code' => 'UNAUTHENTICATED',
             ], 401);
         }
