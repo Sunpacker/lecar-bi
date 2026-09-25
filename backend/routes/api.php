@@ -15,6 +15,7 @@ use App\Modules\Workspace\Presentation\Controllers\WorkspaceController;
 use App\Modules\Workspace\Presentation\Controllers\WorkspaceMemberController;
 use App\Modules\Workspace\Presentation\Middleware\AuthenticateUserIdMiddleware;
 use App\Shared\Presentation\Controllers\HealthController;
+use App\Shared\Presentation\Controllers\MetricsController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -22,6 +23,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/health/live', [HealthController::class, 'live']);
     Route::get('/health/ready', [HealthController::class, 'ready']);
     Route::get('/health/outbox', [HealthController::class, 'outbox']);
+    Route::get('/metrics', MetricsController::class);
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
     Route::middleware(AuthenticateUserIdMiddleware::class)->group(function () {

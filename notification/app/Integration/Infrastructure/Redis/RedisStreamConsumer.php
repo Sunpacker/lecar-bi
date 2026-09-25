@@ -8,6 +8,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\Facades\Context;
 use Illuminate\Support\Facades\Facade;
 use NotificationService\Integration\Application\IntegrationEventRouterInterface;
+use NotificationService\Shared\Infrastructure\Metrics\PrometheusMetricsRegistry;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -23,7 +24,8 @@ final class RedisStreamConsumer
         private readonly string $consumerName,
         private readonly int $batchSize = 10,
         private readonly int $blockTimeoutMs = 2000,
-        private readonly int $staleIdleMs = 60000
+        private readonly int $staleIdleMs = 60000,
+        private readonly ?PrometheusMetricsRegistry $metrics = null
     ) {}
 
     public function init(): void
@@ -107,6 +109,10 @@ final class RedisStreamConsumer
 
             if ($result->shouldAck()) {
                 $this->client->ack($this->streamName, $this->groupName, $messageId);
+                $this->metrics?->incrementCounter('events_consumed_total', [
+                    'event_type' => (string) ($fields['event_type'] ?? 'unknown'),
+                    'status' => 'success',
+                ]);
 
                 $this->logger->info('Integration event processed successfully', [
                     'stream_message_id' => $messageId,
@@ -129,6 +135,10 @@ final class RedisStreamConsumer
                 );
 
                 $this->client->ack($this->streamName, $this->groupName, $messageId);
+                $this->metrics?->incrementCounter('events_consumed_total', [
+                    'event_type' => (string) ($fields['event_type'] ?? 'unknown'),
+                    'status' => 'dead_letter',
+                ]);
 
                 $this->logger->warning('Integration event rejected and moved to dead-letter stream', [
                     'stream_message_id' => $messageId,
@@ -142,6 +152,11 @@ final class RedisStreamConsumer
                 return;
             }
         } catch (Throwable $e) {
+            $this->metrics?->incrementCounter('events_consumed_total', [
+                'event_type' => (string) ($fields['event_type'] ?? 'unknown'),
+                'status' => 'failure',
+            ]);
+
             // Transient failure: log sanitized error and do NOT ack, so message remains in PEL for retry
             $this->logger->error('Transient error while processing integration event, message retained in PEL', [
                 'stream_message_id' => $messageId,

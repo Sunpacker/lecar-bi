@@ -7,12 +7,15 @@ use App\Modules\Workspace\Presentation\Middleware\RequireWorkspaceCapabilityMidd
 use App\Shared\Infrastructure\Commands\OutboxHealthCommand;
 use App\Shared\Infrastructure\Commands\OutboxPublishCommand;
 use App\Shared\Infrastructure\Commands\OutboxRetryCommand;
+use App\Shared\Infrastructure\Http\Middleware\PrometheusMetricsMiddleware;
 use App\Shared\Infrastructure\Http\Middleware\SecurityHeadersMiddleware;
 use App\Shared\Infrastructure\Http\Middleware\TraceContextMiddleware;
 use App\Shared\Infrastructure\Jobs\PublishOutboxMessagesJob;
+use App\Shared\Presentation\Controllers\MetricsController;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schedule;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -20,7 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
-        health: '/up'
+        health: '/up',
+        then: function (): void {
+            Route::middleware('api')->get('/metrics', MetricsController::class);
+        }
     )
     ->withCommands([
         EvaluateAlertsConsoleCommand::class,
@@ -39,6 +45,7 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->append(TraceContextMiddleware::class);
+        $middleware->append(PrometheusMetricsMiddleware::class);
         $middleware->append(SecurityHeadersMiddleware::class);
         $middleware->alias([
             'workspace.can' => RequireWorkspaceCapabilityMiddleware::class,

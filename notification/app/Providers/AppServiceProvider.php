@@ -20,6 +20,7 @@ use NotificationService\Notification\Infrastructure\Persistence\EloquentNotifica
 use NotificationService\Shared\Infrastructure\Health\DefaultDependencyHealthChecker;
 use NotificationService\Shared\Infrastructure\Health\DependencyHealthCheckerInterface;
 use NotificationService\Shared\Infrastructure\LaravelTransactionManager;
+use NotificationService\Shared\Infrastructure\Metrics\PrometheusMetricsRegistry;
 use Psr\Log\LoggerInterface;
 
 class AppServiceProvider extends ServiceProvider
@@ -57,7 +58,16 @@ class AppServiceProvider extends ServiceProvider
                 consumerName: (string) config('integration-events.consumer_name', 'notification-worker-1'),
                 batchSize: (int) config('integration-events.batch_size', 10),
                 blockTimeoutMs: (int) config('integration-events.block_timeout_ms', 2000),
-                staleIdleMs: (int) config('integration-events.stale_idle_ms', 60000)
+                staleIdleMs: (int) config('integration-events.stale_idle_ms', 60000),
+                metrics: $app->make(PrometheusMetricsRegistry::class)
+            );
+        });
+
+        $this->app->singleton(PrometheusMetricsRegistry::class, function (Application $app): PrometheusMetricsRegistry {
+            return new PrometheusMetricsRegistry(
+                service: 'notification',
+                environment: (string) config('app.env', 'production'),
+                forceMemory: $app->environment('testing'),
             );
         });
     }

@@ -64,6 +64,7 @@ use App\Shared\Infrastructure\Cache\AnalyticsDatasetVersionStore;
 use App\Shared\Infrastructure\Cache\AnalyticsResultCache;
 use App\Shared\Infrastructure\Health\DefaultDependencyHealthChecker;
 use App\Shared\Infrastructure\Health\DependencyHealthCheckerInterface;
+use App\Shared\Infrastructure\Metrics\PrometheusMetricsRegistry;
 use App\Shared\Infrastructure\Outbox\InMemoryOutboxRepository;
 use App\Shared\Infrastructure\Persistence\Eloquent\Repositories\EloquentOutboxRepository;
 use App\Shared\Infrastructure\Persistence\LaravelTransactionManager;
@@ -132,6 +133,14 @@ class AppServiceProvider extends ServiceProvider
             }
 
             return new DefaultDependencyHealthChecker;
+        });
+
+        $this->app->singleton(PrometheusMetricsRegistry::class, function () {
+            return new PrometheusMetricsRegistry(
+                service: 'analytics',
+                environment: (string) config('app.env', 'production'),
+                forceMemory: $this->app->environment('testing'),
+            );
         });
 
         $this->app->singleton(AnalyticsDatasetVersionStore::class);
