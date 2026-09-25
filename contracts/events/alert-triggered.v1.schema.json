@@ -16,6 +16,11 @@
   ],
   "additionalProperties": false,
   "properties": {
+    "correlation_id": {
+      "type": ["string", "null"],
+      "description": "Optional correlation/request identifier from the originating HTTP request or workflow.",
+      "minLength": 1
+    },
     "event_id": {
       "type": "string",
       "description": "Globally unique, stable identifier for this event emission. Unchanged on redelivery.",
