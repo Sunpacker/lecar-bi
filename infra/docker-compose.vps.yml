@@ -2,11 +2,7 @@ name: ${COMPOSE_PROJECT_NAME:-lecar-bi}
 
 services:
   backend:
-    image: ${BACKEND_IMAGE:-lecar-bi/backend:latest}
-
-    build:
-      context: ../backend
-      dockerfile: Dockerfile
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be set to an immutable GHCR image}
 
     environment:
       APP_NAME: ${APP_NAME:-Lecar BI}
@@ -99,10 +95,7 @@ services:
       - internal
 
   notification:
-    image: ${NOTIFICATION_IMAGE:-lecar-bi/notification:latest}
-    build:
-      context: ../notification
-      dockerfile: Dockerfile
+    image: ${NOTIFICATION_IMAGE:?NOTIFICATION_IMAGE must be set to an immutable GHCR image}
     environment:
       APP_NAME: ${NOTIFICATION_APP_NAME:-Lecar Notification}
       APP_ENV: production
@@ -144,7 +137,7 @@ services:
       - internal
 
   notification-worker:
-    image: ${NOTIFICATION_IMAGE:-lecar-bi/notification:latest}
+    image: ${NOTIFICATION_IMAGE:?NOTIFICATION_IMAGE must be set to an immutable GHCR image}
     command: ["php", "artisan", "notifications:consume"]
     environment:
       APP_NAME: ${NOTIFICATION_APP_NAME:-Lecar Notification}

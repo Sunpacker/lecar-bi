@@ -1,10 +1,9 @@
 INFRA_ENV_FILE ?= $(if $(wildcard infra/.env),infra/.env,infra/.env.example)
 COMPOSE = docker compose --env-file $(INFRA_ENV_FILE) -f infra/docker-compose.yml
 DEV_COMPOSE = $(COMPOSE) -f infra/docker-compose.dev.yml
-VPS_COMPOSE = docker compose --env-file $(INFRA_ENV_FILE) -f infra/docker-compose.vps.yml
 export COMPOSER_HOME ?= $(CURDIR)/.composer
 
-.PHONY: install install-frontend install-backend install-notification dev dev-down dev-frontend infra-up infra-down build build-backend build-notification build-vps vps-up check check-frontend check-backend check-notification check-contracts test integration migrate migrate-seed migrate-fresh seed artisan notification-migrate notification-artisan performance-seed performance-benchmark
+.PHONY: install install-frontend install-backend install-notification dev dev-down dev-frontend infra-up infra-down build build-backend build-notification check check-frontend check-backend check-notification check-contracts test integration migrate migrate-seed migrate-fresh seed artisan notification-migrate notification-artisan performance-seed performance-benchmark
 install: install-frontend install-backend install-notification
 
 install-frontend:
@@ -40,14 +39,6 @@ build-backend:
 
 build-notification:
 	$(COMPOSE) build notification
-
-build-vps:
-	$(VPS_COMPOSE) build backend notification
-
-vps-up:
-	$(VPS_COMPOSE) up --build --detach --wait
-	$(VPS_COMPOSE) exec -T backend php artisan migrate --force
-	$(VPS_COMPOSE) exec -T notification php artisan migrate --force
 
 check: check-contracts check-frontend check-backend check-notification
 
