@@ -5,7 +5,12 @@ import { loadHealthStatus } from './load-health-status'
 
 describe('loadHealthStatus', function () {
   it('returns analytics service details when the backend is available', async function () {
-    const gateway = createGateway({ status: 'ok', service: 'analytics', version: 'v1' })
+    const gateway = createGateway({
+      status: 'ok',
+      service: 'analytics',
+      version: 'v1',
+      checks: { database: 'ok', redis: 'ok' },
+    })
 
     await expect(loadHealthStatus(gateway)).resolves.toEqual({
       availability: 'available',
