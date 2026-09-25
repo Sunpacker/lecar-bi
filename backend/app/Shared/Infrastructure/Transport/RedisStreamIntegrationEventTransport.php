@@ -7,7 +7,6 @@ namespace App\Shared\Infrastructure\Transport;
 use App\Shared\Application\IntegrationEvent;
 use App\Shared\Application\Ports\IntegrationEventTransportInterface;
 use Illuminate\Support\Facades\Redis;
-use Predis\Response\ServerException;
 use RuntimeException;
 
 /**
@@ -44,17 +43,35 @@ final class RedisStreamIntegrationEventTransport implements IntegrationEventTran
         try {
             $envelope = $event->toEnvelope();
 
-            // XADD stream * field value — auto-generated stream ID
-            $result = Redis::connection($this->connectionName)->xadd(
-                $this->streamName,
-                '*',
-                [
-                    'event_id' => $envelope['event_id'],
-                    'event_type' => $envelope['event_type'],
-                    'event_version' => (string) $envelope['event_version'],
-                    'payload' => json_encode($envelope, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
-                ]
-            );
+            $connection = Redis::connection($this->connectionName);
+            $client = $connection->client();
+
+            if (is_object($client) && method_exists($client, 'executeRaw')) {
+                $result = $client->executeRaw([
+                    'XADD',
+                    $this->streamName,
+                    '*',
+                    'event_id',
+                    $envelope['event_id'],
+                    'event_type',
+                    $envelope['event_type'],
+                    'event_version',
+                    (string) $envelope['event_version'],
+                    'payload',
+                    json_encode($envelope, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+                ]);
+            } else {
+                $result = $connection->xadd(
+                    $this->streamName,
+                    '*',
+                    [
+                        'event_id' => $envelope['event_id'],
+                        'event_type' => $envelope['event_type'],
+                        'event_version' => (string) $envelope['event_version'],
+                        'payload' => json_encode($envelope, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
+                    ]
+                );
+            }
 
             if ($result === false || (string) $result === '') {
                 throw new RuntimeException('Redis XADD returned empty/false for stream: '.$this->streamName);
@@ -63,8 +80,8 @@ final class RedisStreamIntegrationEventTransport implements IntegrationEventTran
             return (string) $result;
         } catch (\RedisException $e) {
             throw new RuntimeException('Failed to publish to Redis Stream: '.$this->streamName, 0, $e);
-        } catch (ServerException $e) {
-            throw new RuntimeException('Redis server error publishing to stream: '.$this->streamName, 0, $e);
+        } catch (\Throwable $e) {
+            throw new RuntimeException('Failed to publish to Redis Stream: '.$this->streamName.': '.$e->getMessage(), 0, $e);
         }
     }
 }

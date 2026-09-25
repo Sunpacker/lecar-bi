@@ -14,10 +14,32 @@ final class PredisStreamClient implements RedisStreamClientInterface
         private readonly string $connectionName = 'integration_events'
     ) {}
 
+    /**
+     * @param  array<int, mixed>  $arguments
+     */
+    private function executeRawCommand(array $arguments): mixed
+    {
+        $connection = Redis::connection($this->connectionName);
+        $client = $connection->client();
+
+        if (is_object($client) && method_exists($client, 'executeRaw')) {
+            return $client->executeRaw($arguments);
+        }
+
+        if (is_object($client) && method_exists($client, 'rawCommand')) {
+            return $client->rawCommand(...$arguments);
+        }
+
+        $command = (string) array_shift($arguments);
+
+        return $connection->command(strtolower($command), $arguments);
+    }
+
     public function ensureGroup(string $stream, string $group): void
     {
         try {
-            Redis::connection($this->connectionName)->command('xgroup', [
+            $this->executeRawCommand([
+                'XGROUP',
                 'CREATE',
                 $stream,
                 $group,
@@ -37,7 +59,8 @@ final class PredisStreamClient implements RedisStreamClientInterface
     public function claimStale(string $stream, string $group, string $consumer, int $minIdleMs, int $count): array
     {
         try {
-            $response = Redis::connection($this->connectionName)->command('xautoclaim', [
+            $response = $this->executeRawCommand([
+                'XAUTOCLAIM',
                 $stream,
                 $group,
                 $consumer,
@@ -61,7 +84,8 @@ final class PredisStreamClient implements RedisStreamClientInterface
     public function readGroup(string $stream, string $group, string $consumer, int $count, int $blockTimeoutMs): array
     {
         try {
-            $response = Redis::connection($this->connectionName)->command('xreadgroup', [
+            $response = $this->executeRawCommand([
+                'XREADGROUP',
                 'GROUP',
                 $group,
                 $consumer,
@@ -95,10 +119,11 @@ final class PredisStreamClient implements RedisStreamClientInterface
     public function ack(string $stream, string $group, string $messageId): void
     {
         try {
-            Redis::connection($this->connectionName)->command('xack', [
+            $this->executeRawCommand([
+                'XACK',
                 $stream,
                 $group,
-                [$messageId],
+                $messageId,
             ]);
         } catch (Throwable $e) {
             throw new RuntimeException("Failed to XACK message '{$messageId}' on stream '{$stream}': {$e->getMessage()}", 0, $e);
@@ -114,7 +139,7 @@ final class PredisStreamClient implements RedisStreamClientInterface
                 $flat[] = is_string($v) ? $v : json_encode($v, JSON_UNESCAPED_UNICODE);
             }
 
-            $result = Redis::connection($this->connectionName)->command('xadd', array_merge([$stream, '*'], $flat));
+            $result = $this->executeRawCommand(array_merge(['XADD', $stream, '*'], $flat));
 
             return (string) $result;
         } catch (Throwable $e) {
