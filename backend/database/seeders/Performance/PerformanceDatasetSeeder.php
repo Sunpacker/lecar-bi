@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders\Performance;
 
+use App\Shared\Infrastructure\Cache\AnalyticsDatasetVersionStore;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
@@ -113,6 +114,12 @@ final class PerformanceDatasetSeeder extends Seeder
             $deliveriesInserted += count($delChunk);
             $this->notify($progressCallback, 'deliveries', $deliveriesInserted, $targetDeliveries);
         }
+
+        // 10. Bump dataset versions upon fresh seed
+        $versionStore = app(AnalyticsDatasetVersionStore::class);
+        $versionStore->bumpVersion($workspaceId, 'sales');
+        $versionStore->bumpVersion($workspaceId, 'inventory');
+        $versionStore->bumpVersion($workspaceId, 'suppliers');
     }
 
     /**

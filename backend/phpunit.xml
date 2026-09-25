@@ -15,5 +15,6 @@
         <env name="CACHE_STORE" value="array"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="ANALYTICS_CACHE_ENABLED" value="false"/>
     </php>
 </phpunit>
