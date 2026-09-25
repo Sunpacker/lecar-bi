@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
+use App\Modules\InventoryAnalytics\Application\Contracts\InventoryAnalyticsReadModelInterface;
+use App\Modules\SalesAnalytics\Application\Contracts\SalesAnalyticsReadModelInterface;
+use App\Modules\SupplierAnalytics\Application\Contracts\SupplierAnalyticsReadModelInterface;
 use App\Shared\Infrastructure\Performance\AnalyticsBenchmarkRunner;
 use App\Shared\Infrastructure\Performance\BenchmarkScenario;
 use App\Shared\Infrastructure\Performance\ExplainPlanCollector;
@@ -66,6 +69,11 @@ final class BenchmarkAnalyticsCommand extends Command
 
             return self::FAILURE;
         }
+
+        config(['analytics.cache_enabled' => ($cacheState !== 'disabled')]);
+        app()->forgetInstance(SalesAnalyticsReadModelInterface::class);
+        app()->forgetInstance(InventoryAnalyticsReadModelInterface::class);
+        app()->forgetInstance(SupplierAnalyticsReadModelInterface::class);
 
         $allScenarios = BenchmarkScenario::all($workspaceId);
 

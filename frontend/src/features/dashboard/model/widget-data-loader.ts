@@ -78,6 +78,34 @@ function mapStockHealth(
   }
 }
 
+const inFlightRequests = new Map<string, Promise<unknown>>()
+
+/**
+ * Coalesces concurrent in-flight requests within the same render cycle.
+ * Automatically deletes the promise from the map upon completion or failure,
+ * preventing memory leaks and avoiding cross-session / cross-workspace persistence.
+ */
+export function coalesceInFlightRequest<T>(
+  key: string,
+  fetcher: () => Promise<T>,
+): Promise<T> {
+  const existing = inFlightRequests.get(key)
+  if (existing) {
+    return existing as Promise<T>
+  }
+
+  const promise = fetcher().finally(() => {
+    inFlightRequests.delete(key)
+  })
+
+  inFlightRequests.set(key, promise)
+  return promise
+}
+
+export function clearInFlightRequests(): void {
+  inFlightRequests.clear()
+}
+
 export async function loadWidgetData(
   widget: WidgetDetail,
   userId: string,
@@ -115,8 +143,14 @@ export async function loadWidgetData(
         regionId: sanitized.region_id || undefined,
       }
 
+      const salesKey = `sales_overview:${workspaceId}:${salesFilters.dateFrom ?? ''}:${salesFilters.dateTo ?? ''}:${salesFilters.categoryId ?? ''}:${salesFilters.regionId ?? ''}`
+      const fetchSalesOverview = () =>
+        coalesceInFlightRequest(salesKey, () =>
+          salesGateway.getOverview(userId, workspaceId, salesFilters),
+        )
+
       if (widget.type === 'kpi_card') {
-        const overview = await salesGateway.getOverview(userId, workspaceId, salesFilters)
+        const overview = await fetchSalesOverview()
         let val = 0
         switch (metric) {
           case 'revenue':
@@ -150,7 +184,7 @@ export async function loadWidgetData(
       }
 
       if (widget.type === 'line_chart' || dimension === 'date') {
-        const overview = await salesGateway.getOverview(userId, workspaceId, salesFilters)
+        const overview = await fetchSalesOverview()
         const chartData: WidgetChartPoint[] = overview.trend.map((pt) => {
           const val = metric === 'order_count' ? pt.order_count : pt.revenue
           return {
@@ -163,7 +197,7 @@ export async function loadWidgetData(
       }
 
       if (widget.type === 'donut_chart' || widget.type === 'bar_chart') {
-        const overview = await salesGateway.getOverview(userId, workspaceId, salesFilters)
+        const overview = await fetchSalesOverview()
         if (dimension === 'region') {
           const chartData: WidgetChartPoint[] = overview.regions.map((reg) => ({
             name: reg.region_name,
@@ -211,11 +245,17 @@ export async function loadWidgetData(
       const warehouseId = sanitized.warehouse_id || undefined
       const stockHealth = mapStockHealth(sanitized.stock_health)
 
+      const invKey = `inventory_summary:${workspaceId}:${warehouseId ?? ''}:${dateTo ?? ''}`
+      const fetchInventorySummary = () =>
+        coalesceInFlightRequest(invKey, () =>
+          inventoryGateway.getSummary(userId, workspaceId, {
+            warehouseId,
+            asOfDate: dateTo,
+          }),
+        )
+
       if (widget.type === 'kpi_card') {
-        const summaryRes = await inventoryGateway.getSummary(userId, workspaceId, {
-          warehouseId,
-          asOfDate: dateTo,
-        })
+        const summaryRes = await fetchInventorySummary()
         let val = 0
         switch (metric) {
           case 'stock_quantity':
@@ -244,10 +284,7 @@ export async function loadWidgetData(
 
       if (widget.type === 'bar_chart' || widget.type === 'donut_chart') {
         if (dimension === 'warehouse') {
-          const summaryRes = await inventoryGateway.getSummary(userId, workspaceId, {
-            warehouseId,
-            asOfDate: dateTo,
-          })
+          const summaryRes = await fetchInventorySummary()
           const chartData: WidgetChartPoint[] = summaryRes.warehouses.map((wh) => {
             const val = metric === 'stock_value' ? wh.total_value : wh.total_quantity
             return {
@@ -268,14 +305,13 @@ export async function loadWidgetData(
                 : sanitized.date_range === '365d'
                   ? 365
                   : 90
-          const abcSummary = await inventoryGateway.getAbcXyzSummary(
-            userId,
-            workspaceId,
-            {
+          const abcKey = `abc_summary:${workspaceId}:${warehouseId ?? ''}:${sanitized.category_id ?? ''}:${periodDays}`
+          const abcSummary = await coalesceInFlightRequest(abcKey, () =>
+            inventoryGateway.getAbcXyzSummary(userId, workspaceId, {
               warehouseId,
               categoryId: sanitized.category_id || undefined,
               periodDays,
-            },
+            }),
           )
           const dist =
             dimension === 'abc_class'
