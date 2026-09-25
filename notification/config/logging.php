@@ -1,6 +1,7 @@
 <?php
 
 use Monolog\Handler\StreamHandler;
+use NotificationService\Shared\Infrastructure\Logging\JsonLogFormatter;
 
 return [
     'default' => env('LOG_CHANNEL', 'stderr'),
@@ -9,6 +10,7 @@ return [
             'driver' => 'monolog',
             'level' => env('LOG_LEVEL', 'debug'),
             'handler' => StreamHandler::class,
+            'formatter' => JsonLogFormatter::class,
             'with' => ['stream' => 'php://stderr'],
         ],
         'stack' => [

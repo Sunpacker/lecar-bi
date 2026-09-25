@@ -124,6 +124,16 @@ final class AlertTriggeredV1DecoderTest extends TestCase
         $this->assertNull($event->ruleId);
     }
 
+    public function test_decodes_optional_correlation_id_when_present(): void
+    {
+        $data = $this->validEventData();
+        $data['correlation_id'] = 'corr-req-789';
+
+        $event = $this->decoder->decode($data);
+
+        $this->assertSame('corr-req-789', $event->correlationId);
+    }
+
     /**
      * @return array<string, mixed>
      */

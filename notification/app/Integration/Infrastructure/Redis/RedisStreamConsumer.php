@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace NotificationService\Integration\Infrastructure\Redis;
 
+use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Support\Facades\Context;
+use Illuminate\Support\Facades\Facade;
 use NotificationService\Integration\Application\IntegrationEventRouterInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -73,8 +76,31 @@ final class RedisStreamConsumer
      */
     public function processMessage(string $messageId, array $fields): void
     {
+        if ($this->isContextAvailable()) {
+            Context::flush();
+        }
+
         $startTime = microtime(true);
         $eventId = isset($fields['event_id']) && is_string($fields['event_id']) ? $fields['event_id'] : null;
+
+        $correlationId = null;
+        if (isset($fields['correlation_id']) && is_string($fields['correlation_id'])) {
+            $correlationId = $fields['correlation_id'];
+        } elseif (isset($fields['payload']) && is_string($fields['payload'])) {
+            $decoded = json_decode($fields['payload'], true);
+            if (is_array($decoded) && isset($decoded['correlation_id']) && is_string($decoded['correlation_id'])) {
+                $correlationId = $decoded['correlation_id'];
+            }
+        }
+
+        if ($this->isContextAvailable()) {
+            Context::add([
+                'stream_message_id' => $messageId,
+                'event_id' => $eventId,
+                'correlation_id' => $correlationId,
+                'operation' => 'notifications:consume',
+            ]);
+        }
 
         try {
             $result = $this->router->route($messageId, $fields);
@@ -85,6 +111,7 @@ final class RedisStreamConsumer
                 $this->logger->info('Integration event processed successfully', [
                     'stream_message_id' => $messageId,
                     'event_id' => $result->eventId ?? $eventId,
+                    'correlation_id' => $correlationId,
                     'outcome' => $result->status,
                     'duration_ms' => round((microtime(true) - $startTime) * 1000, 2),
                 ]);
@@ -106,6 +133,7 @@ final class RedisStreamConsumer
                 $this->logger->warning('Integration event rejected and moved to dead-letter stream', [
                     'stream_message_id' => $messageId,
                     'event_id' => $result->eventId ?? $eventId,
+                    'correlation_id' => $correlationId,
                     'reason' => $result->reason,
                     'outcome' => 'dead_letter',
                     'duration_ms' => round((microtime(true) - $startTime) * 1000, 2),
@@ -118,10 +146,22 @@ final class RedisStreamConsumer
             $this->logger->error('Transient error while processing integration event, message retained in PEL', [
                 'stream_message_id' => $messageId,
                 'event_id' => $eventId,
+                'correlation_id' => $correlationId,
                 'error_type' => get_class($e),
                 'error_message' => $e->getMessage(),
                 'duration_ms' => round((microtime(true) - $startTime) * 1000, 2),
             ]);
+        } finally {
+            if ($this->isContextAvailable()) {
+                Context::flush();
+            }
         }
+    }
+
+    private function isContextAvailable(): bool
+    {
+        return class_exists(Context::class)
+            && Facade::getFacadeApplication() !== null
+            && Facade::getFacadeApplication()->bound(Dispatcher::class);
     }
 }

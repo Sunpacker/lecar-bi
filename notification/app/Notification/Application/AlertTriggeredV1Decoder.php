@@ -125,6 +125,10 @@ final class AlertTriggeredV1Decoder
         }
 
         /** @var array<string, mixed> $context */
+        $correlationId = isset($raw['correlation_id']) && is_string($raw['correlation_id']) && trim($raw['correlation_id']) !== ''
+            ? trim($raw['correlation_id'])
+            : null;
+
         return new AlertTriggeredV1(
             eventId: $eventId,
             eventType: $eventType,
@@ -140,7 +144,8 @@ final class AlertTriggeredV1Decoder
             comparator: $comparator,
             currentValue: $currentValue,
             thresholdValue: $thresholdValue,
-            analyticalContext: $context
+            analyticalContext: $context,
+            correlationId: $correlationId,
         );
     }
 

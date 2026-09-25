@@ -27,6 +27,7 @@ final class AlertTriggeredV1
         public readonly string $comparator,
         public readonly float $currentValue,
         public readonly float $thresholdValue,
-        public readonly array $analyticalContext
+        public readonly array $analyticalContext,
+        public readonly ?string $correlationId = null
     ) {}
 }
