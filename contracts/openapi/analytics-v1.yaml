@@ -101,6 +101,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
   /imports/{id}:
     get:
       operationId: getImportBatch
@@ -209,6 +211,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 
   /health:
     get:
@@ -222,6 +226,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Service is degraded or dependencies unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /health/live:
+    get:
+      operationId: getHealthLive
+      summary: Liveness check (process accepting requests)
+      security: []
+      responses:
+        '200':
+          description: Service process is running
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LivenessResponse'
+  /health/ready:
+    get:
+      operationId: getHealthReady
+      summary: Readiness check (local dependencies ready)
+      security: []
+      responses:
+        '200':
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+        '503':
+          description: Local dependencies not ready
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+  /health/outbox:
+    get:
+      operationId: getHealthOutbox
+      summary: Outbox publisher and backlog health signals
+      security: []
+      responses:
+        '200':
+          description: Outbox metrics and health signals
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OutboxHealthResponse'
   /auth/login:
     post:
       operationId: login
@@ -252,6 +304,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
   /me:
     get:
       operationId: getCurrentUser
@@ -2292,6 +2346,13 @@ components:
       in: header
       name: X-User-Id
       description: Authenticated user identifier
+  responses:
+    TooManyRequests:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
   schemas:
 
     DatasetType:
@@ -2460,11 +2521,58 @@ components:
     HealthResponse:
       type: object
       additionalProperties: false
-      required: [status, service, version]
+      required: [status, service, version, checks]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        service: { type: string, enum: [analytics] }
+        version: { type: string, enum: [v1] }
+        checks:
+          $ref: '#/components/schemas/DependencyChecks'
+    LivenessResponse:
+      type: object
+      additionalProperties: false
+      required: [status, service]
       properties:
         status: { type: string, enum: [ok] }
         service: { type: string, enum: [analytics] }
-        version: { type: string, enum: [v1] }
+    ReadinessResponse:
+      type: object
+      additionalProperties: false
+      required: [status, service, checks]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        service: { type: string, enum: [analytics] }
+        checks:
+          $ref: '#/components/schemas/DependencyChecks'
+    DependencyChecks:
+      type: object
+      additionalProperties: false
+      required: [database, redis]
+      properties:
+        database: { type: string, enum: [ok, error] }
+        redis: { type: string, enum: [ok, error] }
+    OutboxHealthResponse:
+      type: object
+      additionalProperties: false
+      required: [status, service, outbox, publisher]
+      properties:
+        status: { type: string, enum: [ok, warning, degraded] }
+        service: { type: string, enum: [analytics] }
+        outbox:
+          type: object
+          additionalProperties: false
+          required: [pending_count, oldest_pending_age_seconds, failed_count]
+          properties:
+            pending_count: { type: integer, minimum: 0 }
+            oldest_pending_age_seconds: { type: integer, nullable: true, minimum: 0 }
+            failed_count: { type: integer, minimum: 0 }
+        publisher:
+          type: object
+          additionalProperties: false
+          required: [last_run_at, last_run_age_seconds]
+          properties:
+            last_run_at: { type: string, format: date-time, nullable: true }
+            last_run_age_seconds: { type: integer, nullable: true, minimum: 0 }
     UserResponse:
       type: object
       additionalProperties: false
