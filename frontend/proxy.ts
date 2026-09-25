@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { SESSION_COOKIE_NAME, parseSessionValue } from './src/features/auth/model/session'
 import { sanitizeOrGenerateRequestId } from './src/shared/observability/request-id'
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
   const requestId = sanitizeOrGenerateRequestId(request.headers.get('x-request-id'))
 
