@@ -1,19 +1,40 @@
 # Phase 18 — Production Hardening
 
-[Индекс и правила roadmap](README.md) · [Маршрутизатор агентов](../../AGENTS.md)
+[Индекс и правила roadmap](ROADMAP.md) · [Маршрутизатор агентов](../../AGENTS.md) · [Инфраструктурная архитектура](../architecture/09-infrastructure-deployment-observability.md) · [Стратегия тестирования](../architecture/10-testing-and-quality.md)
 
 ## Цель
 
-Довести проект до portfolio-quality production demonstration.
+Подготовить воспроизводимую production-like демонстрацию: развёртывание из чистой среды, контролируемые отказы, восстановление данных и проверенные границы безопасности. Этап начинается после [Phase 16](16-performance-caching.md) и [Phase 17](17-observability.md); их метрики и сигналы используются для проверки отказов.
 
-## Работа
+Граница работ: существующие frontend, analytics, notification, две независимые PostgreSQL базы, Redis и versioned HTTP/event contracts. Новый broker, оркестратор или сервис безопасности не требуются. Развёртывание во внешней среде выполняется только по отдельному поручению.
 
-Security review, API compatibility, migration review, backup/restore docs, failure-mode review, rate limiting, timeouts, retries, queue failure handling, dependency audit, secrets review, deployment docs.
+## Исходное состояние
+
+- GitHub Actions проверяет frontend, OpenAPI, analytics, сборку двух образов и базовую интеграцию. Отдельных заданий для тестов и сборки notification, аудита зависимостей и критических браузерных E2E пока нет.
+- `infra/docker-compose.yml` предназначен для локального production-like запуска и содержит удобные для разработки значения `APP_DEBUG` и notification credentials. `infra/docker-compose.vps.yml` задаёт `APP_DEBUG=false`, но требует отдельной проверки остальных секретов, доступных портов и процедуры восстановления.
+- Analytics использует PostgreSQL и Redis Queue; notification читает Redis Stream с at-least-once доставкой, дедупликацией и dead-letter stream. Outbox analytics — источник истины для опубликованных интеграционных событий.
+- Инструкция `infra/README.md` описывает запуск VPS, но ещё не задаёт проверяемые backup/restore, rollback и сценарии отказа.
+
+## Порядок работ
+
+1. **Зафиксировать угрозы и границы.** Составить короткую матрицу для браузера, Next.js/BFF, analytics API, импорта файлов, Redis, notification consumer и обеих БД. Для проверок использовать релевантные требования [OWASP ASVS 5.0.0](https://owasp.org/projects/asvs/): сессии/CSRF, авторизация workspace и capability на backend, изоляция данных, валидация и размер загрузок, ошибки без утечки деталей, CORS и security headers. Проверить публичную поверхность через реальный proxy: внутренние БД, Redis, notification и технические endpoints недоступны извне. Зафиксировать найденные проблемы, владельца и результат исправления. Для тестового окружения применить [ZAP Automation Framework](https://www.zaproxy.org/docs/automate/automation-framework/) с импортом OpenAPI и проверенной авторизацией; активные проверки не направлять на реальные пользовательские данные.
+2. **Закрыть риски конфигурации и цепочки поставки.** Убрать успешный production-like старт с демонстрационными ключами/паролями или включённым debug; отделить dev defaults от production config. Проверить cookie flags, доверенные proxy, TLS termination, CORS origins, права и жизненный цикл секретов. Для Compose рассмотреть [secrets](https://docs.docker.com/compose/how-tos/use-secrets/) вместо передачи чувствительных значений через обычные переменные окружения, с документированной ротацией. В CI запускать `npm audit` для frontend и `composer audit --locked` для backend/notification; сканировать собранные образы, например [Trivy](https://trivy.dev/docs/dev/guide/target/container_image/). Настроить обновления npm, Composer, Docker и GitHub Actions через Dependabot; GitHub dependency review и secret scanning включать там, где они доступны репозиторию. Уязвимости оценивать по достижимости и серьёзности; исключения оформлять с причиной и сроком пересмотра.
+3. **Ограничить нагрузку и время ожидания.** Ввести Redis-backed [Laravel rate limiting](https://laravel.com/docs/13.x/routing) на login, импорт и дорогие/изменяющие API операции с отдельными ключами для анонимного IP и авторизованного пользователя/workspace; документировать лимиты и ответ `429`. Согласовать размеры запросов на proxy, frontend и backend. Задать конечные connect/read/request timeouts на HTTP-границах и для Redis/PostgreSQL, отдельно проверить поведение при обрыве соединения. Повторять только безопасные чтения или идемпотентные операции; для остальных сохранять существующие гарантии импорта, outbox и `event_id`, применять ограниченные попытки с backoff и jitter. Не превращать `429` и длительный отказ зависимости в бесконечный retry.
+4. **Проверить фоновые процессы при отказах.** Для Laravel Queue согласовать `job timeout < retry_after`, число попыток, backoff, failed jobs и процедуру повторного запуска; [документация Laravel](https://laravel.com/docs/13.x/queues) предупреждает о двойной обработке при обратном порядке timeout. Для Redis Stream проверить pending/reclaim после падения consumer, XACK только после локального commit или подтверждённого дубликата, отправку poison messages в dead-letter и безопасный replay. Для импорта и outbox проверить восстановление после перезапуска worker/Redis и отсутствие повторных проекций или уведомлений. Зафиксировать ожидаемые HTTP-коды, состояния задач, метрики и действия оператора для каждого сценария.
+5. **Подготовить данные и развёртывание.** Описать чистый запуск без committed secrets, сборку образов и деплой по проверенному digest вместо изменяемого `latest` ([рекомендации Docker](https://docs.docker.com/build/building/best-practices/)), независимые миграции analytics/notification на пустых БД, smoke checks и rollback приложения с совместимыми миграциями. Для каждой PostgreSQL базы настроить отдельный зашифрованный backup вне хоста, retention и проверку восстановления в изолированной среде; для небольшого объёма использовать [pg_dump/pg_restore](https://www.postgresql.org/docs/16/app-pgdump.html), при других требованиях к RPO/RTO выбирать и документировать иной способ. Проверить роли/расширения, секреты и согласованность восстановленной notification БД с retention Redis Stream и состоянием outbox. Не считать наличие backup доказательством восстановления: зафиксировать дату restore drill, длительность и фактическую потерю данных.
+6. **Сделать проверки release gate.** Сравнивать изменённый OpenAPI с базовой версией через [`oasdiff breaking`](https://github.com/oasdiff/oasdiff/blob/main/docs/BREAKING-CHANGES.md), затем проверять соответствие ответов API контракту и регенерацию клиента. Проверять совместимость `alert.triggered.v1` с текущим notification consumer и повторной доставкой. Добавить в CI lint/static analysis/tests/build notification и всех образов, проверки конфигурации Compose, security audits, чистые миграции и интеграционные сценарии alert → outbox → notification. Критические пользовательские потоки покрыть [Playwright](https://playwright.dev/docs/ci) на собранной системе: вход и границы workspace, dashboard, импорт с ошибкой и retry. Результаты проверок и ссылки на артефакты хранить вместе с release checklist.
 
 ## Exit Criteria
 
-Нет blocking security issues, clean environment deployable по документации, migrations работают с empty DB, failure behavior описан, CI green, critical E2E проходят. Сверить с `docs/architecture/09-infrastructure-deployment-observability.md` и `10-testing-and-quality.md`.
+- Нет открытых blocking security issues: проведён review по выбранным требованиям ASVS, проверены изоляция workspace, секреты, public exposure и исправления. Сканирование само по себе не считается доказательством безопасности.
+- Чистая среда поднимается по инструкции с отдельными секретами; analytics и notification миграции проходят на пустых БД. У приложения есть документированный порядок deploy, smoke check и rollback без разрушения данных.
+- Backup обеих БД восстановлен в изолированной среде; проверены ключевые записи и дедупликация после восстановления. Измерены RPO/RTO, описаны retention и пределы восстановления Redis Stream/очередей.
+- Ограничения запросов и таймауты проверены тестами. Зафиксированные отказы PostgreSQL, Redis, worker и notification дают предсказуемые ответы/состояния, видны в сигналах Phase 17 и восстанавливаются без потери или удвоения бизнес-результата.
+- Изменения HTTP и event contracts совместимы с развёрнутыми потребителями либо версионированы; OpenAPI diff, contract tests и generated client согласованы.
+- CI green для frontend, analytics, notification, контрактов, всех образов, применимых аудитов и интеграции; критические Playwright E2E проходят на production-like сборке. Результаты и допустимые исключения задокументированы.
+- Пройден [integration checkpoint](ROADMAP.md#integration-checkpoints). Отметку завершения в индексе ставить только после фактического подтверждения всех критериев.
 
-## Integration Checkpoint
+## Прогресс
 
-Перед завершением этапа пройти [интеграционную проверку](ROADMAP.md#integration-checkpoints).
+- План и критерии приёмки уточнены; реализация, CI и integration checkpoint не выполнялись. Phase 18 остаётся открытой.
+- Следующий шаг после Phase 16 и 17: составить матрицу угроз и инвентаризацию публичных endpoints/секретов, затем выполнять пункты выше в указанном порядке.
