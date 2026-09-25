@@ -16,7 +16,10 @@
 - `notification` — Laravel Notification Service (HTTP health/readiness endpoints);
 - `notification-worker` — процесс потребления событий `notifications:consume`;
 - `notification-postgres` — отдельная база данных PostgreSQL и volume для сервиса уведомлений;
-- `redis` — общий транспорт интеграционных событий (Streams), кэш и очереди.
+- `redis` — общий транспорт интеграционных событий (Streams), кэш и очереди:
+  - database 0: default / queues;
+  - database 1: аналитический селективный кэш (отдельная изолированная БД, `volatile-ttl`);
+  - database 2: интеграционные события Redis Stream (`autobi.integration-events`).
 
 Notification service не получает учетных данных от `postgres` аналитики и не имеет сетевой зависимости от нее.
 
@@ -58,6 +61,14 @@ Frontend, Analytics и Notification разворачиваются незави�
 Логи должны быть пригодны для машинной обработки.
 
 Следует избегать неструктурированных произвольных сообщений как единственного источника информации.
+
+### Санитарное логирование при сбоях кэша (Sanitized Fail-Open Logging)
+
+При недоступности, таймаутах или деградации Redis инфраструктурный кэш логирует предупреждение уровня warning:
+- В контекст включаются только технические метаданные: имя датасета (`dataset`), `workspace_id`, каноническая операция (`operation`) и класс ошибки (`RedisException`).
+- Категорически исключаются: полезная нагрузка ответов (payload), персональные данные, заголовки авторизации и параметры SQL.
+- Ошибка не прерывает запрос: система выполняет fail-open fallback на прямое обращение к PostgreSQL Read Model.
+
 
 ## Health Checks
 

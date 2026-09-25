@@ -565,4 +565,23 @@ done
 frontend_access_page="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/settings/access")"
 assert_response_contains "$frontend_access_page" 'Управление доступом' "Frontend access settings page"
 
-echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records, inventory intelligence, ABC/XYZ matrix, dashboard builder, dashboard saved views, alerting & incident management lifecycle, notification service event streaming & isolation, and workspace RBAC capability matrix are verified."
+# 55. Analytics Performance & Selective Caching: repeated calls return identical payload (warm cache hit)
+cached_overview_1="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/overview")"
+cached_overview_2="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/overview")"
+if [ "$cached_overview_1" != "$cached_overview_2" ]; then
+    echo "Analytics cache parity failure: consecutive responses for /sales/overview do not match" >&2
+    exit 1
+fi
+assert_response_contains "$cached_overview_2" '"total_revenue":' "Cached sales overview payload"
+
+# 56. Dataset version persistence check in PostgreSQL
+if command -v docker >/dev/null 2>&1; then
+    dataset_version_exists="$(docker compose --env-file "$INFRA_ENV_FILE" -f infra/docker-compose.yml exec -T backend php -r 'require "vendor/autoload.php"; $app = require "bootstrap/app.php"; $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap(); echo \Illuminate\Support\Facades\Schema::hasTable("analytics_dataset_versions") ? "yes" : "no";' 2>/dev/null | tr -d '\r\n')"
+    if [ "$dataset_version_exists" != "yes" ]; then
+        echo "Expected table analytics_dataset_versions to exist, got: $dataset_version_exists" >&2
+        exit 1
+    fi
+fi
+
+echo "Integration check passed: web -> analytics health, identity, workspace access boundaries, demo dataset, sales overview, drill-down detail records, inventory intelligence, ABC/XYZ matrix, dashboard builder, dashboard saved views, alerting & incident management lifecycle, notification service event streaming & isolation, workspace RBAC capability matrix, and analytics selective caching are verified."
+

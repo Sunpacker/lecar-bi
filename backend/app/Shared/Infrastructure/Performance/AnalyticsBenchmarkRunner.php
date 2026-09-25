@@ -62,6 +62,10 @@ final class AnalyticsBenchmarkRunner
                 $progressCallback($scenario, 'measured', $r, $runs);
             }
 
+            if ($cacheState === 'cold' && $app !== null && $app->bound('cache')) {
+                $app->make('cache')->flush();
+            }
+
             if ($hasDb) {
                 DB::flushQueryLog();
                 DB::enableQueryLog();

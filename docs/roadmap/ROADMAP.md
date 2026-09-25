@@ -32,7 +32,7 @@
 - [x] [Phase 13 — Domain Events and Transactional Outbox](13-events-outbox.md)
 - [x] [Phase 14 — Notification Service Extraction Exercise](14-notification-service.md)
 - [x] [Phase 15 — RBAC](15-rbac.md)
-- [ ] [Phase 16 — Performance and Caching](16-performance-caching.md)
+- [x] [Phase 16 — Performance and Caching](16-performance-caching.md)
 - [ ] [Phase 17 — Observability](17-observability.md)
 - [ ] [Phase 18 — Production Hardening](18-production-hardening.md)
 - [ ] [Phase 19 — Forecasting Extension](19-forecasting.md)

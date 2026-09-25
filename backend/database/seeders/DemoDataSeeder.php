@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Shared\Infrastructure\Cache\AnalyticsDatasetVersionStore;
 use Database\Seeders\Demo\DemoDatasetGenerator;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -64,6 +65,12 @@ final class DemoDataSeeder extends Seeder
             foreach (array_chunk($deliveries, 500) as $chunk) {
                 DB::table('fact_supplier_deliveries')->insert($chunk);
             }
+
+            // Bump dataset versions upon fresh seed
+            $versionStore = app(AnalyticsDatasetVersionStore::class);
+            $versionStore->bumpVersion($workspaceId, 'sales');
+            $versionStore->bumpVersion($workspaceId, 'inventory');
+            $versionStore->bumpVersion($workspaceId, 'suppliers');
         }
     }
 }

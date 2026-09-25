@@ -21,7 +21,9 @@ use RuntimeException;
 
 final class NotificationPersistenceTest extends TestCase
 {
-    use RefreshDatabase;
+    use RefreshDatabase {
+        refreshDatabase as traitRefreshDatabase;
+    }
 
     private NotificationRepository $notificationRepo;
 
@@ -31,21 +33,21 @@ final class NotificationPersistenceTest extends TestCase
 
     private ConsumeAlertTriggered $handler;
 
-    protected function refreshDatabase(): void
+    public function refreshDatabase(): void
     {
-        if (! extension_loaded('pdo_pgsql') && ! extension_loaded('pdo_sqlite')) {
+        if (! extension_loaded('pdo_sqlite')) {
             return;
         }
 
-        parent::refreshDatabase();
+        $this->traitRefreshDatabase();
     }
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        if (! extension_loaded('pdo_pgsql') && ! extension_loaded('pdo_sqlite')) {
-            $this->markTestSkipped('PDO pgsql/sqlite driver not available on host CLI; persistence is verified via Docker container in integration checkpoint');
+        if (! extension_loaded('pdo_sqlite')) {
+            $this->markTestSkipped('PDO sqlite driver not available on host CLI; persistence is verified via Docker container in integration checkpoint');
         }
 
         $this->notificationRepo = $this->app->make(NotificationRepository::class);

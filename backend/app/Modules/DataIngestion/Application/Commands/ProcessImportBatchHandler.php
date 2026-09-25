@@ -14,6 +14,7 @@ use App\Modules\DataIngestion\Infrastructure\Parsers\CsvImportParser;
 use App\Modules\DataIngestion\Infrastructure\Parsers\JsonImportParser;
 use App\Modules\DataIngestion\Infrastructure\Validators\InventoryRowValidator;
 use App\Modules\DataIngestion\Infrastructure\Validators\SalesRowValidator;
+use App\Shared\Infrastructure\Cache\AnalyticsDatasetVersionStore;
 use Throwable;
 
 final class ProcessImportBatchHandler
@@ -27,6 +28,7 @@ final class ProcessImportBatchHandler
         private readonly JsonImportParser $jsonParser,
         private readonly SalesRowValidator $salesValidator,
         private readonly InventoryRowValidator $inventoryValidator,
+        private readonly ?AnalyticsDatasetVersionStore $versionStore = null,
     ) {}
 
     public function handle(ProcessImportBatchCommand $command): void
@@ -112,6 +114,11 @@ final class ProcessImportBatchHandler
                 $batch->markFailed('All rows in dataset failed validation.');
             } else {
                 $batch->markCompleted();
+            }
+
+            if ($successful > 0 && $this->versionStore !== null) {
+                $datasetName = $batch->datasetType() === DatasetType::SALES ? 'sales' : 'inventory';
+                $this->versionStore->bumpVersion($batch->workspaceId(), $datasetName);
             }
 
             $this->batchRepository->save($batch);

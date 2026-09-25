@@ -34,12 +34,15 @@ use App\Modules\DataIngestion\Infrastructure\Repositories\InMemoryImportBatchRep
 use App\Modules\DataIngestion\Infrastructure\Repositories\InMemoryImportFailureRepository;
 use App\Modules\DataIngestion\Infrastructure\Repositories\InMemoryStagingRecordRepository;
 use App\Modules\InventoryAnalytics\Application\Contracts\InventoryAnalyticsReadModelInterface;
+use App\Modules\InventoryAnalytics\Infrastructure\Persistence\CachedInventoryAnalyticsReadModel;
 use App\Modules\InventoryAnalytics\Infrastructure\Persistence\InMemoryInventoryAnalyticsReadModel;
 use App\Modules\InventoryAnalytics\Infrastructure\Persistence\PostgresInventoryAnalyticsReadModel;
 use App\Modules\SalesAnalytics\Application\Contracts\SalesAnalyticsReadModelInterface;
+use App\Modules\SalesAnalytics\Infrastructure\Persistence\CachedSalesAnalyticsReadModel;
 use App\Modules\SalesAnalytics\Infrastructure\Persistence\InMemorySalesAnalyticsReadModel;
 use App\Modules\SalesAnalytics\Infrastructure\Persistence\PostgresSalesAnalyticsReadModel;
 use App\Modules\SupplierAnalytics\Application\Contracts\SupplierAnalyticsReadModelInterface;
+use App\Modules\SupplierAnalytics\Infrastructure\Persistence\CachedSupplierAnalyticsReadModel;
 use App\Modules\SupplierAnalytics\Infrastructure\Persistence\InMemorySupplierAnalyticsReadModel;
 use App\Modules\SupplierAnalytics\Infrastructure\Persistence\PostgresSupplierAnalyticsReadModel;
 use App\Modules\Workspace\Application\Contracts\WorkspaceMemberReadModelInterface;
@@ -57,6 +60,8 @@ use App\Modules\Workspace\Infrastructure\Persistence\LaravelWorkspaceTransaction
 use App\Shared\Application\Ports\IntegrationEventTransportInterface;
 use App\Shared\Application\Ports\OutboxRepositoryInterface;
 use App\Shared\Application\Ports\TransactionManagerInterface;
+use App\Shared\Infrastructure\Cache\AnalyticsDatasetVersionStore;
+use App\Shared\Infrastructure\Cache\AnalyticsResultCache;
 use App\Shared\Infrastructure\Outbox\InMemoryOutboxRepository;
 use App\Shared\Infrastructure\Persistence\Eloquent\Repositories\EloquentOutboxRepository;
 use App\Shared\Infrastructure\Persistence\LaravelTransactionManager;
@@ -106,28 +111,88 @@ class AppServiceProvider extends ServiceProvider
             return new LaravelWorkspaceTransactionManager;
         });
 
+        $this->app->singleton(AnalyticsDatasetVersionStore::class);
+        $this->app->singleton(AnalyticsResultCache::class);
+
         $this->app->singleton(SalesAnalyticsReadModelInterface::class, function () {
             if ($this->app->environment('testing')) {
-                return new InMemorySalesAnalyticsReadModel;
+                $inMemory = new InMemorySalesAnalyticsReadModel;
+                if (! config('analytics.cache_enabled', false)) {
+                    return $inMemory;
+                }
+
+                return new CachedSalesAnalyticsReadModel(
+                    delegate: $inMemory,
+                    cache: $this->app->make(AnalyticsResultCache::class),
+                    versionStore: $this->app->make(AnalyticsDatasetVersionStore::class),
+                );
             }
 
-            return new PostgresSalesAnalyticsReadModel;
+            $postgres = new PostgresSalesAnalyticsReadModel;
+
+            if (! config('analytics.cache_enabled', true)) {
+                return $postgres;
+            }
+
+            return new CachedSalesAnalyticsReadModel(
+                delegate: $postgres,
+                cache: $this->app->make(AnalyticsResultCache::class),
+                versionStore: $this->app->make(AnalyticsDatasetVersionStore::class),
+            );
         });
 
         $this->app->singleton(InventoryAnalyticsReadModelInterface::class, function () {
             if ($this->app->environment('testing')) {
-                return new InMemoryInventoryAnalyticsReadModel;
+                $inMemory = new InMemoryInventoryAnalyticsReadModel;
+                if (! config('analytics.cache_enabled', false)) {
+                    return $inMemory;
+                }
+
+                return new CachedInventoryAnalyticsReadModel(
+                    delegate: $inMemory,
+                    cache: $this->app->make(AnalyticsResultCache::class),
+                    versionStore: $this->app->make(AnalyticsDatasetVersionStore::class),
+                );
             }
 
-            return new PostgresInventoryAnalyticsReadModel;
+            $postgres = new PostgresInventoryAnalyticsReadModel;
+
+            if (! config('analytics.cache_enabled', true)) {
+                return $postgres;
+            }
+
+            return new CachedInventoryAnalyticsReadModel(
+                delegate: $postgres,
+                cache: $this->app->make(AnalyticsResultCache::class),
+                versionStore: $this->app->make(AnalyticsDatasetVersionStore::class),
+            );
         });
 
         $this->app->singleton(SupplierAnalyticsReadModelInterface::class, function () {
             if ($this->app->environment('testing')) {
-                return new InMemorySupplierAnalyticsReadModel;
+                $inMemory = new InMemorySupplierAnalyticsReadModel;
+                if (! config('analytics.cache_enabled', false)) {
+                    return $inMemory;
+                }
+
+                return new CachedSupplierAnalyticsReadModel(
+                    delegate: $inMemory,
+                    cache: $this->app->make(AnalyticsResultCache::class),
+                    versionStore: $this->app->make(AnalyticsDatasetVersionStore::class),
+                );
             }
 
-            return new PostgresSupplierAnalyticsReadModel;
+            $postgres = new PostgresSupplierAnalyticsReadModel;
+
+            if (! config('analytics.cache_enabled', true)) {
+                return $postgres;
+            }
+
+            return new CachedSupplierAnalyticsReadModel(
+                delegate: $postgres,
+                cache: $this->app->make(AnalyticsResultCache::class),
+                versionStore: $this->app->make(AnalyticsDatasetVersionStore::class),
+            );
         });
 
         $this->app->singleton(DashboardRepositoryInterface::class, function () {

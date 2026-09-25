@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { loadWidgetData, formatMetricValue } from './widget-data-loader'
+import {
+  loadWidgetData,
+  formatMetricValue,
+  clearInFlightRequests,
+} from './widget-data-loader'
 import { salesGateway } from '../../sales-analytics/api/sales-gateway'
 import { inventoryGateway } from '../../inventory-analytics/api/inventory-gateway'
 import type { WidgetDetail } from '../api/dashboard-gateway'
@@ -22,6 +26,7 @@ vi.mock('../../inventory-analytics/api/inventory-gateway', () => ({
 describe('widgetDataLoader', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    clearInFlightRequests()
   })
 
   it('formats metric values correctly for currency, count, and percent', () => {
@@ -325,5 +330,122 @@ describe('widgetDataLoader', () => {
       warehouseId: 'wh-1',
       asOfDate: undefined,
     })
+  })
+
+  it('coalesces concurrent requests for identical queries within the same render cycle', async () => {
+    const widget1: WidgetDetail = {
+      id: 'w-kpi-rev',
+      title: 'Выручка',
+      type: 'kpi_card',
+      query_config: { dataset: 'sales', metric: 'revenue', date_range: '30d' },
+      position: { x: 0, y: 0, w: 3, h: 2 },
+      options: { unit: 'currency' },
+    }
+
+    const widget2: WidgetDetail = {
+      id: 'w-kpi-ord',
+      title: 'Заказы',
+      type: 'kpi_card',
+      query_config: { dataset: 'sales', metric: 'order_count', date_range: '30d' },
+      position: { x: 3, y: 0, w: 3, h: 2 },
+      options: {},
+    }
+
+    vi.mocked(salesGateway.getOverview).mockImplementation(async () => {
+      // Simulate non-zero async latency
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      return {
+        summary: {
+          total_revenue: 1250000,
+          order_count: 250,
+          average_order_value: 5000,
+          gross_profit: 300000,
+          margin_rate: 0.24,
+        },
+        trend: [],
+        categories: [],
+        regions: [],
+      }
+    })
+
+    // Execute concurrently
+    const [res1, res2] = await Promise.all([
+      loadWidgetData(widget1, 'user-1', 'ws-1'),
+      loadWidgetData(widget2, 'user-1', 'ws-1'),
+    ])
+
+    // Only ONE gateway call was made due to coalescing
+    expect(salesGateway.getOverview).toHaveBeenCalledTimes(1)
+    expect(res1.kpi?.value).toBe(1250000)
+    expect(res2.kpi?.value).toBe(250)
+  })
+
+  it('does not coalesce requests across different workspaces', async () => {
+    const widget: WidgetDetail = {
+      id: 'w-kpi',
+      title: 'Выручка',
+      type: 'kpi_card',
+      query_config: { dataset: 'sales', metric: 'revenue' },
+      position: { x: 0, y: 0, w: 3, h: 2 },
+      options: {},
+    }
+
+    vi.mocked(salesGateway.getOverview).mockImplementation(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10))
+      return {
+        summary: {
+          total_revenue: 100,
+          order_count: 1,
+          average_order_value: 100,
+          gross_profit: 20,
+          margin_rate: 0.2,
+        },
+        trend: [],
+        categories: [],
+        regions: [],
+      }
+    })
+
+    await Promise.all([
+      loadWidgetData(widget, 'user-1', 'ws-1'),
+      loadWidgetData(widget, 'user-1', 'ws-2'),
+    ])
+
+    expect(salesGateway.getOverview).toHaveBeenCalledTimes(2)
+  })
+
+  it('clears failed in-flight request from map so subsequent retry can succeed', async () => {
+    const widget: WidgetDetail = {
+      id: 'w-kpi-err',
+      title: 'Выручка',
+      type: 'kpi_card',
+      query_config: { dataset: 'sales', metric: 'revenue' },
+      position: { x: 0, y: 0, w: 3, h: 2 },
+      options: {},
+    }
+
+    vi.mocked(salesGateway.getOverview).mockRejectedValueOnce(new Error('Network error'))
+
+    const resFail = await loadWidgetData(widget, 'user-1', 'ws-1')
+    expect(resFail.error).toBe('Network error')
+
+    // Subsequent call succeeds because failed promise was cleared
+    vi.mocked(salesGateway.getOverview).mockResolvedValueOnce({
+      summary: {
+        total_revenue: 500,
+        order_count: 5,
+        average_order_value: 100,
+        gross_profit: 100,
+        margin_rate: 0.2,
+      },
+      trend: [],
+      categories: [],
+      regions: [],
+    })
+
+    const resSuccess = await loadWidgetData(widget, 'user-1', 'ws-1')
+    expect(resSuccess.error).toBeUndefined()
+    expect(resSuccess.kpi?.value).toBe(500)
+    expect(salesGateway.getOverview).toHaveBeenCalledTimes(2)
   })
 })
