@@ -31,12 +31,16 @@ make integration
 Конфигурация Caddy для `api.veloza.ru`:
 
 ```caddyfile
+handle_path /autobi/* {
+    reverse_proxy lecar-bi-backend:8080
+}
+
 handle_path /lecar-bi/* {
     reverse_proxy lecar-bi-backend:8080
 }
 ```
 
-`handle_path` удаляет префикс `/lecar-bi`, поэтому Laravel получает исходные маршруты `/api/v1/*`.
+`handle_path` удаляет префикс пути, поэтому Laravel получает исходные маршруты `/api/v1/*`. Действующий маршрут `/autobi/*` сохранён для существующих клиентов; новый публичный health check использует `/lecar-bi/*`.
 
 VPS Compose принимает готовые `BACKEND_IMAGE` и `NOTIFICATION_IMAGE` из GHCR. Сборки на сервере и команды `make vps-up` больше нет. Frontend не входит в этот Compose и обновляется отдельно.
 
@@ -46,7 +50,7 @@ VPS Compose принимает готовые `BACKEND_IMAGE` и `NOTIFICATION_I
 2. На VPS хранить `infra/.env` вне `releases/`, например `/opt/lecar-bi/infra/.env`, с правами `0600` для владельца `deploy` или `0640` для группы `deploy`. Заполнить шаблон `infra/.env.production.example`, включая `GRAFANA_ADMIN_PASSWORD`, ключи приложений и пароли обеих БД. Образы в файле служат примером; при деплое скрипт подставляет образы точного SHA. Docker Compose project должен оставаться `lecar-bi`, внешняя сеть `proxy` должна существовать.
 3. Для приватных GHCR packages выполнить `docker login ghcr.io` под пользователем деплоя с отдельным токеном `read:packages`. Токен остаётся только на VPS; GitHub Actions публикует образы своим краткоживущим `GITHUB_TOKEN`. Проверить `docker pull` обоих образов вручную.
 4. Настроить GitHub repository variables: `VPS_HOST`, `VPS_PORT`, `VPS_USER=deploy`, `VPS_PATH=/opt/lecar-bi`, `VPS_PROJECT=lecar-bi`, `VPS_ENV_FILE=/opt/lecar-bi/infra/.env`, `VPS_BACKUP_DIR=/opt/lecar-bi/backups`. SSH-порт задаётся явно. Секреты: `VPS_SSH_KEY`, `VPS_KNOWN_HOSTS`.
-5. До включения workflow сверить `docker compose ls`, `docker ps` и `docker volume ls`: существующие контейнеры и тома должны относиться к `lecar-bi`. Подготовить `notification`, `notification-worker`, вторую БД и мониторинг, если они ещё не установлены. Первый автоматический деплой требует работающие три приложения и все шесть именованных томов. Сохранить image ID исходных контейнеров и два проверенных бэкапа вне каталога релизов. Не переименовывать существующие тома и не выполнять `docker compose down --volumes`.
+5. До включения workflow сверить `docker compose ls`, `docker ps`, `docker volume ls` и свободное место: существующие контейнеры и тома должны относиться к `lecar-bi`, а диск должен вместить новые образы и мониторинг. Подготовить `notification`, `notification-worker`, вторую БД и мониторинг, если они ещё не установлены. Первый автоматический деплой требует работающие три приложения и все шесть именованных томов. Сохранить image ID исходных контейнеров и два проверенных бэкапа вне каталога релизов. Не переименовывать существующие тома и не выполнять `docker compose down --volumes`.
 
 После успешного job `integration` workflow публикует `backend` и `notification` с тегом полного SHA, проверяет актуальность `main`, передаёт пакет в `VPS_PATH/releases/<SHA>` и запускает `scripts/deploy-vps.sh`. Пакет включает Compose и всё дерево `infra/observability`, которое требуется относительным bind mounts. Скрипт держит `flock`, сверяет проект и тома, скачивает образы, сохраняет digest, создаёт бэкапы обеих БД и только затем останавливает три приложения. PostgreSQL, Redis и мониторинг продолжают работать. После миграций он проверяет health, публичный API, readiness уведомлений, свежий heartbeat worker и отсутствие рестартов. Повторный запуск успешного SHA проверяет сервисы без повторных миграций.
 
