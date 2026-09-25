@@ -1,5 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
-import { SESSION_COOKIE_NAME, parseSessionValue } from './src/features/auth/model/session'
+import {
+  SESSION_COOKIE_NAME,
+  parseSessionValue,
+} from './src/features/auth/model/session-token'
 import { sanitizeOrGenerateRequestId } from './src/shared/observability/request-id'
 
 export function proxy(request: NextRequest) {

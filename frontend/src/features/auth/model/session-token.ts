@@ -1,0 +1,91 @@
+import crypto from 'node:crypto'
+
+export const SESSION_COOKIE_NAME = 'autobi_session'
+export const WORKSPACE_COOKIE_NAME = 'autobi_workspace'
+export const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 7 // 7 days
+const DEFAULT_SECRET = 'autobi-dev-session-secret-key-change-in-production'
+
+function getSessionSecret(): string {
+  return process.env.SESSION_SECRET || DEFAULT_SECRET
+}
+
+function computeSignature(payloadBase64: string, secret: string): string {
+  return crypto.createHmac('sha256', secret).update(payloadBase64).digest('base64url')
+}
+
+export interface SessionUser {
+  userId: string
+  email: string
+  name: string
+  token: string
+  expiresAt: number
+}
+
+export function serializeSession(user: {
+  id: string
+  email: string
+  name: string
+  token: string
+}): string {
+  const payload: SessionUser = {
+    userId: user.id,
+    email: user.email,
+    name: user.name,
+    token: user.token,
+    expiresAt: Date.now() + SESSION_DURATION_SECONDS * 1000,
+  }
+
+  const payloadBase64 = Buffer.from(JSON.stringify(payload)).toString('base64url')
+  const signature = computeSignature(payloadBase64, getSessionSecret())
+  return `${payloadBase64}.${signature}`
+}
+
+export function parseSessionValue(cookieValue: string | undefined): SessionUser | null {
+  if (!cookieValue) {
+    return null
+  }
+
+  try {
+    let payloadBase64: string
+    if (cookieValue.includes('.')) {
+      const parts = cookieValue.split('.')
+      if (parts.length !== 2) {
+        return null
+      }
+      payloadBase64 = parts[0]
+      const expectedSignature = computeSignature(payloadBase64, getSessionSecret())
+      const providedSignature = parts[1]
+
+      if (expectedSignature.length !== providedSignature.length) {
+        return null
+      }
+      const expectedBuffer = Buffer.from(expectedSignature)
+      const providedBuffer = Buffer.from(providedSignature)
+      if (!crypto.timingSafeEqual(expectedBuffer, providedBuffer)) {
+        return null
+      }
+    } else {
+      // Legacy unsigned format support in non-production environments only
+      if (process.env.NODE_ENV === 'production') {
+        return null
+      }
+      payloadBase64 = cookieValue
+    }
+
+    const decoded = Buffer.from(payloadBase64, 'base64url').toString('utf-8')
+    const session = JSON.parse(decoded) as SessionUser
+
+    if (
+      !session.userId ||
+      !session.token ||
+      !session.expiresAt ||
+      session.expiresAt < Date.now()
+    ) {
+      return null
+    }
+
+    return session
+  } catch {
+    return null
+  }
+}

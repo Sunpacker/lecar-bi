@@ -17,39 +17,10 @@ export class NotificationApiError extends Error {
   }
 }
 
-function getBaseUrl(): string {
-  if (typeof window === 'undefined') {
-    return process.env.NOTIFICATION_INTERNAL_URL || 'http://localhost:8081/api/v1'
-  }
-  return '/api/notifications'
-}
-
-async function getAuthHeaders(): Promise<Headers> {
+function getAuthHeaders(): Headers {
   const headers = new Headers()
   headers.set('Accept', 'application/json')
   headers.set('Content-Type', 'application/json')
-
-  if (typeof window === 'undefined') {
-    // Server-side direct inter-service call
-    const secret =
-      process.env.NOTIFICATION_SHARED_SECRET || 'test-notification-secret-key-12345'
-    headers.set('X-Server-Secret', secret)
-
-    try {
-      const { getSession, getWorkspaceCookie } = await import('../../auth/model/session')
-      const session = await getSession()
-      if (session) {
-        headers.set('X-User-Id', session.userId)
-      }
-      const workspaceId = await getWorkspaceCookie()
-      if (workspaceId) {
-        headers.set('X-Workspace-Id', workspaceId)
-      }
-    } catch {
-      // outside request context
-    }
-  }
-
   return headers
 }
 
@@ -60,19 +31,16 @@ export const notificationsGateway = {
     unread_only?: boolean
     severity?: NotificationSeverity
   }): Promise<NotificationList> {
-    const url = new URL(`${getBaseUrl()}/notifications`, 'http://localhost')
-    if (params?.page) url.searchParams.set('page', String(params.page))
-    if (params?.per_page) url.searchParams.set('per_page', String(params.per_page))
+    const searchParams = new URLSearchParams()
+    if (params?.page) searchParams.set('page', String(params.page))
+    if (params?.per_page) searchParams.set('per_page', String(params.per_page))
     if (params?.unread_only !== undefined)
-      url.searchParams.set('unread_only', String(params.unread_only))
-    if (params?.severity) url.searchParams.set('severity', params.severity)
+      searchParams.set('unread_only', String(params.unread_only))
+    if (params?.severity) searchParams.set('severity', params.severity)
 
-    const requestUrl =
-      typeof window === 'undefined'
-        ? url.toString()
-        : `/api/notifications/notifications${url.search}`
-
-    const headers = await getAuthHeaders()
+    const query = searchParams.toString()
+    const requestUrl = `/api/notifications/notifications${query ? `?${query}` : ''}`
+    const headers = getAuthHeaders()
 
     try {
       const res = await fetch(requestUrl, {
@@ -103,12 +71,8 @@ export const notificationsGateway = {
   },
 
   async getUnreadCount(): Promise<number> {
-    const requestUrl =
-      typeof window === 'undefined'
-        ? `${getBaseUrl()}/notifications/unread-count`
-        : '/api/notifications/notifications/unread-count'
-
-    const headers = await getAuthHeaders()
+    const requestUrl = '/api/notifications/notifications/unread-count'
+    const headers = getAuthHeaders()
 
     try {
       const res = await fetch(requestUrl, {
@@ -128,12 +92,8 @@ export const notificationsGateway = {
   },
 
   async markRead(notificationId: string): Promise<boolean> {
-    const requestUrl =
-      typeof window === 'undefined'
-        ? `${getBaseUrl()}/notifications/${notificationId}/read`
-        : `/api/notifications/notifications/${notificationId}/read`
-
-    const headers = await getAuthHeaders()
+    const requestUrl = `/api/notifications/notifications/${notificationId}/read`
+    const headers = getAuthHeaders()
 
     const res = await fetch(requestUrl, {
       method: 'POST',
@@ -154,12 +114,8 @@ export const notificationsGateway = {
   },
 
   async markAllRead(upToNotificationId?: string): Promise<number> {
-    const requestUrl =
-      typeof window === 'undefined'
-        ? `${getBaseUrl()}/notifications/read-all`
-        : '/api/notifications/notifications/read-all'
-
-    const headers = await getAuthHeaders()
+    const requestUrl = '/api/notifications/notifications/read-all'
+    const headers = getAuthHeaders()
 
     const res = await fetch(requestUrl, {
       method: 'POST',
@@ -183,12 +139,8 @@ export const notificationsGateway = {
   },
 
   async getPreferences(): Promise<NotificationPreferences> {
-    const requestUrl =
-      typeof window === 'undefined'
-        ? `${getBaseUrl()}/notification-preferences`
-        : '/api/notifications/notification-preferences'
-
-    const headers = await getAuthHeaders()
+    const requestUrl = '/api/notifications/notification-preferences'
+    const headers = getAuthHeaders()
 
     try {
       const res = await fetch(requestUrl, {
@@ -210,12 +162,8 @@ export const notificationsGateway = {
   async updatePreferences(
     preferences: NotificationPreferences,
   ): Promise<NotificationPreferences> {
-    const requestUrl =
-      typeof window === 'undefined'
-        ? `${getBaseUrl()}/notification-preferences`
-        : '/api/notifications/notification-preferences'
-
-    const headers = await getAuthHeaders()
+    const requestUrl = '/api/notifications/notification-preferences'
+    const headers = getAuthHeaders()
 
     const res = await fetch(requestUrl, {
       method: 'PUT',
