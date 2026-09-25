@@ -314,10 +314,12 @@ final readonly class BenchmarkScenario
                 budgetP95Ms: 2000,
                 supportedCacheStates: ['disabled', 'cold', 'warm'],
                 executor: function () use ($sales, $inventory, $supplier, $workspaceId) {
-                    $sales()->getSalesOverview($workspaceId, new SalesFilterCriteriaDto);
-                    $inventory()->getInventorySummary($workspaceId, new InventorySummaryCriteriaDto);
-                    $supplier()->getSupplierOverview($workspaceId, new SupplierOverviewCriteriaDto);
-                    $sales()->getFilterOptions($workspaceId);
+                    return [
+                        $sales()->getSalesOverview($workspaceId, new SalesFilterCriteriaDto),
+                        $inventory()->getInventorySummary($workspaceId, new InventorySummaryCriteriaDto),
+                        $supplier()->getSupplierOverview($workspaceId, new SupplierOverviewCriteriaDto),
+                        $sales()->getFilterOptions($workspaceId),
+                    ];
                 },
             ),
             'DASH-02' => new self(
@@ -328,9 +330,12 @@ final readonly class BenchmarkScenario
                 supportedCacheStates: ['disabled', 'cold', 'warm'],
                 executor: function () use ($sales, $workspaceId) {
                     $criteria = new SalesFilterCriteriaDto;
-                    $sales()->getSalesOverview($workspaceId, $criteria);
-                    $sales()->getSalesOverview($workspaceId, $criteria);
-                    $sales()->getSalesOverview($workspaceId, $criteria);
+
+                    return [
+                        $sales()->getSalesOverview($workspaceId, $criteria),
+                        $sales()->getSalesOverview($workspaceId, $criteria),
+                        $sales()->getSalesOverview($workspaceId, $criteria),
+                    ];
                 },
             ),
         ];

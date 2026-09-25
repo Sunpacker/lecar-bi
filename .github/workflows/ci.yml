@@ -47,6 +47,8 @@ jobs:
       - run: composer validate --strict
       - run: composer audit --locked --no-interaction || true
       - run: composer lint
+        env:
+          APP_ENV: testing
       - run: composer test
 
   notification:
