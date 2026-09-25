@@ -1,17 +1,27 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { SESSION_COOKIE_NAME, parseSessionValue } from './src/features/auth/model/session'
+import { sanitizeOrGenerateRequestId } from './src/shared/observability/request-id'
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const requestId = sanitizeOrGenerateRequestId(request.headers.get('x-request-id'))
+
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-request-id', requestId)
+
   const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value
   const session = parseSessionValue(sessionCookie)
   const isAuthenticated = session !== null
 
   if (pathname === '/login') {
     if (isAuthenticated) {
-      return NextResponse.redirect(new URL('/', request.url))
+      const redirectRes = NextResponse.redirect(new URL('/', request.url))
+      redirectRes.headers.set('x-request-id', requestId)
+      return redirectRes
     }
-    return NextResponse.next()
+    const nextRes = NextResponse.next({ request: { headers: requestHeaders } })
+    nextRes.headers.set('x-request-id', requestId)
+    return nextRes
   }
 
   // Allow technical and auth API routes, static assets, etc.
@@ -21,16 +31,22 @@ export function middleware(request: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.includes('.')
   ) {
-    return NextResponse.next()
+    const nextRes = NextResponse.next({ request: { headers: requestHeaders } })
+    nextRes.headers.set('x-request-id', requestId)
+    return nextRes
   }
 
   // All other pages require authentication
   if (!isAuthenticated) {
     const loginUrl = new URL('/login', request.url)
-    return NextResponse.redirect(loginUrl)
+    const redirectRes = NextResponse.redirect(loginUrl)
+    redirectRes.headers.set('x-request-id', requestId)
+    return redirectRes
   }
 
-  return NextResponse.next()
+  const nextRes = NextResponse.next({ request: { headers: requestHeaders } })
+  nextRes.headers.set('x-request-id', requestId)
+  return nextRes
 }
 
 export const config = {
