@@ -54,6 +54,35 @@ services:
         aliases:
           - lecar-bi-backend
 
+  backend-worker:
+    image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be set to an immutable GHCR image}
+    command: ["php", "artisan", "queue:work", "redis", "--queue=default,mail", "--tries=3"]
+    environment:
+      APP_NAME: ${APP_NAME:-Lecar BI}
+      APP_ENV: production
+      APP_KEY: ${APP_KEY:?APP_KEY must be set}
+      APP_DEBUG: "false"
+      LOG_CHANNEL: ${LOG_CHANNEL:-stderr}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: ${POSTGRES_DB:-lecar_bi}
+      DB_USERNAME: ${POSTGRES_USER:-lecar_bi}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      QUEUE_CONNECTION: redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - internal
+
   postgres:
     image: ${POSTGRES_IMAGE:-postgres:16-alpine}
 
@@ -250,6 +279,7 @@ services:
     restart: unless-stopped
     networks:
       - internal
+      - grafana-host
 
 volumes:
   postgres-data:
@@ -263,6 +293,8 @@ networks:
   internal:
     driver: bridge
     internal: true
+  grafana-host:
+    driver: bridge
   proxy:
     external: true
     name: ${CADDY_NETWORK:-proxy}

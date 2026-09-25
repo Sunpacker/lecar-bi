@@ -133,6 +133,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: publish-vps-images
     runs-on: ubuntu-latest
+    environment: Production
     concurrency:
       group: production-vps
       cancel-in-progress: false
