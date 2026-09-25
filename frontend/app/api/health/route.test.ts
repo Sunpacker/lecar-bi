@@ -24,4 +24,24 @@ describe('GET /api/health', function () {
     )
     await expect(response.json()).resolves.toEqual({ status: 'ok', service: 'web' })
   })
+
+  it('supports liveness and readiness probe query params', async function () {
+    const liveRequest = new Request('http://localhost:3000/api/health?probe=live')
+    const liveResponse = GET(liveRequest)
+    expect(liveResponse.status).toBe(200)
+    await expect(liveResponse.json()).resolves.toEqual({
+      status: 'ok',
+      service: 'web',
+      probe: 'live',
+    })
+
+    const readyRequest = new Request('http://localhost:3000/api/health?probe=ready')
+    const readyResponse = GET(readyRequest)
+    expect(readyResponse.status).toBe(200)
+    await expect(readyResponse.json()).resolves.toEqual({
+      status: 'ok',
+      service: 'web',
+      probe: 'ready',
+    })
+  })
 })

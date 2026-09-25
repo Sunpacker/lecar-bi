@@ -90,6 +90,57 @@ export interface paths {
     patch?: never
     trace?: never
   }
+  '/health/live': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Liveness check (process accepting requests) */
+    get: operations['getHealthLive']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/health/ready': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Readiness check (local dependencies ready) */
+    get: operations['getHealthReady']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
+  '/health/outbox': {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    /** Outbox publisher and backlog health signals */
+    get: operations['getHealthOutbox']
+    put?: never
+    post?: never
+    delete?: never
+    options?: never
+    head?: never
+    patch?: never
+    trace?: never
+  }
   '/auth/login': {
     parameters: {
       query?: never
@@ -732,11 +783,47 @@ export interface components {
     }
     HealthResponse: {
       /** @enum {string} */
-      status: 'ok'
+      status: 'ok' | 'degraded'
       /** @enum {string} */
       service: 'analytics'
       /** @enum {string} */
       version: 'v1'
+      checks: components['schemas']['DependencyChecks']
+    }
+    LivenessResponse: {
+      /** @enum {string} */
+      status: 'ok'
+      /** @enum {string} */
+      service: 'analytics'
+    }
+    ReadinessResponse: {
+      /** @enum {string} */
+      status: 'ok' | 'degraded'
+      /** @enum {string} */
+      service: 'analytics'
+      checks: components['schemas']['DependencyChecks']
+    }
+    DependencyChecks: {
+      /** @enum {string} */
+      database: 'ok' | 'error'
+      /** @enum {string} */
+      redis: 'ok' | 'error'
+    }
+    OutboxHealthResponse: {
+      /** @enum {string} */
+      status: 'ok' | 'warning' | 'degraded'
+      /** @enum {string} */
+      service: 'analytics'
+      outbox: {
+        pending_count: number
+        oldest_pending_age_seconds: number | null
+        failed_count: number
+      }
+      publisher: {
+        /** Format: date-time */
+        last_run_at: string | null
+        last_run_age_seconds: number | null
+      }
     }
     UserResponse: {
       id: string
@@ -1467,7 +1554,17 @@ export interface components {
       alerts_updated: number
     }
   }
-  responses: never
+  responses: {
+    /** @description Rate limit exceeded */
+    TooManyRequests: {
+      headers: {
+        [name: string]: unknown
+      }
+      content: {
+        'application/json': components['schemas']['ErrorResponse']
+      }
+    }
+  }
   parameters: never
   requestBodies: never
   headers: never
@@ -1571,6 +1668,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
+      429: components['responses']['TooManyRequests']
     }
   }
   getImportBatch: {
@@ -1703,6 +1801,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
+      429: components['responses']['TooManyRequests']
     }
   }
   getHealth: {
@@ -1721,6 +1820,84 @@ export interface operations {
         }
         content: {
           'application/json': components['schemas']['HealthResponse']
+        }
+      }
+      /** @description Service is degraded or dependencies unavailable */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['HealthResponse']
+        }
+      }
+    }
+  }
+  getHealthLive: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Service process is running */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['LivenessResponse']
+        }
+      }
+    }
+  }
+  getHealthReady: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Service is ready */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ReadinessResponse']
+        }
+      }
+      /** @description Local dependencies not ready */
+      503: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['ReadinessResponse']
+        }
+      }
+    }
+  }
+  getHealthOutbox: {
+    parameters: {
+      query?: never
+      header?: never
+      path?: never
+      cookie?: never
+    }
+    requestBody?: never
+    responses: {
+      /** @description Outbox metrics and health signals */
+      200: {
+        headers: {
+          [name: string]: unknown
+        }
+        content: {
+          'application/json': components['schemas']['OutboxHealthResponse']
         }
       }
     }
@@ -1765,6 +1942,7 @@ export interface operations {
           'application/json': components['schemas']['ErrorResponse']
         }
       }
+      429: components['responses']['TooManyRequests']
     }
   }
   getCurrentUser: {
