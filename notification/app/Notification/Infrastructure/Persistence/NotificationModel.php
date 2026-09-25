@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property CarbonImmutable $occurred_at
  * @property CarbonImmutable $created_at
  * @property ?CarbonImmutable $updated_at
+ * @property ?CarbonImmutable $read_at
  */
 final class NotificationModel extends Model
 {
