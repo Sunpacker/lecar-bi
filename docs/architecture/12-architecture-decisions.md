@@ -1,193 +1,210 @@
 # 12. Architecture Decisions
 
-Статус отдельных планируемых расширений указан в соответствующем ADR; такой ADR не означает,
-что реализация уже существует или что порядок roadmap изменён.
+The status of individual planned extensions is specified in the corresponding ADR; such an ADR does not imply
+that an implementation already exists or that the roadmap order has changed.
 
 ## ADR-001 — Monorepo
 
-Решение: хранить frontend, backend, contracts, infrastructure и docs в одном Git-репозитории.
+Decision: keep frontend, backend, contracts, infrastructure, and docs in a single Git repository.
 
-Причина: согласованная разработка, единая история изменений и удобное управление контрактами.
+Rationale: coordinated development, a unified change history, and convenient contract management.
 
 ## ADR-002 — Independent Deployable Services
 
-Решение: Next.js и Laravel являются отдельными deployable-сервисами.
+Decision: Next.js and Laravel are separately deployable services.
 
-Причина: независимый жизненный цикл и возможность масштабировать их отдельно.
+Rationale: independent lifecycles and the ability to scale them separately.
 
 ## ADR-003 — Laravel as Analytics Microservice
 
-Решение: Laravel выступает как самостоятельный analytics-service.
+Decision: Laravel acts as an independent analytics service.
 
-Причина: backend должен иметь собственную ответственность и не быть просто техническим приложением для frontend.
+Rationale: the backend must have its own responsibility rather than merely being a technical application for the frontend.
 
 ## ADR-004 — DDD inside Laravel
 
-Решение: использовать DDD с разделением на bounded contexts.
+Decision: use DDD with separation into bounded contexts.
 
-Причина: проект имеет несколько независимых предметных областей и должен оставаться расширяемым.
+Rationale: the project has several independent domains and must remain extensible.
 
 ## ADR-005 — Module First
 
-Решение: организовывать backend сначала по bounded context, затем по архитектурным слоям.
+Decision: organize the backend first by bounded context, then by architectural layer.
 
-Причина: облегчает понимание границ и последующее выделение модуля в отдельный сервис.
+Rationale: makes boundaries easier to understand and simplifies later extraction of a module into a separate service.
 
 ## ADR-006 — CQRS-lite
 
-Решение: логически разделять commands и queries без обязательного физического разделения хранилищ.
+Decision: logically separate commands and queries without requiring physically separate stores.
 
-Причина: BI является read-heavy системой и требует специализированных моделей чтения.
+Rationale: BI is a read-heavy system and requires specialized read models.
 
 ## ADR-007 — OpenAPI Contract
 
-Решение: HTTP API описывается через OpenAPI.
+Decision: describe the HTTP API using OpenAPI.
 
-Причина: единый формальный контракт и возможность генерации frontend-клиента.
+Rationale: a single formal contract and the ability to generate a frontend client.
 
 ## ADR-008 — Database per Service
 
-Решение: каждый микросервис владеет собственной базой данных.
+Decision: each microservice owns its database.
 
-Причина: снижение связанности и обеспечение независимости сервисов.
+Rationale: reduce coupling and ensure service independence.
 
 ## ADR-009 — Domain Events and Integration Events
 
-Решение: разделять внутренние domain events и внешние integration events.
+Decision: separate internal domain events from external integration events.
 
-Причина: доменная модель не должна зависеть от способа межсервисной доставки сообщений.
+Rationale: the domain model must not depend on how messages are delivered between services.
 
 ## ADR-010 — Transactional Outbox
 
-Решение: предусмотреть Outbox Pattern для публикации интеграционных событий.
+Decision: provide the Outbox Pattern for publishing integration events.
 
-Причина: повышение надёжности межсервисного обмена.
+Rationale: improve the reliability of inter-service communication.
 
 ## ADR-011 — Redis
 
-Решение: использовать Redis для технических задач, связанных с cache, queues, locks и rate limiting.
+Decision: use Redis for technical tasks involving caching, queues, locks, and rate limiting.
 
-Причина: Laravel имеет зрелую интеграцию с Redis, а перечисленные сценарии хорошо соответствуют его назначению.
+Rationale: Laravel has mature Redis integration, and these scenarios are well suited to Redis.
 
 ## ADR-012 — No Premature Microservices
 
-Решение: не выделять отдельные микросервисы без необходимости.
+Decision: do not extract separate microservices unnecessarily.
 
-Причина: избежать роста операционной сложности до появления реальных требований.
+Rationale: avoid increasing operational complexity before real requirements arise.
 
 ## ADR-013 — Frontend Has No Domain Business Rules
 
-Решение: доменные вычисления и бизнес-правила выполняются на backend.
+Decision: perform domain calculations and business rules on the backend.
 
-Причина: единая точка истины и возможность использования backend несколькими потребителями.
+Rationale: a single source of truth and the ability for multiple consumers to use the backend.
 
 ## ADR-014 — Analytics-specific Read Models
 
-Решение: разрешить специализированные read models, materialized views и агрегированные структуры.
+Decision: allow specialized read models, materialized views, and aggregate structures.
 
-Причина: DDD не должен ухудшать производительность аналитических запросов.
+Rationale: DDD must not impair analytical query performance.
 
 ## ADR-015 — Independent Infrastructure Evolution
 
-Решение: message broker, distributed tracing и другие инфраструктурные компоненты добавляются постепенно.
+Decision: add a message broker, distributed tracing, and other infrastructure components incrementally.
 
-Причина: архитектура должна быть готова к их подключению, но не обязана включать их в первый релиз.
+Rationale: the architecture must be ready to incorporate them, but need not include them in the first release.
 
 ## ADR-016 — shadcn/ui and Tailwind CSS
 
-Решение: frontend обязан использовать shadcn/ui в связке с Tailwind CSS: shadcn/ui для переиспользуемых UI-компонентов, Tailwind CSS для стилизации и адаптивной вёрстки.
+Decision: the frontend must use shadcn/ui together with Tailwind CSS: shadcn/ui for reusable UI components, Tailwind CSS for styling and responsive layouts.
 
-Причина: единый UI-стек обеспечивает согласованность интерфейса и упрощает поддержку общих компонентов.
+Rationale: a unified UI stack ensures interface consistency and simplifies maintenance of shared components.
 
-Правила использования описаны в [архитектуре frontend](03-frontend-nextjs.md#обязательный-ui-стек).
+Usage rules are described in the [frontend architecture](03-frontend-nextjs.md#required-ui-stack).
 
 ## ADR-017 — Redis Stream as Replaceable Integration Event Transport
 
-Решение: Redis Stream `autobi.integration-events` является начальным транспортом для integration events, реализованным как заменяемый адаптер через `IntegrationEventTransportInterface`. Domain и Application layers не зависят от Redis.
+Decision: Redis Stream `autobi.integration-events` is the initial transport for integration events, implemented as a replaceable adapter through `IntegrationEventTransportInterface`. The Domain and Application layers do not depend on Redis.
 
-Причина: на текущем этапе полноценный message broker (RabbitMQ, Kafka) не нужен. Redis уже является обязательной инфраструктурной зависимостью. Транспорт инкапсулирован за портом, поэтому его замена не затронет Domain или Application.
+Rationale: a full message broker (RabbitMQ, Kafka) is not needed at this stage. Redis is already a required infrastructure dependency. The transport is encapsulated behind a port, so replacing it will not affect Domain or Application.
 
-Ограничения:
+Constraints:
 
-- Семантика доставки: at-least-once. Consumers обязаны дедуплицировать по `event_id`.
-- Глобальный порядок событий не гарантируется.
-- PostgreSQL outbox является источником истины; Redis Stream — только канал доставки.
-- Retention Stream не управляется в Phase 13 — будет добавлен после появления consumer и observability.
-- Consumer group будет создана в Phase 14.
+- Delivery semantics: at-least-once. Consumers must deduplicate by `event_id`.
+- Global event ordering is not guaranteed.
+- PostgreSQL outbox is the source of truth; Redis Stream is only a delivery channel.
+- Stream retention is not managed in Phase 13; it will be added once a consumer and observability are available.
+- The consumer group will be created in Phase 14.
 
 ## ADR-018 — Notification Service Extraction and Autonomous Bounded Context
 
-Решение: выделить `notification/` как третий независимый deployable-сервис (Laravel 13, PHP 8.3) с собственной базой данных PostgreSQL, читающий `alert.triggered.v1` из Redis Stream `autobi.integration-events` через consumer group `notification-service-v1`.
+Decision: extract `notification/` as the third independently deployable service (Laravel 13, PHP 8.3), with its own PostgreSQL database, consuming `alert.triggered.v1` from Redis Stream `autobi.integration-events` through the `notification-service-v1` consumer group.
 
-Причина: подтвердить возможность масштабирования и модульного расширения системы отдельным сервисом без создания общей базы данных (ADR-008) и без преждевременного усложнения инфраструктуры (ADR-012, ADR-015).
+Rationale: demonstrate that the system can scale and expand modularly through a separate service without creating a shared database (ADR-008) or prematurely complicating the infrastructure (ADR-012, ADR-015).
 
-Правила и ограничения:
+Rules and constraints:
 
-- **Database per Service:** Notification Service владеет собственной базой данных PostgreSQL (`notification-postgres`). Никаких foreign keys, shared tables или доступа к analytics PostgreSQL.
-- **Event-Driven Integration:** Сервисы обмениваются данными исключительно через асинхронные события. Нет прямых HTTP-вызовов из analytics в notification и обратно для обогащения данных.
-- **Self-contained Contract:** Каноническое событие `alert.triggered.v1` содержит все данные (rule, severity, threshold, current value, analytical context), достаточные для формирования заголовка, текста и контекста уведомления.
-- **At-Least-Once Delivery и Дедупликация:** Сервис гарантирует корректность при повторной доставке через таблицу `consumed_events` с уникальным первичным ключом `event_id`. Вставка проекции `notifications` и `consumed_events` выполняется в единой локальной транзакции.
-- **Подтверждение (XACK) и Poison Messages:** `XACK` выполняется строго после коммита в БД или обнаружения дубликата. Невалидные сообщения и неподдерживаемые версии событий отправляются в dead-letter stream `autobi.integration-events.dead-letter` с последующим XACK.
-- **Независимость жизненного цикла:** Временная недоступность или падение Notification Service не влияет на работу сервиса аналитики, HTTP API и публикацию Outbox. Накопленные события обрабатываются после восстановления работы consumer group.
+- **Database per Service:** Notification Service owns its PostgreSQL database (`notification-postgres`). No foreign keys, shared tables, or access to analytics PostgreSQL.
+- **Event-Driven Integration:** Services exchange data exclusively through asynchronous events. There are no direct HTTP calls from analytics to notification or vice versa to enrich data.
+- **Self-contained Contract:** The canonical `alert.triggered.v1` event contains all data (rule, severity, threshold, current value, analytical context) needed to create the notification's title, text, and context.
+- **At-Least-Once Delivery and Deduplication:** The service guarantees correctness under redelivery through the `consumed_events` table with a unique `event_id` primary key. The `notifications` projection and `consumed_events` are inserted in a single local transaction.
+- **Acknowledgment (XACK) and Poison Messages:** `XACK` is performed strictly after a database commit or duplicate detection. Invalid messages and unsupported event versions are sent to the `autobi.integration-events.dead-letter` stream, followed by XACK.
+- **Lifecycle Independence:** Temporary unavailability or failure of Notification Service does not affect the analytics service, HTTP API, or Outbox publication. Accumulated events are processed once the consumer group recovers.
 
 ## ADR-019 — RAG Support Chat
 
-Статус: целевой дизайн планируемого расширения, 2026-09-23. Реализация начинается по отдельной
-задаче в рамках согласованного roadmap; существующие фазы и runtime этим ADR не изменяются.
+Status: target design for a planned extension, 2026-09-23. Implementation begins as a separate
+task within the agreed roadmap; this ADR does not change existing phases or runtime behavior.
+Refined on 2026-09-27: secure RAG model, document permissions, fail closed, and authorization caching.
 
-Решение: реализовать поддержку по документации в contexts `Support` и `KnowledgeBase` внутри
-analytics-service. Использовать PostgreSQL/pgvector + FTS, Laravel Queue и существующую
-Workspace/auth boundary. Next.js отображает чат и передаёт API/SSE, RAG orchestration принадлежит Laravel.
+Decision: implement documentation-based support in the `Support` and `KnowledgeBase` contexts within
+the analytics service. Use PostgreSQL/pgvector + FTS, Laravel Queue, and the existing
+Workspace/auth boundary. Next.js displays the chat and forwards API/SSE traffic; Laravel owns RAG orchestration.
 
-Причина: переиспользовать инфраструктуру и авторизацию платформы, сохранить DDD-границы
-и измерять качество на небольшом корпусе до усложнения retrieval или выделения сервиса.
+Rationale: reuse the platform's infrastructure and authorization, preserve DDD boundaries,
+and measure quality on a small corpus before complicating retrieval or extracting a service.
 
-Основные ограничения:
+Main constraints:
 
-- MVP работает только с явно опубликованной общей документацией/FAQ, без доступа к фактическим
-  BI-данным и без tool calling. Приватные знания workspace — последующее расширение.
-- Диалоги приватны по паре workspace/user; планируемая capability `support.use` не заменяет ownership.
-- `KnowledgeBase` предоставляет публичный retrieval contract; SQL обеих поисковых веток ограничивает
-  доступные документы до `LIMIT`. Начальный baseline — exact vector search и объединение рангов с FTS.
-- Версии индекса публикуются атомарно; embedding profiles не смешиваются. Удалённые/отозванные
-  материалы исключаются независимо от переиндексации.
-- Создание generation выполняется идемпотентно через HTTP JSON; worker сохраняет состояние в PostgreSQL.
-  SSE наблюдает за generation и восстанавливается полным snapshot без повторного запуска модели.
-- Ошибки, бюджеты, citations, retention и измеримые evaluation gates входят в MVP.
+- The MVP works only with explicitly published shared documentation/FAQ, without access to actual
+  BI data and without tool calling. Private workspace knowledge is a later extension.
+- Conversations are private to a workspace/user pair; the planned `support.use` capability does not replace ownership.
+- RAG augments the question with retrieved, authorized chunks. Chunks and the question use the same
+  embedding model and a compatible profile; a separate chat model generates the answer.
+- `KnowledgeBase` exposes a public retrieval contract; SQL in both search branches restricts
+  accessible documents before `LIMIT`. The initial baseline is exact vector search and rank fusion with FTS.
+- Authorization takes place outside the LLM. Chunks inherit the document policy; unknown permissions
+  and failure of a required check result in fail closed (`503 AUTHORIZATION_UNAVAILABLE`),
+  without fallback to unrestricted search or `no_context`. Access is rechecked before the LLM call and delivery.
+- Index versions are published atomically; embedding profiles are not mixed. Deleted/revoked
+  materials are excluded independently of reindexing.
+- Revoking source permissions blocks further delivery of derived answers in history, polling, and SSE;
+  the provenance of the entire context is checked. Hiding a citation alone is insufficient.
+- The MVP has no cross-request permission cache. A future TTL depends on sensitivity: up to 24 hours
+  for public-access decisions, 0 for secret documents. Invalidation and a current revocation check
+  are mandatory; a stale `allow` or authorization failure does not grant access. Complex ACLs and an external
+  authorization service are considered together with private sources, behind public ports.
+- Generation creation is idempotent through HTTP JSON; a worker persists state in PostgreSQL.
+  SSE observes a generation and recovers through a full snapshot without rerunning the model.
+- Errors, budgets, citations, retention, and measurable evaluation gates are included in the MVP.
 
-Последствия: нужны pgvector в dev/test/deploy, отдельные очереди/worker capacity, диспетчер сохранённых
-generation-задач и проверка streaming через proxy/BFF. Новые сервисы, broker и vector DB не требуются.
-Расширение capabilities и API выполняется contract-first при реализации, вместе с generated client и тестами.
+Consequences: pgvector is required in dev/test/deploy, along with separate queues/worker capacity, a dispatcher for persisted
+generation tasks, and verification of streaming through the proxy/BFF. No new services, broker, or vector DB are required.
+Capability and API extensions follow a contract-first approach during implementation, together with the generated client and tests.
+The existing API v2 and Sanctum/BFF from ADR-021 are used; Qdrant remains an example technology,
+not a new dependency. When connecting private sources, ACL mapping,
+synchronization intervals, access revocation, and permission caching are checked separately.
 
-Подробное поведение, критерии приёмки и порядок работ: [RAG Support Chat](rag-support-chat.md).
+Detailed behavior, acceptance criteria, and work sequence: [RAG Support Chat](rag-support-chat.md).
 
 ## ADR-020 — Selective Versioned Caching and Evidence-Driven Performance Optimization
 
-Статус: принято, Phase 16 (2026-09-25).
+Status: accepted, Phase 16 (2026-09-25).
 
-Решение: реализовать селективное версионированное кэширование на границе Read Model интерфейсов в Redis с монотонным версионированием датасетов в PostgreSQL (`analytics_dataset_versions`), покрывающими B-tree индексами и request-scoped promise coalescing на стороне фронтенда. На основе доказательных замеров на эталонном профиле `large` (100k заказов, 300k позиций, 500k остатков) создание специализированных материализованных представлений / проекций **отклонено**.
+Decision: implement selective versioned caching in Redis at the Read Model interface boundary, with monotonic dataset versioning in PostgreSQL (`analytics_dataset_versions`), covering B-tree indexes, and request-scoped promise coalescing on the frontend. Based on empirical measurements using the reference `large` profile (100k orders, 300k line items, 500k stock records), dedicated materialized views / projections were **rejected**.
 
-Контекст и обоснование:
-- Нагрузка аналитической подсистемы (AutoBI) является read-heavy. Повторные обращения виджетов дашборда создавали лишнюю нагрузку на СУБД.
-- Введение внешних баз данных (ClickHouse, Elasticsearch) или тяжелых триггерных проекций привело бы к усложнению архитектуры, риску рассинхронизации данных и write amplification при пакетном импорте.
-- Добавление покрывающего индекса `idx_foi_ws_order_covering` устранило дисковые сбросы сортировок и перевело запросы в `Index Only Scan`, сократив p95 с 1 947 ms до 370 ms (в пределах бюджета ≤ 1 000 ms). Все 23 аналитических сценария уложились в бюджеты без материализованных таблиц.
+Context and rationale:
 
-Правила и ограничения:
-- **PostgreSQL — единственный источник истины:** Redis содержит только производные сериализованные DTO результатов чтения. Потеря кэша не приводит к нарушению целостности данных.
-- **Размещение за границей безопасности:** Кэширование происходит строго внутри инфраструктурных декораторов Read Model после прохождения аутентификации, валидации `workspace_id` и проверки RBAC.
-- **Селективный Allowlist:** В кэш допускаются только 7 низкокардинальных методов сводок и фильтров (`getSalesOverview`, `getInventorySummary`, `getAbcXyzSummary`, `getSupplierOverview` и 3 метода `getFilterOptions`). Поисковые запросы и пагинированные списки записей не кэшируются.
-- **Монотонное версионирование инвалидации:** Успешный импорт фактов увеличивает версию соответствующего датасета (`sales`, `inventory`, `suppliers`) в `analytics_dataset_versions`. Старые ключи предыдущей версии мгновенно становятся недостижимыми и удаляются по TTL (120–300 с) без блокирующих операций `KEYS *` или `Cache::flush()`.
-- **Fail-Open отказоустойчивость:** Любой сбой Redis (таймаут, отказ сети, переполнение памяти) приводит к плавному переключению на прямой SQL-запрос к PostgreSQL без ошибки 500 для пользователя. Логируются только обезличенные технические метаданные (dataset, workspace, operation, exception class).
-- **Request-scoped Promise Coalescing во фронтенде:** Одновременные запросы от нескольких виджетов дашборда в рамках одного цикла рендера объединяются в один запрос. Постоянный межсессионный кэш на клиенте запрещен.
-## ADR-020 — VPS CI/CD через GHCR и релизные каталоги
+- The analytics subsystem (AutoBI) is read-heavy. Repeated requests from dashboard widgets created unnecessary DBMS load.
+- Introducing external databases (ClickHouse, Elasticsearch) or heavy trigger-based projections would complicate the architecture, introduce a risk of data divergence, and cause write amplification during batch imports.
+- Adding the `idx_foi_ws_order_covering` covering index eliminated sort spills to disk and enabled `Index Only Scan`, reducing p95 from 1,947 ms to 370 ms (within the ≤ 1,000 ms budget). All 23 analytical scenarios met their budgets without materialized tables.
 
-Решение: после CI публиковать backend и notification в GHCR с тегами полного commit SHA и передавать на VPS только Compose, observability-конфигурацию и скрипты. Деплой сериализуется, создаёт проверенные бэкапы обеих БД, мигрирует новые образы и возвращает прежние образы приложения при ошибке проверок. Секреты и бэкапы хранятся вне релизов. Схема БД автоматически не откатывается; миграции должны быть расширяющими.
+Rules and constraints:
 
-## ADR-021 — Аутентификация API через Laravel Sanctum и Next.js BFF
+- **PostgreSQL is the sole source of truth:** Redis contains only derived serialized DTOs of read results. Losing the cache does not compromise data integrity.
+- **Placement behind the security boundary:** Caching takes place strictly within Read Model infrastructure decorators after authentication, `workspace_id` validation, and RBAC checks.
+- **Selective Allowlist:** Only 7 low-cardinality summary and filter methods may be cached (`getSalesOverview`, `getInventorySummary`, `getAbcXyzSummary`, `getSupplierOverview`, and 3 `getFilterOptions` methods). Search queries and paginated record lists are not cached.
+- **Monotonic Invalidation Versioning:** A successful fact import increments the relevant dataset version (`sales`, `inventory`, `suppliers`) in `analytics_dataset_versions`. Old keys from the previous version immediately become unreachable and expire by TTL (120–300 s), without blocking `KEYS *` or `Cache::flush()` operations.
+- **Fail-Open Resilience:** Any Redis failure (timeout, network failure, memory exhaustion) gracefully falls back to a direct PostgreSQL SQL query without a user-facing 500 error. Only anonymized technical metadata is logged (dataset, workspace, operation, exception class).
+- **Request-scoped Promise Coalescing on the Frontend:** Concurrent requests from multiple dashboard widgets within one render cycle are combined into a single request. A persistent cross-session client cache is forbidden.
 
-Решение: заменить прямое доверие к заголовку `X-User-Id` на Bearer-токены Laravel Sanctum со сроком действия 7 дней. Браузерные вызовы проходят через Next.js BFF proxy (`/api/backend/*`), который внедряет Bearer token из защищённой HttpOnly cookie сессии и `X-Workspace-Id`. Защищённые эндпоинты v1 переведены в статус 410 Gone, опубликован контракт API v2. При смене пароля все токены пользователя на сервере отзываются, инициируя повторный вход.
+## ADR-020 — VPS CI/CD through GHCR and Release Directories
 
-## ADR-022 — Расширенные «Настройки», приглашения по email и персональные уведомления
+Decision: after CI, publish backend and notification to GHCR with full commit SHA tags, and transfer only Compose, observability configuration, and scripts to the VPS. Deployment is serialized, creates verified backups of both databases, runs migrations using the new images, and restores the previous application images if checks fail. Secrets and backups are stored outside releases. The database schema is not rolled back automatically; migrations must be additive.
 
-Решение: реализовать модульные разделы «Настройки» (`/settings/*`) для профиля, безопасности, параметров пространства, участников и важности уведомлений. Доступ к переименованию пространства защищён capability `workspace.settings.manage`. Приглашения в рабочее пространство передаются по email с криптографическим хешированием токена ссылки (срок 7 дней) и обрабатываются отдельным backend-воркером (`queue:work --queue=default,mail`). Персональные статусы прочтения и предпочтения важности (`info`, `warning`, `critical`) хранятся в сервисе Notification с межсервисной аутентификацией доверенного BFF по серверному секрету и контексту (`X-Server-Secret`, `X-User-Id`, `X-Workspace-Id`).
+## ADR-021 — API Authentication through Laravel Sanctum and Next.js BFF
 
+Decision: replace direct trust in the `X-User-Id` header with Laravel Sanctum Bearer tokens valid for 7 days. Browser calls pass through the Next.js BFF proxy (`/api/backend/*`), which injects the Bearer token from a protected HttpOnly session cookie and `X-Workspace-Id`. Protected v1 endpoints now return 410 Gone, and an API v2 contract has been published. Changing a password revokes all of the user's server-side tokens, requiring a new sign-in.
+
+## ADR-022 — Extended Settings, Email Invitations, and Personal Notifications
+
+Decision: implement modular Settings sections (`/settings/*`) for profile, security, workspace settings, members, and notification severity. Workspace renaming is protected by the `workspace.settings.manage` capability. Workspace invitations are sent by email with cryptographic hashing of the link token (valid for 7 days) and processed by a separate backend worker (`queue:work --queue=default,mail`). Personal read statuses and severity preferences (`info`, `warning`, `critical`) are stored in Notification Service, with inter-service authentication of the trusted BFF through a server secret and context (`X-Server-Secret`, `X-User-Id`, `X-Workspace-Id`).

@@ -1,45 +1,45 @@
 # Phase 14 — Notification Service Extraction Exercise
 
-[Индекс и правила roadmap](README.md) · [Маршрутизатор агентов](../../AGENTS.md)
+[Roadmap index and rules](ROADMAP.md) · [Agent router](../../AGENTS.md)
 
-## Цель
+## Goal
 
-Доказать возможность реального расширения системы отдельным микросервисом.
+Demonstrate that the system can genuinely be extended with a separate microservice.
 
-Создать небольшой notification service после стабилизации Alerting/Outbox. Он должен читать versioned integration events, не ходить напрямую в analytics database, иметь независимый deployable unit и безопасно обрабатывать duplicate events.
+Create a small notification service after Alerting/Outbox stabilizes. It must read versioned integration events, never access the analytics database directly, have an independent deployable unit, and handle duplicate events safely.
 
-Технологию менять только при архитектурной причине.
+Change technology only for an architectural reason.
 
 ## Exit Criteria
 
-Нет shared database, integration explicit, analytics service работает при недоступности notification service. Сверить с `docs/architecture/02-monorepo-and-services.md`, `07-api-and-integration.md`, `08-events-outbox-async.md`.
+No shared database, explicit integration, and the analytics service remains operational when the notification service is unavailable. Cross-check against `docs/architecture/02-monorepo-and-services.md`, `07-api-and-integration.md`, and `08-events-outbox-async.md`.
 
 ## Integration Checkpoint
 
-Перед завершением этапа пройти [интеграционную проверку](ROADMAP.md#integration-checkpoints).
+Complete the [integration check](ROADMAP.md#integration-checkpoints) before closing the phase.
 
-## Прогресс
+## Progress
 
-- Выделен независимый микросервис `notification/` (Laravel 13, PHP 8.3, zero-dependency Domain).
-- Реализована строгая изоляция данных: отдельная база данных `notification-postgres` (`notification-postgres-data` volume) и собственные credentials; сервисы не делят БД.
-- Реализован консьюмер Redis Streams (`notifications:consume`) с consumer group `notification-service-v1`, stale message claim (`XAUTOCLAIM`), поддержкой сигналов `SIGTERM`/`SIGQUIT` и dead-letter stream (`autobi.integration-events.dead-letter`).
-- Реализована идемпотентная обработка событий `alert.triggered.v1` с дедупликацией по `event_id` в таблице `consumed_events` и проекцией в таблицу `notifications`.
-- Реализованы liveness (`/api/v1/health/live`) и readiness (`/api/v1/health/ready`) эндпоинты с проверкой доступности собственной БД и Redis.
-- Инфраструктура оркестрации обновлена (`docker-compose.yml`, `docker-compose.dev.yml`, `docker-compose.vps.yml`, `Makefile`, `infra/.env.example`).
-- Добавлены unit, feature, contract, architecture и integration тесты.
+- Extracted an independent `notification/` microservice (Laravel 13, PHP 8.3, zero-dependency Domain).
+- Implemented strict data isolation: a separate `notification-postgres` database (`notification-postgres-data` volume) with its own credentials; services do not share a database.
+- Implemented a Redis Streams consumer (`notifications:consume`) with the `notification-service-v1` consumer group, stale message claim (`XAUTOCLAIM`), `SIGTERM`/`SIGQUIT` signal support, and a dead-letter stream (`autobi.integration-events.dead-letter`).
+- Implemented idempotent processing of `alert.triggered.v1` events with `event_id` deduplication in `consumed_events` and projection into `notifications`.
+- Implemented liveness (`/api/v1/health/live`) and readiness (`/api/v1/health/ready`) endpoints checking the availability of the service's own database and Redis.
+- Updated orchestration infrastructure (`docker-compose.yml`, `docker-compose.dev.yml`, `docker-compose.vps.yml`, `Makefile`, `infra/.env.example`).
+- Added unit, feature, contract, architecture, and integration tests.
 
-## Проверка завершения
+## Completion Verification
 
-- **Дата:** 2026-09-23
-- **Exit Criteria Status:** Все критерии выполнены в полном объеме:
-  1. **No Shared Database:** Notification service использует выделенный PostgreSQL экземпляр (`notification-postgres`), отдельный volume и учетные данные. Контейнеры notification не содержат переменных analytics DB (`POSTGRES_DB=autobi`).
-  2. **Explicit Versioned Integration:** Взаимодействие осуществляется исключительно через канонические события `alert.triggered.v1` в Redis Streams согласно `contracts/events/alert-triggered.v1.schema.json`.
-  3. **Failure Isolation:** Analytics service полностью независим от доступности notification service. Сбой или остановка `notification` / `notification-worker` не влияет на здоровье и работу analytics HTTP API и сохранение outbox событий.
-  4. **Safe At-Least-Once Delivery & Deduplication:** Дедупликация гарантируется unique constraints и таблицей `consumed_events`. Повторное потребление событий не приводит к дублированию проекций.
-  5. **Poison Message Handling:** Сообщения с нарушением контракта или неподдерживаемой версией направляются в dead-letter stream `autobi.integration-events.dead-letter` с последующим `XACK`.
-- **Команды проверок и результаты:**
-  - `composer --working-dir=notification validate --strict` — валидно (OK)
-  - `composer --working-dir=notification lint` — Pint и PHPStan (level 6) пройдены без замечаний (0 errors)
-  - `composer --working-dir=notification test` — 38 тестов, 144 assertions (OK)
-  - `make check-notification` — успешно пройден
-  - `sh -n scripts/verify-integration.sh` — синтаксис скрипта интеграции валиден
+- **Date:** 2026-09-23
+- **Exit Criteria Status:** All criteria fully met:
+  1. **No Shared Database:** The notification service uses a dedicated PostgreSQL instance (`notification-postgres`), separate volume, and credentials. Notification containers do not contain analytics DB variables (`POSTGRES_DB=autobi`).
+  2. **Explicit Versioned Integration:** Communication occurs exclusively through canonical `alert.triggered.v1` events in Redis Streams according to `contracts/events/alert-triggered.v1.schema.json`.
+  3. **Failure Isolation:** The analytics service is fully independent of notification service availability. Failure or shutdown of `notification` / `notification-worker` does not affect analytics HTTP API health and operation or outbox event persistence.
+  4. **Safe At-Least-Once Delivery & Deduplication:** Deduplication is guaranteed by unique constraints and the `consumed_events` table. Repeated event consumption does not duplicate projections.
+  5. **Poison Message Handling:** Messages that violate the contract or use an unsupported version are sent to the `autobi.integration-events.dead-letter` stream, followed by `XACK`.
+- **Verification commands and results:**
+  - `composer --working-dir=notification validate --strict` — valid (OK)
+  - `composer --working-dir=notification lint` — Pint and PHPStan (level 6) passed without issues (0 errors)
+  - `composer --working-dir=notification test` — 38 tests, 144 assertions (OK)
+  - `make check-notification` — passed successfully
+  - `sh -n scripts/verify-integration.sh` — integration script syntax valid

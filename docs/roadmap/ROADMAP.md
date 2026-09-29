@@ -1,22 +1,22 @@
-# AutoBI — roadmap автономной разработки
+# AutoBI — Autonomous Development Roadmap
 
-## Как читать
+## How to Read
 
-1. Прочитать [AGENTS.md](../../AGENTS.md) и этот индекс.
-2. Открыть только первый незавершённый этап из списка ниже — это текущая фаза.
-3. Прочитать [индекс архитектуры](../architecture/README.md), затем необходимые архитектурные документы и файлы текущей задачи.
-4. Прошлые этапы открывать только для проверки зависимости; будущие — только по явной задаче на планирование.
+1. Read [AGENTS.md](../../AGENTS.md) and this index.
+2. Open only the first unfinished phase in the list below — this is the current phase.
+3. Read the [architecture index](../architecture/README.md), then the necessary architecture documents and files for the current task.
+4. Open past phases only to check dependencies; future phases only for an explicit planning task.
 
-Не загружать всю папку roadmap. Следующая фаза не активна, пока не выполнены exit criteria текущей.
-Порядок этапов задаёт зависимости; список содержит только названия и отметки завершения.
+Do not load the entire roadmap folder. The next phase is not active until the current phase's exit criteria are met.
+The phase order defines dependencies; the list contains only names and completion markers.
 
-## Выполнение
+## Execution
 
-`[ ]` — этап не завершён; `[x]` — все exit criteria и обязательные проверки выполнены.
-Единственный источник статуса этапов — этот список; отдельный указатель текущей фазы не нужен.
-На момент разделения roadmap в репозитории есть документация, но bootstrap ещё не завершён.
+`[ ]` — phase incomplete; `[x]` — all exit criteria and required checks passed.
+This list is the single source of truth for phase status; a separate current-phase pointer is unnecessary.
+At the time the roadmap was split, the repository contained documentation, but bootstrap was not yet complete.
 
-- [x] [Phase 0 — Bootstrap репозитория](00-bootstrap.md)
+- [x] [Phase 0 — Repository Bootstrap](00-bootstrap.md)
 - [x] [Phase 1 — Development Foundation](01-development-foundation.md)
 - [x] [Phase 2 — Identity, Workspace and Access Boundary](02-identity-workspace-access.md)
 - [x] [Phase 3 — Demo Data Model](03-demo-data-model.md)
@@ -37,54 +37,54 @@
 - [x] [Phase 18 — Production Hardening](18-production-hardening.md)
 - [x] [Phase 19 — Forecasting Extension](19-forecasting.md)
 
-## Как обновлять прогресс
+## Updating Progress
 
-- После работы фиксировать в файле текущего этапа раздел «Прогресс»: что сделано, что осталось, блокеры и следующий шаг.
-- При закрытии этапа добавить раздел «Проверка завершения»: дата, подтверждение exit criteria, команды проверок и результаты.
-- Только после этого заменить `[ ]` на `[x]` в индексе в том же изменении; созданная документация сама по себе не завершает этап.
-- Если критерии перестали выполняться, снять отметку и описать причину в файле этапа.
-- При параллельной работе индекс обновляет интегратор; изменения общего файла согласовывать последовательно.
+- After working on a phase, record a "Progress" section in its file: completed work, remaining work, blockers, and the next step.
+- When closing a phase, add a "Completion Verification" section: date, exit criteria confirmation, verification commands, and results.
+- Only then replace `[ ]` with `[x]` in the index in the same change; documentation alone does not complete a phase.
+- If criteria are no longer met, clear the checkbox and describe the reason in the phase file.
+- During parallel work, the integrator updates the index; coordinate changes to shared files sequentially.
 
-## Архитектурный контекст
+## Architectural Context
 
-Перед началом фазы читать:
+Before starting a phase, read:
 
-- [00 — Обзор](../architecture/00-overview.md).
-- [01 — Архитектура системы](../architecture/01-system-architecture.md).
-- [12 — Архитектурные решения](../architecture/12-architecture-decisions.md).
+- [00 — Overview](../architecture/00-overview.md).
+- [01 — System Architecture](../architecture/01-system-architecture.md).
+- [12 — Architecture Decisions](../architecture/12-architecture-decisions.md).
 
-Профильные документы выбирать по маршрутам в `AGENTS.md` и ссылкам текущего этапа.
-[11 — Эволюция системы](../architecture/11-evolution-and-roadmap.md) нужен при планировании или изменении архитектуры, а не для каждой реализации.
-Все пути в обратных кавычках в файлах этапов указаны от корня репозитория; короткие имена архитектурных файлов относятся к `docs/architecture/`.
-При противоречиях применять приоритет источников из `AGENTS.md` и сначала согласовать архитектурное решение.
+Select topic-specific documents using the routes in `AGENTS.md` and links in the current phase.
+[11 — System Evolution](../architecture/11-evolution-and-roadmap.md) is required when planning or changing architecture, not for every implementation.
+All backtick-enclosed paths in phase files are relative to the repository root; short architecture filenames refer to `docs/architecture/`.
+In case of conflicts, apply the source priority from `AGENTS.md` and agree on the architectural decision first.
 
-## Выбор следующей задачи
+## Choosing the Next Task
 
-1. Разблокировать текущую фазу.
-2. Исправить её failing tests.
-3. Закрыть недостающие exit criteria.
-4. Завершить интеграцию уже реализованных частей.
-5. Добавить тесты текущего поведения.
-6. Обновить необходимую документацию.
-7. Переходить дальше только после выполнения exit criteria.
+1. Unblock the current phase.
+2. Fix its failing tests.
+3. Satisfy missing exit criteria.
+4. Complete integration of already implemented parts.
+5. Add tests for current behavior.
+6. Update necessary documentation.
+7. Proceed only after meeting the exit criteria.
 
-Не перескакивать к сложной инфраструктуре только потому, что она интереснее.
-Предпочитать один законченный vertical slice: понятный outcome, один bounded context, ограниченный write scope, тесты и acceptance criteria.
-Разделять несвязанные contexts, frontend/backend до фиксации контракта, архитектурные решения и рутинную реализацию, инфраструктурные миграции и продуктовые features.
+Do not jump to complex infrastructure just because it is more interesting.
+Prefer one complete vertical slice: a clear outcome, one bounded context, limited write scope, tests, and acceptance criteria.
+Separate unrelated contexts, frontend/backend work before the contract is fixed, architectural decisions from routine implementation, and infrastructure migrations from product features.
 
-## Параллельная работа
+## Parallel Work
 
-Работать параллельно только внутри текущей фазы при независимых задачах и непересекающемся write scope.
-Обычно безопасны frontend/backend против frozen API, docs и tests вне активно изменяемых файлов, analysis-only inspection.
-Не менять одновременно OpenAPI, миграции, один bounded context, Docker Compose, root dependencies или одни файлы в refactor/feature.
-Роли моделей и правила handoff заданы в `AGENTS.md`; характер задачи важнее модели по умолчанию.
+Work in parallel only within the current phase, on independent tasks with non-overlapping write scopes.
+Usually safe: frontend/backend against a frozen API, docs and tests outside actively modified files, and analysis-only inspection.
+Do not modify OpenAPI, migrations, one bounded context, Docker Compose, root dependencies, or the same files in a refactor/feature concurrently.
+Model roles and handoff rules are defined in `AGENTS.md`; the nature of the task matters more than the default model.
 
 ## Integration Checkpoints
 
-Обязательный checkpoint указан в файле соответствующего этапа и входит в условие его завершения.
-Проверить build, совместимость frontend/backend контрактов, архитектуру, миграции, test suite, документацию, случайную связанность и exit criteria.
-Предпочтительный integration-agent — GPT-5.6.
+A required checkpoint is specified in the corresponding phase file and is part of its completion conditions.
+Check the build, frontend/backend contract compatibility, architecture, migrations, test suite, documentation, accidental coupling, and exit criteria.
+The preferred integration agent is GPT-5.6.
 
-## Демонстрация продукта
+## Product Demonstration
 
-[Portfolio Completion Target](portfolio.md) читать только при подготовке демонстрации или оценке готовности продукта.
+Read [Portfolio Completion Target](portfolio.md) only when preparing a demonstration or assessing product readiness.

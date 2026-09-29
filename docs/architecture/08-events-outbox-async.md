@@ -2,122 +2,124 @@
 
 ## Domain Events
 
-Domain Events отражают значимые события внутри бизнес-модели.
+Domain Events reflect significant events within the business model.
 
-Они описывают то, что произошло в domain, а не технический способ доставки.
+They describe what happened in the domain, not the technical delivery mechanism.
 
-Domain Event должен быть независим от:
+A Domain Event must be independent of:
 
-- Laravel event system;
-- очередей;
-- брокера сообщений;
+- the Laravel event system;
+- queues;
+- the message broker;
 - HTTP.
 
-### Соглашения (Phase 13+)
+### Conventions (Phase 13+)
 
-- Все domain events реализуют `App\Shared\Domain\DomainEvent` (интерфейс).
-- `eventId()` возвращает `DomainEventId` — уникальный идентификатор, стабильный при повторной доставке.
-- `occurredAt()` и `eventId` передаются в Domain явно — без `now()`, `Str::uuid()` или других Laravel helpers.
-- Aggregate roots используют trait `HasDomainEvents` для записи (`recordDomainEvent`) и освобождения (`releaseDomainEvents`) событий.
-- Application layer явно вызывает `releaseDomainEvents()` и регистрирует outbox message в той же транзакции.
+- All domain events implement `App\Shared\Domain\DomainEvent` (interface).
+- `eventId()` returns `DomainEventId`, a unique identifier that remains stable across redelivery.
+- `occurredAt()` and `eventId` are passed explicitly into Domain, without `now()`, `Str::uuid()`, or other Laravel helpers.
+- Aggregate roots use the `HasDomainEvents` trait to record (`recordDomainEvent`) and release (`releaseDomainEvents`) events.
+- The Application layer explicitly calls `releaseDomainEvents()` and records the outbox message in the same transaction.
 
 ## Integration Events
 
-Integration Event используется для взаимодействия между микросервисами.
+An Integration Event is used for communication between microservices.
 
-Он является внешним контрактом.
+It is an external contract.
 
-Domain Event и Integration Event не обязаны совпадать один к одному.
+Domain Events and Integration Events do not have to correspond one-to-one.
 
-Между ними допускается преобразование (mapper в Application layer).
+They may be transformed into one another (a mapper in the Application layer).
 
-### Версионирование
+### Versioning
 
-- Версия `v1` после публикации неизменна.
-- Breaking или семантические изменения требуют новой версии схемы.
-- Контракт: `contracts/events/alert-triggered.v1.schema.json`.
+- Version `v1` is immutable after publication.
+- Breaking or semantic changes require a new schema version.
+- Contract: `contracts/events/alert-triggered.v1.schema.json`.
 
-## Назначение событий
+## Purpose of Events
 
-События позволяют:
+Events enable:
 
-- уменьшить связанность модулей;
-- запускать фоновые процессы;
-- уведомлять внешние сервисы;
-- строить новые projections;
-- поддерживать будущую event-driven архитектуру.
+- reduced module coupling;
+- background process execution;
+- external service notification;
+- building new projections;
+- support for a future event-driven architecture.
 
 ## Transactional Outbox
 
-Для надёжной публикации integration events реализован Outbox Pattern.
+The Outbox Pattern is implemented for reliable integration event publication.
 
-Смысл подхода:
+The approach works as follows:
 
-- изменение бизнес-данных и регистрация будущего сообщения происходят в одной транзакции;
-- отдельный worker публикует зарегистрированные события;
-- после успешной отправки событие отмечается как опубликованное.
+- business data changes and registration of the future message occur in one transaction;
+- a separate worker publishes the recorded events;
+- after successful delivery, the event is marked as published.
 
-Это снижает риск расхождения между состоянием базы и опубликованными сообщениями.
+This reduces the risk of divergence between database state and published messages.
 
-### Таблица outbox_messages
+### outbox_messages Table
 
-Хранит immutable contract-поля (event_id, type, version, producer, workspace, aggregate, envelope, occurred_at)
-и delivery-поля (status, attempt_count, next_attempt_at, locked_at, published_at, redis_message_id, last_error).
+Stores immutable contract fields (event_id, type, version, producer, workspace, aggregate, envelope, occurred_at)
+and delivery fields (status, attempt_count, next_attempt_at, locked_at, published_at, redis_message_id, last_error).
 
-Статусы: `pending → processing → published`; при исчерпании попыток — `failed`.
+Statuses: `pending → processing → published`; after exhausting attempts, `failed`.
 
-Нет FK на business tables — удаление данных не уничтожает недоставленные события.
+There are no FKs to business tables, so deleting data does not destroy undelivered events.
 
-### Retry policy
+### Retry Policy
 
-Задержки: 1м, 5м, 15м, 1ч, 6ч, 24ч (повторяется). Максимум 10 попыток, затем `failed`.
+Delays: 1 min, 5 min, 15 min, 1 h, 6 h, 24 h (repeated). A maximum of 10 attempts, then `failed`.
 
-`outbox:retry {eventId}` — ручной сброс в `pending` для повторной публикации.
+`outbox:retry {eventId}` manually resets the status to `pending` for republication.
 
 ### At-Least-Once Delivery
 
-Если процесс упал после XADD, но до фиксации `published`, событие публикуется повторно с тем же `event_id`.
-Это ожидаемое поведение. Consumers ОБЯЗАНЫ дедуплицировать по `event_id`.
+If the process crashes after XADD but before committing `published`, the event is published again with the same `event_id`.
+This is expected behavior. Consumers MUST deduplicate by `event_id`.
 
-## Message Broker и Consumers
+## Message Broker and Consumers
 
-На первой версии полноценный message broker не обязателен.
+A full message broker is not required in the first version.
 
-Начальный транспорт: Redis Stream `autobi.integration-events` (см. ADR-017).
-Транспорт инкапсулирован за `IntegrationEventTransportInterface` и может быть заменён без изменения Domain.
+The initial transport is Redis Stream `autobi.integration-events` (see ADR-017).
+The transport is encapsulated behind `IntegrationEventTransportInterface` and can be replaced without changing Domain.
 
-Поля сообщения в Redis Stream (`XADD`):
-- `event_id` — UUID события;
-- `event_type` — строковый тип (например, `alert.triggered`);
-- `event_version` — версия схемы (например, `1`);
-- `payload` — сериализованный JSON канонического конверта события.
+Redis Stream message fields (`XADD`):
+
+- `event_id` — event UUID;
+- `event_type` — string type (for example, `alert.triggered`);
+- `event_version` — schema version (for example, `1`);
+- `payload` — serialized JSON of the canonical event envelope.
 
 ### Consumer Group (Notification Service)
 
-- **Consumer Group:** `notification-service-v1`. Создаётся с `0 MKSTREAM` для чтения истории/backlog при первом запуске.
-- **Цикл чтения:** В каждом цикле worker сначала возвращает зависшие сообщения через `XAUTOCLAIM` (по истечении idle-таймаута), затем читает новые сообщения через `XREADGROUP` с конечным block timeout.
-- **Подтверждение (XACK):** `XACK` отправляется строго после успешной фиксации локальной транзакции (сохранение `Notification` и `ConsumedEvent`) либо при обнаружении уже обработанного дубликата (`duplicate` no-op). При временных сбоях (transient error БД/сети) `XACK` не выполняется, сообщение остаётся в PEL (pending entries list).
-- **Dead-Letter Stream (`autobi.integration-events.dead-letter`):** Невалидные конверты (malformed JSON) или неподдерживаемые версии событий отправляются в dead-letter stream с указанием stream ID, event ID, причины ошибки и хеша payload, после чего исходное сообщение подтверждается (`XACK`).
-- **Игнорируемые события:** Типы событий, для которых у группы нет обработчика, логируются и подтверждаются (`XACK`), чтобы не блокировать чтение потока.
+- **Consumer Group:** `notification-service-v1`. Created with `0 MKSTREAM` to read history/backlog on the first run.
+- **Read loop:** In each iteration, the worker first reclaims stalled messages using `XAUTOCLAIM` (after the idle timeout), then reads new messages using `XREADGROUP` with a finite block timeout.
+- **Acknowledgment (XACK):** `XACK` is sent strictly after the local transaction successfully commits (persisting `Notification` and `ConsumedEvent`) or an already processed duplicate is detected (`duplicate` no-op). On transient failures (DB/network errors), no `XACK` is sent and the message remains in the PEL (pending entries list).
+- **Dead-Letter Stream (`autobi.integration-events.dead-letter`):** Invalid envelopes (malformed JSON) or unsupported event versions are sent to the dead-letter stream with the stream ID, event ID, error reason, and payload hash; the original message is then acknowledged (`XACK`).
+- **Ignored events:** Event types for which the group has no handler are logged and acknowledged (`XACK`) to avoid blocking stream consumption.
 
 ## Laravel Queues
 
-Laravel queues используются для:
+Laravel queues are used for:
 
-- тяжёлых импортов;
-- построения projections;
-- пересчёта аналитики;
-- обработки outbox в analytics (очередь `outbox`, уникальный job);
-- фоновых уведомлений;
-- других длительных операций.
+- heavy imports;
+- building projections;
+- recalculating analytics;
+- processing outbox in analytics (`outbox` queue, unique job);
+- background notifications;
+- other long-running operations.
 
-Queue worker должен слушать `outbox,default` с приоритетом outbox.
-*Примечание:* Notification service не использует Laravel Queue как промежуточный слой поверх Redis Stream: worker читает stream напрямую в CLI-команде `notifications:consume`.
+The queue worker must listen to `outbox,default`, prioritizing outbox.
+_Note:_ Notification service does not use Laravel Queue as an intermediate layer over Redis Stream: the worker reads the stream directly in the `notifications:consume` CLI command.
 
-## Идемпотентность и Deduplication
+## Idempotency and Deduplication
 
-Обработчики фоновых задач и интеграционных событий проектируются с учётом повторной доставки (at-least-once).
+Background job and integration event handlers are designed for redelivery (at-least-once).
 
-Повторная обработка одного и того же события не приводит к дублированию состояния:
-- В сервисе аналитики регистрация outbox message идемпотентна по `event_id` (ON CONFLICT DO NOTHING).
-- В сервисе уведомлений таблица `consumed_events` имеет уникальный ключ `event_id`. Вставка `notifications` и `consumed_events` атомарна в рамках локальной PostgreSQL-транзакции. При повторной доставке уже обработанного `event_id` обработчик возвращает статус `duplicate`, и сообщение безопасно подтверждается (`XACK`).
+Reprocessing the same event does not duplicate state:
+
+- In the analytics service, outbox message registration is idempotent by `event_id` (ON CONFLICT DO NOTHING).
+- In the notification service, `consumed_events` has a unique `event_id` key. Inserting `notifications` and `consumed_events` is atomic within a local PostgreSQL transaction. When an already processed `event_id` is redelivered, the handler returns `duplicate`, and the message is safely acknowledged (`XACK`).

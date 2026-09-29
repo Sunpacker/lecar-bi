@@ -1,58 +1,58 @@
 # 02. Monorepo and Services
 
-## Общий принцип
+## General Principle
 
-AutoBI хранится в одном Git-репозитории.
+AutoBI is stored in a single Git repository.
 
-Монорепозиторий используется для:
+The monorepo provides:
 
-- единой истории изменений;
-- согласованного version control;
-- хранения контрактов;
-- общей CI-конфигурации;
-- удобной совместной разработки frontend и backend;
-- централизованной архитектурной документации.
+- a unified change history;
+- coordinated version control;
+- contract storage;
+- shared CI configuration;
+- convenient joint frontend and backend development;
+- centralized architecture documentation.
 
-## Разделение сервисов
+## Service Separation
 
-В монорепозитории выделены три независимых deployable-сервиса:
+The monorepo contains three independently deployable services:
 
-- `frontend/` — Next.js web-приложение (BFF, UI, dashboards);
-- `backend/` — Laravel сервис аналитики (DDD, ingestion, sales/inventory/supplier/alerting, outbox);
-- `notification/` — Laravel сервис уведомлений (Redis Stream consumer, projection repository, inbox deduplication).
+- `frontend/` — the Next.js web application (BFF, UI, dashboards);
+- `backend/` — the Laravel analytics service (DDD, ingestion, sales/inventory/supplier/alerting, outbox);
+- `notification/` — the Laravel notification service (Redis Stream consumer, projection repository, inbox deduplication).
 
-Каждый сервис имеет:
+Each service has:
 
-- собственные зависимости (`package.json` / `composer.json`);
-- собственный конфигурационный слой (`.env.example`, `config/`);
-- собственный Dockerfile и build target;
-- собственные тесты (Unit, Feature, Architecture);
-- собственные entry points (HTTP-сервер, CLI consumer worker);
-- собственный процесс сборки и CI validation;
-- собственную базу данных (PostgreSQL для analytics и отдельный PostgreSQL для notification);
-- собственную изолированную ответственность.
+- its own dependencies (`package.json` / `composer.json`);
+- its own configuration layer (`.env.example`, `config/`);
+- its own Dockerfile and build target;
+- its own tests (Unit, Feature, Architecture);
+- its own entry points (HTTP server, CLI consumer worker);
+- its own build process and CI validation;
+- its own database (PostgreSQL for analytics and a separate PostgreSQL for notification);
+- its own isolated responsibility.
 
-## Общие директории
+## Shared Directories
 
-В монорепозитории допускаются общие каталоги для:
+The monorepo may contain shared directories for:
 
-- API-контрактов;
+- API contracts;
 - event contracts;
-- архитектурной документации;
-- общих инструментов разработки;
-- инфраструктурной конфигурации;
-- сгенерированного API-клиента.
+- architecture documentation;
+- shared development tools;
+- infrastructure configuration;
+- the generated API client.
 
-## Ограничения на shared code
+## Shared Code Constraints
 
-Не следует создавать общий пакет с бизнес-логикой, который одновременно используется frontend и backend.
+Do not create a shared business logic package used by both the frontend and backend.
 
-Общий код должен ограничиваться техническими контрактами и теми артефактами, которые действительно должны быть едиными для нескольких сервисов.
+Shared code must be limited to technical contracts and artifacts that truly need to be common to multiple services.
 
-## Владение кодом
+## Code Ownership
 
-Каждый сервис должен иметь понятную внутреннюю границу.
+Each service must have a clear internal boundary.
 
-Изменение одного сервиса не должно требовать доступа к внутренним классам другого сервиса.
+Changing one service must not require access to another service's internal classes.
 
-Взаимодействие происходит через API и интеграционные события.
+Communication takes place through APIs and integration events.

@@ -1,41 +1,41 @@
 # 00. Overview
 
-## Назначение проекта
+## Project Purpose
 
-AutoBI — BI-платформа для анализа продаж, товарных остатков, поставщиков и связанных процессов automotive e-commerce.
+AutoBI is a BI platform for analyzing sales, inventory, suppliers, and related automotive e-commerce processes.
 
-Система должна позволять пользователям получать сводную и детализированную аналитику, работать с интерактивными dashboard, применять фильтры, исследовать причины изменений показателей и в дальнейшем использовать автоматические уведомления и прогнозирование.
+The system must allow users to access summary and detailed analytics, work with interactive dashboards, apply filters, investigate the causes of metric changes, and eventually use automated notifications and forecasting.
 
-## Основные архитектурные цели
+## Main Architectural Goals
 
-Архитектура должна одновременно решать две задачи:
+The architecture must address two goals at the same time:
 
-- оставаться достаточно простой для разработки первой версии;
-- не создавать ограничений для последующего разделения системы на дополнительные микросервисы.
+- remain simple enough to develop the first version;
+- avoid creating constraints on subsequently splitting the system into additional microservices.
 
-## Базовые принципы
+## Core Principles
 
-В проекте фиксируются следующие принципы:
+The project establishes the following principles:
 
-- монорепозиторий для единого управления кодовой базой;
-- независимые deployable-сервисы внутри монорепозитория;
-- Next.js отвечает за пользовательский интерфейс и frontend-слой;
-- Laravel работает как отдельный backend-микросервис;
-- Laravel строится по DDD с чёткими границами bounded contexts;
-- бизнес-логика не должна находиться во frontend;
-- каждый микросервис должен владеть собственными данными;
-- интеграции между сервисами выполняются через публичные контракты и события;
-- аналитические запросы могут использовать специализированные read models;
-- новые микросервисы выделяются только при наличии реальной архитектурной причины;
-- архитектура должна поддерживать независимое тестирование, сборку и деплой сервисов.
+- a monorepo for unified codebase management;
+- independently deployable services within the monorepo;
+- Next.js is responsible for the user interface and frontend layer;
+- Laravel runs as a separate backend microservice;
+- Laravel follows DDD with clear bounded context boundaries;
+- business logic must not reside in the frontend;
+- each microservice must own its data;
+- services integrate through public contracts and events;
+- analytical queries may use specialized read models;
+- new microservices are extracted only when there is a real architectural reason;
+- the architecture must support independent testing, building, and deployment of services.
 
-## Архитектурный стиль
+## Architectural Style
 
-Начальная версия представляет собой распределённую систему из двух сервисов:
+The initial version is a distributed system with two services:
 
-- web-сервис на Next.js;
-- analytics-сервис на Laravel.
+- a Next.js web service;
+- a Laravel analytics service.
 
-Laravel при этом является единым deployable-сервисом, но внутренне разделяется на доменные модули.
+Laravel is a single deployable service, internally divided into domain modules.
 
-Такой подход позволяет начать с умеренной сложности и при этом сохранить возможность дальнейшего выделения ingestion, notification, forecasting, identity и других сервисов.
+This approach starts with moderate complexity while preserving the option to extract ingestion, notification, forecasting, identity, and other services later.

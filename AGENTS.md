@@ -1,159 +1,159 @@
-# Маршрутизатор автономных агентов
+# Autonomous Agent Router
 
-Монорепозиторий: Next.js frontend, Laravel analytics service, PostgreSQL, Redis и OpenAPI.
-Архитектура — в `docs/architecture/`; пути указаны от корня репозитория, Markdown-ссылки — относительно этого файла.
+Monorepo: Next.js frontend, Laravel analytics service, PostgreSQL, Redis, and OpenAPI.
+Architecture is documented in `docs/architecture/`; paths are relative to the repository root, and Markdown links are relative to this file.
 
-## Источники истины
+## Sources of Truth
 
-При конфликте применять приоритет сверху вниз: задача пользователя → `AGENTS.md` → `docs/roadmap/` →
-`docs/architecture/12-architecture-decisions.md` → остальные документы архитектуры → тесты → реализация → предположения.
+When sources conflict, apply this priority order: user task → `AGENTS.md` → `docs/roadmap/` →
+`docs/architecture/12-architecture-decisions.md` → other architecture documents → tests → implementation → assumptions.
 
-Если код расходится с архитектурой, установить причину; по умолчанию следовать архитектуре.
-Намеренное изменение архитектуры отразить в профильном документе и ADR.
+If the code diverges from the architecture, determine why; follow the architecture by default.
+Record intentional architecture changes in the relevant document and an ADR.
 
-## Маршрут чтения
+## Reading Routes
 
-Всегда читать этот файл, применимые вложенные `AGENTS.md` и [индекс roadmap](docs/roadmap/ROADMAP.md), затем первый незавершённый этап и его exit criteria.
-Чтение архитектуры начинать с [индекса архитектурной документации](docs/architecture/README.md), затем открывать документы по маршруту задачи.
-Перед началом фазы читать документы 00, 01 и 12; документ 11 — при планировании эволюции, остальные — по профилю задачи.
-Для смешанной задачи объединять маршруты. Не загружать будущие этапы roadmap и весь репозиторий без причины.
+Always read this file, applicable nested `AGENTS.md` files, and the [roadmap index](docs/roadmap/ROADMAP.md), then the first unfinished phase and its exit criteria.
+Start reading the architecture with the [architecture documentation index](docs/architecture/README.md), then open documents along the route for the task.
+Before starting a phase, read documents 00, 01, and 12; read document 11 when planning evolution, and the others as relevant to the task.
+Combine routes for tasks spanning multiple areas. Do not load future roadmap phases or the entire repository without a reason.
 
-| Область задачи                | Документы архитектуры по номерам ниже |
-| ----------------------------- | ------------------------------------- |
-| Frontend                      | 00, 01, 03, 07, 10                    |
-| Laravel / Domain              | 00, 04, 05, 06, 10, 12                |
-| API / межсервисная интеграция | 01, 02, 07, 08                        |
-| Инфраструктура                | 02, 09, 10                            |
-| Аналитика                     | 05, 06, 08                            |
-| RAG / чат поддержки           | 00, 01, 03–10, 12, RAG Support Chat   |
+| Task Area                       | Architecture Document Numbers Below |
+| ------------------------------- | ----------------------------------- |
+| Frontend                        | 00, 01, 03, 07, 10                   |
+| Laravel / Domain                | 00, 04, 05, 06, 10, 12               |
+| API / Inter-Service Integration | 01, 02, 07, 08                       |
+| Infrastructure                  | 02, 09, 10                           |
+| Analytics                       | 05, 06, 08                           |
+| RAG / Support Chat              | 00, 01, 03–10, 12, RAG Support Chat  |
 
-Для любой задачи, затрагивающей RAG, чат поддержки, базу знаний, retrieval, embeddings или AI-провайдеров,
-дополнительно обязательно читать [RAG Support Chat](docs/architecture/rag-support-chat.md).
+For any task involving RAG, support chat, the knowledge base, retrieval, embeddings, or AI providers,
+also read [RAG Support Chat](docs/architecture/rag-support-chat.md).
 
-- [00 — Обзор продукта](docs/architecture/00-overview.md)
-- [01 — Архитектура системы](docs/architecture/01-system-architecture.md)
-- [02 — Монорепозиторий и сервисы](docs/architecture/02-monorepo-and-services.md)
-- [03 — Frontend Next.js](docs/architecture/03-frontend-nextjs.md)
-- [04 — Backend Laravel DDD](docs/architecture/04-backend-laravel-ddd.md)
-- [05 — Bounded contexts](docs/architecture/05-bounded-contexts.md)
-- [06 — Данные и аналитика](docs/architecture/06-data-and-analytics.md)
-- [07 — API и интеграции](docs/architecture/07-api-and-integration.md)
-- [08 — События, Outbox, async](docs/architecture/08-events-outbox-async.md)
-- [09 — Инфраструктура, деплой, observability](docs/architecture/09-infrastructure-deployment-observability.md)
-- [10 — Тестирование и качество](docs/architecture/10-testing-and-quality.md)
-- [11 — Эволюция и roadmap](docs/architecture/11-evolution-and-roadmap.md)
-- [12 — Архитектурные решения](docs/architecture/12-architecture-decisions.md)
-- [RAG Support Chat — архитектура и порядок реализации](docs/architecture/rag-support-chat.md)
+- [00 — Product Overview](docs/architecture/00-overview.md)
+- [01 — System Architecture](docs/architecture/01-system-architecture.md)
+- [02 — Monorepo and Services](docs/architecture/02-monorepo-and-services.md)
+- [03 — Next.js Frontend](docs/architecture/03-frontend-nextjs.md)
+- [04 — Laravel DDD Backend](docs/architecture/04-backend-laravel-ddd.md)
+- [05 — Bounded Contexts](docs/architecture/05-bounded-contexts.md)
+- [06 — Data and Analytics](docs/architecture/06-data-and-analytics.md)
+- [07 — API and Integration](docs/architecture/07-api-and-integration.md)
+- [08 — Events, Outbox, and Async](docs/architecture/08-events-outbox-async.md)
+- [09 — Infrastructure, Deployment, and Observability](docs/architecture/09-infrastructure-deployment-observability.md)
+- [10 — Testing and Quality](docs/architecture/10-testing-and-quality.md)
+- [11 — Evolution and Roadmap](docs/architecture/11-evolution-and-roadmap.md)
+- [12 — Architecture Decisions](docs/architecture/12-architecture-decisions.md)
+- [RAG Support Chat — Architecture and Implementation Order](docs/architecture/rag-support-chat.md)
 
-## Выбор агента
+## Agent Selection
 
-| Модель          | Роль                    | Когда назначать                                                                                                                         |
-| --------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| GPT-5.6         | Интегратор / архитектор | Cross-service изменения, OpenAPI, DDD-границы, крупный рефакторинг, сложная отладка, порядок миграций, финальная интеграция             |
-| Claude Opus 4.6 | Domain / review         | Доменное моделирование, реализация и рефакторинг одного context, связность, упрощение, качество тестов, независимость Domain от Laravel |
-| Gemini Pro      | Repository / analysis   | Широкий анализ, карта зависимостей, повторяющиеся паттерны, документация, инвентаризация миграций, пробелы в тестах                     |
+| Model           | Role                    | When to Assign                                                                                                                    |
+| --------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| GPT-5.6         | Integrator / Architect  | Cross-service changes, OpenAPI, DDD boundaries, major refactoring, complex debugging, migration order, final integration             |
+| Claude Opus 4.6 | Domain / Review         | Domain modeling, implementation and refactoring within one context, cohesion, simplification, test quality, Domain independence from Laravel |
+| Gemini Pro      | Repository / Analysis   | Broad analysis, dependency mapping, recurring patterns, documentation, migration inventory, test coverage gaps                      |
 
-- Один агент: одна feature в одном сервисе без архитектурного решения.
-- Два агента: реализация + review, анализ + реализация или frontend + backend после фиксации контракта.
-- Три агента: только при независимых задачах; Gemini анализирует, GPT-5.6 проектирует и интегрирует, Claude реализует Domain или проверяет.
-- Для важных изменений назначать отдельного reviewer; характер задачи важнее модели по умолчанию.
+- One agent: one feature in one service without an architectural decision.
+- Two agents: implementation + review, analysis + implementation, or frontend + backend after the contract is fixed.
+- Three agents: only for independent tasks; Gemini analyzes, GPT-5.6 designs and integrates, and Claude implements Domain logic or reviews.
+- Assign a separate reviewer for important changes; the nature of the task matters more than the default model.
 
-## Scope, параллельная работа и handoff
+## Scope, Parallel Work, and Handoff
 
-До старта определить цель, разрешённые и запрещённые директории, контракт, зависимости и критерии завершения.
-Основные write scopes: `apps/web/**`, `services/analytics/**`, `contracts/**`, `docs/**`, `infra/**`.
-Параллельные задачи допустимы внутри текущей фазы при непересекающихся write scopes.
-Не назначать одновременные изменения одного bounded context двум агентам.
-Общий контракт фиксировать до параллельной реализации и не менять до её завершения.
-Интегратор назначает владельцев файлов, собирает результаты и отвечает за общие проверки; агенты не откатывают чужие изменения.
+Before starting, define the objective, allowed and prohibited directories, contract, dependencies, and completion criteria.
+Primary write scopes: `apps/web/**`, `services/analytics/**`, `contracts/**`, `docs/**`, `infra/**`.
+Parallel tasks are allowed within the current phase when write scopes do not overlap.
+Do not assign simultaneous changes to the same bounded context to two agents.
+Fix the shared contract before parallel implementation and do not change it until implementation is complete.
+The integrator assigns file ownership, collects results, and is responsible for shared checks; agents must not revert others' changes.
 
-Высококонфликтные области: root dependencies/config, Docker Compose, OpenAPI, CI, shared TypeScript config, Laravel service providers, routes и миграции; выделять integration-task.
+Areas with a high risk of conflicts: root dependencies/config, Docker Compose, OpenAPI, CI, shared TypeScript config, Laravel service providers, routes, and migrations; assign a dedicated integration task.
 
-Handoff обязан содержать:
+Every handoff must include:
 
-- Цель и текущее состояние.
-- Write Scope и Read Scope, включая релевантные архитектурные документы.
-- Контракт, зависимости и Acceptance Criteria.
-- Validation: выполненные проверки, результаты и оставшиеся проверки.
-- Известные риски и следующий конкретный шаг; «доделай backend» недостаточно.
+- Objective and current state.
+- Write Scope and Read Scope, including relevant architecture documents.
+- Contract, dependencies, and Acceptance Criteria.
+- Validation: checks performed, results, and remaining checks.
+- Known risks and the next concrete step; "finish the backend" is insufficient.
 
-## Границы ответственности
+## Responsibility Boundaries
 
-- **Frontend:** UI, routing, Server/Client Components, state, dashboards, charts, tables, filters, mapping и generated API client.
-- **Laravel:** Domain, Application, Infrastructure, Presentation, persistence, расчёты, import, queues, events и alert rules.
-- **OpenAPI:** единая публичная граница; Eloquent-модели не являются API-контрактом.
-- При изменении API: контракт → проверка совместимости → backend → генерация frontend-клиента → тесты.
-- Frontend и backend не определяют request/response независимо друг от друга.
+- **Frontend:** UI, routing, Server/Client Components, state, dashboards, charts, tables, filters, mapping, and the generated API client.
+- **Laravel:** Domain, Application, Infrastructure, Presentation, persistence, calculations, import, queues, events, and alert rules.
+- **OpenAPI:** the single public boundary; Eloquent models are not the API contract.
+- When changing an API: contract → compatibility check → backend → frontend client generation → tests.
+- Frontend and backend must not define requests/responses independently.
 
-Ключевые ограничения; подробности читать по маршрутам раздела 2:
+Key constraints; see the reading routes in section 2 for details:
 
-- Backend — один deployable analytics service, модули организованы сначала по bounded context, затем по слоям.
-- Начальные contexts: Workspace, Data Ingestion, Sales Analytics, Inventory Analytics, Supplier Analytics, Dashboard, Alerting.
-- Каждая backend-feature принадлежит context; не создавать общий `Services` для несвязанных бизнес-правил.
-- Domain независим от Laravel и внешних слоёв; Infrastructure зависит внутрь.
-- Не размещать доменные правила в controllers, jobs, Eloquent models, resources, commands CLI и listeners.
-- CQRS-lite: commands меняют состояние, queries читают; для BI предпочитать специализированные read models большим object graphs.
-- Frontend — feature-oriented: routes, features, entities, widgets, shared UI, API access и utilities; не копировать backend DDD в React.
-- Предпочитать server-side fetching, когда он сокращает client state; Client Components нужны для интерактивности.
-- Frontend форматирует данные, но не дублирует backend-расчёты и не переопределяет бизнес-смысл.
-- PostgreSQL хранит постоянные данные analytics; Redis обслуживает технические задачи.
-- Другие сервисы не читают analytics DB: обмен через versioned API или integration events.
-- Допустимы аналитические таблицы, projections, aggregates и materialized views.
-- Domain Events внутренние; Integration Events — внешние контракты, без raw domain objects.
-- Для надёжной публикации использовать Outbox, consumers делать идемпотентными; broker добавлять только по roadmap.
+- The backend is one deployable analytics service, with modules organized first by bounded context, then by layer.
+- Initial contexts: Workspace, Data Ingestion, Sales Analytics, Inventory Analytics, Supplier Analytics, Dashboard, Alerting.
+- Every backend feature belongs to a context; do not create a shared `Services` area for unrelated business rules.
+- Domain is independent of Laravel and outer layers; Infrastructure dependencies point inward.
+- Do not place domain rules in controllers, jobs, Eloquent models, resources, CLI commands, or listeners.
+- CQRS-lite: commands change state, queries read it; for BI, prefer specialized read models over large object graphs.
+- The frontend is feature-oriented: routes, features, entities, widgets, shared UI, API access, and utilities; do not copy backend DDD into React.
+- Prefer server-side fetching when it reduces client state; use Client Components for interactivity.
+- The frontend formats data but does not duplicate backend calculations or redefine business meaning.
+- PostgreSQL stores persistent analytics data; Redis handles technical tasks.
+- Other services must not read the analytics DB: exchange data through versioned APIs or integration events.
+- Analytical tables, projections, aggregates, and materialized views are allowed.
+- Domain Events are internal; Integration Events are external contracts, without raw domain objects.
+- Use Outbox for reliable publishing and make consumers idempotent; add a broker only according to the roadmap.
 
-## Алгоритм автономной работы
+## Autonomous Workflow
 
-Выполнять цикл до завершения согласованной задачи или подтверждённого внешнего блокера; не останавливаться на плане.
+Repeat this cycle until the agreed task is complete or an external blocker is confirmed; do not stop at a plan.
 
-1. **Зафиксировать цель.** Определить ожидаемый результат, scope и проверяемые acceptance criteria из запроса пользователя.
-2. **Восстановить контекст.** Пройти маршрут чтения, определить фазу, сервис и context; проверить `git status` и существующие изменения.
-3. **Выбрать задачу.** Выполнять явный запрос; при поручении продолжить roadmap брать минимальную готовую задачу текущей фазы.
-   Приоритет: блокеры → failing tests → недостающие exit criteria → интеграция → необходимые тесты и документация.
-4. **Проверить зависимости.** Найти нужные контракты, реализацию, команды проверок и доступные инструменты; отделить факты от предположений.
-5. **Составить короткий план.** Указать файлы, API/данные, проверки, риски и порядок шагов; простые обратимые решения принимать самостоятельно.
-6. **Организовать исполнение.** Выбрать одного агента или независимые подзадачи по разделам 3–4; передать каждому scope и критерии приёмки.
-7. **Реализовать связное изменение.** Соблюдать порядок изменения API из раздела 5; завершать vertical slice без несвязанного cleanup.
-8. **Проверить результат.** Запустить применимые formatter, lint, static analysis, unit, integration, contract и E2E tests из конфигурации проекта.
-   Сопоставить результат с каждым acceptance criterion; для документации проверить ссылки, согласованность и ограничения формата.
-9. **Исправить и повторить.** При сбое установить причину, внести исправление и повторить затронутые проверки; не ослаблять тесты ради успеха.
-   Если причина не меняется, сменить гипотезу или способ диагностики; внешнюю недоступность обработать по разделу 7.
-10. **Провести review.** Проверить diff, архитектурные границы, дублирование, edge cases, совместимость, миграции, race conditions и idempotency.
-    Исправить blocking / important и вернуться к шагу 8; optional не расширяют scope без необходимости.
-11. **Зафиксировать прогресс.** Для работ по roadmap обновить этап: сделано, осталось, блокеры, следующий шаг; индекс меняет интегратор.
-    Закрывать этап только после подтверждения всех exit criteria и обязательного checkpoint; отдельная правка документации не закрывает фазу.
-12. **Принять решение.** Если задача завершена — отчитаться; если в согласованном scope осталась работа — вернуться к шагу 3.
-    Переходить к следующей фазе только при выполненных exit criteria и поручении, охватывающем эту фазу.
+1. **Define the objective.** Identify the expected outcome, scope, and verifiable acceptance criteria from the user's request.
+2. **Restore context.** Follow the reading route, identify the phase, service, and context; check `git status` and existing changes.
+3. **Choose the task.** Carry out the explicit request; when asked to continue the roadmap, take the smallest task in the current phase that is ready to start.
+   Priority: blockers → failing tests → unmet exit criteria → integration → necessary tests and documentation.
+4. **Check dependencies.** Locate the required contracts, implementation, validation commands, and available tools; distinguish facts from assumptions.
+5. **Make a short plan.** Identify files, APIs/data, checks, risks, and the sequence of steps; make simple, reversible decisions independently.
+6. **Organize execution.** Choose one agent or independent subtasks according to sections 3–4; provide each agent with scope and acceptance criteria.
+7. **Implement a cohesive change.** Follow the API change order from section 5; complete a vertical slice without unrelated cleanup.
+8. **Validate the result.** Run applicable formatters, lint, static analysis, unit, integration, contract, and E2E tests from the project configuration.
+   Check the result against each acceptance criterion; for documentation, check links, consistency, and formatting constraints.
+9. **Fix and repeat.** If a check fails, determine the cause, fix it, and rerun the affected checks; do not weaken tests to make them pass.
+   If the cause remains unchanged, change the hypothesis or diagnostic approach; handle external unavailability according to section 7.
+10. **Review.** Check the diff, architectural boundaries, duplication, edge cases, compatibility, migrations, race conditions, and idempotency.
+    Resolve blocking / important findings and return to step 8; optional findings must not expand scope unnecessarily.
+11. **Record progress.** For roadmap work, update the phase: completed work, remaining work, blockers, and the next step; the integrator updates the index.
+    Close a phase only after confirming all exit criteria and the required checkpoint; a documentation change alone does not close a phase.
+12. **Decide what comes next.** If the task is complete, report the result; if work remains within the agreed scope, return to step 3.
+    Proceed to the next phase only when exit criteria are met and the assignment covers that phase.
 
-Финальный отчёт: результат, изменённые файлы, выполненные проверки и их исход, оставшиеся ограничения или конкретный блокер.
-Незапущенные проверки обозначать явно; не заявлять об успешном CI без подтверждения.
+Final report: outcome, changed files, checks performed and their results, remaining limitations or a specific blocker.
+Explicitly identify checks that were not run; do not claim CI passed without confirmation.
 
-## Автономность и ограничения
+## Autonomy and Constraints
 
-- Самостоятельно выбирать локальные имена, private helpers, организацию тестов и внутренний рефакторинг в scope.
-- Не запрашивать повторное разрешение на уже порученную работу; продолжать доступные независимые шаги, пока ожидается ответ.
-- Уточнять только неизвестные требования, влияющие на результат, или действия за пределами полномочий; задавать один конкретный вопрос с рекомендацией.
-- При блокере зафиксировать причину, предпринятые попытки и необходимый вход или доступ; не повторять без изменений заведомо неуспешное действие.
-- Не выполнять разрушительные операции, публикацию, deploy или внешние сообщения без соответствующего разрешения пользователя.
-- Без отдельной архитектурной задачи не менять границы сервисов, ownership contexts/DB, API/auth strategy,
-  messaging technology, крупные runtime dependencies, порядок фаз и зафиксированные решения.
-- При изменении архитектуры обновлять профильные документы; устойчивые решения фиксировать в документе 12 или отдельном ADR.
-- Документировать изменения интеграций, событий, deployment model и testing strategy.
-- До добавления dependency проверить существующие решения; не брать библиотеку ради тривиальной utility.
-- Миграции делать узкими, reviewable, forward-safe и по возможности совместимыми с порядком деплоя; destructive изменения анализировать отдельно.
-- Не коммитить secrets, не логировать credentials/tokens, не раскрывать exception details и sensitive values в frontend config.
-- Backend отвечает за authorization и validation; client-side state не является источником доверия.
-- Избегать N+1, больших агрегаций в PHP memory, полного dataset вместо summary и повторных тяжёлых расчётов без projections.
-- SQL/backend выполняют тяжёлую обработку; оптимизировать по необходимости, без преждевременного усложнения.
+- Choose local names, private helpers, test organization, and internal refactoring within scope independently.
+- Do not request permission again for work already assigned; continue available independent steps while awaiting a response.
+- Clarify only unknown requirements that affect the outcome or actions beyond your authority; ask one specific question with a recommendation.
+- When blocked, record the cause, attempted actions, and required input or access; do not repeat an action known to fail without changing anything.
+- Do not perform destructive operations, publish, deploy, or send external messages without appropriate user authorization.
+- Without a separate architectural task, do not change service boundaries, context/DB ownership, API/auth strategy,
+  messaging technology, major runtime dependencies, phase order, or recorded decisions.
+- When changing the architecture, update the relevant documents; record lasting decisions in document 12 or a separate ADR.
+- Document changes to integrations, events, the deployment model, and the testing strategy.
+- Check existing solutions before adding a dependency; do not add a library for a trivial utility.
+- Keep migrations narrow, reviewable, safe to apply forward, and compatible with deployment order where possible; analyze destructive changes separately.
+- Do not commit secrets, log credentials/tokens, or expose exception details or sensitive values in frontend config.
+- The backend is responsible for authorization and validation; client-side state is not a source of trust.
+- Avoid N+1 queries, large aggregations in PHP memory, full datasets instead of summaries, and repeated expensive calculations without projections.
+- SQL/backend handles heavy processing; optimize as needed, without premature complexity.
 
 ## Definition of Done
 
-- Требуемое поведение реализовано; необходимые тесты добавлены и проходят, применимые lint/static analysis и CI проходят.
-- Контракт, generated client, миграции и архитектурная документация обновлены, если затронуты.
-- Нет обязательных незакрытых TODO и несвязанных изменений; соблюдены архитектура и текущая фаза roadmap.
-- Не переходить к следующей фазе, пока обязательные exit criteria текущей не выполнены.
+- Required behavior is implemented; necessary tests are added and pass, and applicable lint/static analysis and CI pass.
+- The contract, generated client, migrations, and architecture documentation are updated if affected.
+- No mandatory TODOs remain unresolved and no unrelated changes are included; the architecture and current roadmap phase are respected.
+- Do not proceed to the next phase until the current phase's mandatory exit criteria are met.
 
 ## MCP
 
-Подключенные MCP находятся в файле `.agents/mcp.json`.
-Используй Context7 для получения актуальной документации библиотек и фреймворков перед реализацией, если API или рекомендуемый подход могли измениться.
+Connected MCPs are listed in `.agents/mcp.json`.
+Use Context7 to obtain up-to-date library and framework documentation before implementation if APIs or recommended approaches may have changed.

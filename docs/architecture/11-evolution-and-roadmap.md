@@ -1,21 +1,21 @@
 # 11. Evolution and Roadmap
 
-Ниже — укрупнённые архитектурные стадии, их номера не совпадают с этапами реализации.
-Порядок задач, exit criteria и отметки выполнения находятся в [индексе roadmap](../roadmap/ROADMAP.md).
+The following are high-level architectural stages; their numbers do not match the implementation phases.
+Task order, exit criteria, and completion status are recorded in the [roadmap index](../roadmap/ROADMAP.md).
 
-## Принцип развития
+## Evolution Principle
 
-AutoBI должен развиваться постепенно.
+AutoBI must evolve incrementally.
 
-Архитектура не должна усложняться заранее ради гипотетического будущего.
+The architecture must not be made more complex in advance for a hypothetical future.
 
-Новая инфраструктура добавляется тогда, когда она решает уже возникшую проблему.
+New infrastructure is added when it solves an existing problem.
 
 ## Phase 1 — Foundation
 
-Цели:
+Goals:
 
-- монорепозиторий;
+- monorepo;
 - Next.js;
 - Laravel;
 - Docker;
@@ -23,84 +23,84 @@ AutoBI должен развиваться постепенно.
 - Redis;
 - OpenAPI;
 - CI;
-- базовые DDD-модули;
-- базовая архитектурная документация.
+- basic DDD modules;
+- foundational architecture documentation.
 
 ## Phase 2 — Core and Demo Data
 
-Цели:
+Goals:
 
 - workspace;
-- пользователи;
+- users;
 - demo dataset;
-- базовая модель automotive e-commerce;
-- подготовка аналитического слоя;
-- seed/import тестовых данных.
+- basic automotive e-commerce model;
+- analytics layer preparation;
+- test data seeding/import.
 
 ## Phase 3 — Sales Analytics
 
-Цели:
+Goals:
 
-- основные KPI;
-- выручка;
-- заказы;
-- средний чек;
-- тренды;
-- категории;
-- регионы;
-- фильтры;
+- core KPIs;
+- revenue;
+- orders;
+- average order value;
+- trends;
+- categories;
+- regions;
+- filters;
 - drill-down.
 
 ## Phase 4 — Inventory Intelligence
 
-Цели:
+Goals:
 
-- остатки;
+- stock levels;
 - days of stock;
-- критический остаток;
+- critical stock levels;
 - overstock;
-- оборачиваемость;
+- inventory turnover;
 - ABC/XYZ;
-- специализированные read models.
+- specialized read models.
 
 ## Phase 5 — Dashboard Builder
 
-Цели:
+Goals:
 
-- пользовательские dashboard;
+- user dashboards;
 - widgets;
 - drag-and-drop layout;
-- глобальные фильтры;
-- сохранение конфигураций;
-- восстановление состояния.
+- global filters;
+- configuration persistence;
+- state restoration.
 
 ## Phase 6 — Data Ingestion
 
-Цели:
+Goals:
 
-- импорт файлов;
+- file import;
 - staging;
 - validation;
-- очереди;
+- queues;
 - import status;
 - projections;
-- обработка ошибок.
+- error handling.
 
 ## Phase 7 — Alerts and Suppliers
 
-Цели:
+Goals:
 
 - supplier analytics;
-- правила alerting;
-- создание alert;
+- alerting rules;
+- alert creation;
 - domain events;
 - integration events;
 - outbox;
-- фоновые workers.
+- background workers.
 
 ## Phase 8 — Production Architecture
 
-Цели:
+Goals:
 
 - RBAC;
 - caching;
@@ -109,16 +109,16 @@ AutoBI должен развиваться постепенно.
 - contract tests;
 - end-to-end tests;
 - performance optimization;
-- демонстрация подключения внешнего микросервиса.
+- a demonstration of connecting an external microservice.
 
-## Возможное дальнейшее выделение сервисов
+## Possible Future Service Extraction
 
-В будущем могут появиться:
+The following may be introduced in the future:
 
 - ingestion service;
 - notification service;
 - forecasting service;
 - identity service;
-- другие доменные сервисы.
+- other domain services.
 
-Выделение должно происходить только после появления устойчивой границы и эксплуатационной причины.
+Extraction must happen only once a stable boundary and an operational reason emerge.

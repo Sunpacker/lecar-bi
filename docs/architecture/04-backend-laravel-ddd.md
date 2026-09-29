@@ -1,29 +1,29 @@
 # 04. Backend Architecture — Laravel DDD
 
-## Роль Laravel
+## Laravel's Role
 
-Laravel является отдельным analytics-микросервисом.
+Laravel is a separate analytics microservice.
 
-Он представляет собой единый deployable-сервис, внутри которого используются DDD и модульное разделение по bounded contexts.
+It is a single deployable service that internally uses DDD and modular separation by bounded context.
 
-## Базовая структура модуля
+## Basic Module Structure
 
-Каждый bounded context должен иметь собственные слои:
+Each bounded context must have its own layers:
 
 - Domain;
 - Application;
 - Infrastructure;
 - Presentation.
 
-Предпочтительный принцип организации: сначала модуль, затем его внутренние слои.
+The preferred organization principle is module first, then its internal layers.
 
-Это упрощает дальнейшее выделение bounded context в отдельный сервис.
+This simplifies later extraction of a bounded context into a separate service.
 
 ## Domain Layer
 
-Domain Layer содержит бизнес-модель и не должен зависеть от Laravel.
+The Domain Layer contains the business model and must not depend on Laravel.
 
-В Domain Layer располагаются:
+The Domain Layer contains:
 
 - entities;
 - aggregates;
@@ -32,9 +32,9 @@ Domain Layer содержит бизнес-модель и не должен з�
 - domain events;
 - repository interfaces;
 - domain exceptions;
-- specifications и иные доменные политики.
+- specifications and other domain policies.
 
-Domain Layer не должен знать о:
+The Domain Layer must not know about:
 
 - HTTP;
 - Eloquent;
@@ -42,29 +42,29 @@ Domain Layer не должен знать о:
 - Redis;
 - Laravel controllers;
 - framework helpers;
-- очередях;
+- queues;
 - UI.
 
 ## Application Layer
 
-Application Layer описывает сценарии использования системы.
+The Application Layer describes the system's use cases.
 
-Он отвечает за:
+It is responsible for:
 
-- команды;
-- запросы;
+- commands;
+- queries;
 - application services;
 - handlers;
-- DTO;
+- DTOs;
 - orchestration;
-- транзакционные use cases;
-- взаимодействие с domain через публичные интерфейсы.
+- transactional use cases;
+- interacting with the domain through public interfaces.
 
-Application Layer координирует работу, но не должен превращаться в место хранения бизнес-правил.
+The Application Layer coordinates work but must not become a place for business rules.
 
 ## Infrastructure Layer
 
-Infrastructure Layer реализует технические детали:
+The Infrastructure Layer implements technical details:
 
 - persistence;
 - Eloquent;
@@ -76,34 +76,34 @@ Infrastructure Layer реализует технические детали:
 - technical adapters;
 - framework bindings.
 
-Infrastructure зависит от внутренних слоёв, а не наоборот.
+Infrastructure depends on the inner layers, not the other way around.
 
 ## Presentation Layer
 
-Presentation Layer является внешней границей HTTP.
+The Presentation Layer is the external HTTP boundary.
 
-Он отвечает за:
+It is responsible for:
 
 - controllers;
 - requests;
 - resources;
 - route registration;
-- преобразование HTTP-запроса в application use case;
-- преобразование результата use case в HTTP-ответ.
+- converting an HTTP request into an application use case;
+- converting a use case result into an HTTP response.
 
-Controllers должны оставаться тонкими.
+Controllers must remain thin.
 
-## Направление зависимостей
+## Dependency Direction
 
-Главный архитектурный принцип:
+The core architectural principle:
 
-- Presentation зависит от Application;
-- Application зависит от Domain;
-- Infrastructure реализует контракты, необходимые Domain и Application;
-- Domain не зависит от Infrastructure.
+- Presentation depends on Application;
+- Application depends on Domain;
+- Infrastructure implements the contracts required by Domain and Application;
+- Domain does not depend on Infrastructure.
 
-## Laravel как framework
+## Laravel as a Framework
 
-Laravel используется как техническая платформа, а не как доменная модель.
+Laravel is used as a technical platform, not as the domain model.
 
-Framework должен окружать domain, а не проникать в него.
+The framework must surround the domain rather than penetrate it.

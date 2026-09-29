@@ -1,102 +1,103 @@
 # 07. API and Integration
 
-## API как публичная граница
+## API as a Public Boundary
 
-Laravel должен предоставлять стабильный и явно определённый API.
+Laravel must provide a stable, explicitly defined API.
 
-API рассматривается как контракт между:
+The API is treated as a contract between:
 
-- Next.js и Laravel;
-- Laravel и будущими сервисами;
-- внутренними и внешними интеграциями.
+- Next.js and Laravel;
+- Laravel and future services;
+- internal and external integrations.
 
 ## OpenAPI
 
-Основной HTTP API должен описываться через OpenAPI.
+The main HTTP API must be described using OpenAPI.
 
-OpenAPI используется для:
+OpenAPI is used for:
 
-- документирования endpoints;
-- описания request и response моделей;
-- генерации TypeScript-клиента;
-- проверки совместимости;
+- documenting endpoints;
+- describing request and response models;
+- generating the TypeScript client;
+- compatibility checks;
 - contract testing;
-- управления изменениями API.
+- managing API changes.
 
-## Версионирование
+## Versioning
 
-Публичный API должен иметь явную версию.
+The public API must have an explicit version.
 
-Несовместимые изменения не должны незаметно ломать существующих потребителей.
+Incompatible changes must not silently break existing consumers.
 
-## Типизированный клиент
+## Typed Client
 
-Frontend должен использовать сгенерированный API-клиент.
+The frontend must use a generated API client.
 
-Ручное дублирование API-типов следует минимизировать.
+Manual duplication of API types should be minimized.
 
-## Синхронные интеграции
+## Synchronous Integrations
 
-HTTP подходит для сценариев, где:
+HTTP is suitable for scenarios where:
 
-- ответ нужен немедленно;
-- операция является request-response;
-- вызывающий сервис должен получить результат выполнения.
+- a response is needed immediately;
+- the operation follows a request-response pattern;
+- the calling service needs the execution result.
 
-## Асинхронные интеграции
+## Asynchronous Integrations
 
-События подходят для сценариев, где:
+Events are suitable for scenarios where:
 
-- не требуется немедленный ответ;
-- одна операция может заинтересовать несколько сервисов;
-- нужна слабая связанность;
-- обработка может выполняться независимо.
+- an immediate response is not required;
+- one operation may interest multiple services;
+- loose coupling is needed;
+- processing can run independently.
 
-### Интеграция Analytics → Notification
+### Analytics → Notification Integration
 
-Интеграция между сервисом аналитики и сервисом уведомлений построена на асинхронных событиях:
+The analytics and notification services integrate through asynchronous events:
 
-1. **Транспорт:** Redis Stream `autobi.integration-events`.
-2. **Публикация:** Сервис аналитики регистрирует событие в PostgreSQL Outbox в той же транзакции, что и бизнес-изменение (Transactional Outbox). Фоновый worker публикует событие в Redis Stream через команду `XADD` с полями `event_id`, `event_type`, `event_version` и `payload` (JSON-сериализованный канонический envelope).
-3. **Потребление:** Сервис уведомлений читает поток через consumer group `notification-service-v1` с помощью `XREADGROUP` и `XAUTOCLAIM`.
-4. **Автономия:** Сервис уведомлений никогда не делает обратных синхронных HTTP-вызовов к analytics API и не обращается к analytics DB. Вся необходимая информация для формирования заголовка, тела и аналитического контекста уведомления содержится в каноническом payload события `alert.triggered.v1`.
+1. **Transport:** Redis Stream `autobi.integration-events`.
+2. **Publication:** The analytics service records the event in PostgreSQL Outbox in the same transaction as the business change (Transactional Outbox). A background worker publishes the event to Redis Stream using `XADD` with the fields `event_id`, `event_type`, `event_version`, and `payload` (the JSON-serialized canonical envelope).
+3. **Consumption:** The notification service reads the stream through the `notification-service-v1` consumer group using `XREADGROUP` and `XAUTOCLAIM`.
+4. **Autonomy:** The notification service never makes synchronous HTTP calls back to the analytics API or accesses the analytics DB. The canonical `alert.triggered.v1` event payload contains all information needed to create the notification's title, body, and analytical context.
 
 ## Anti-Corruption Layer
 
-При интеграции с внешними системами и при приёме событий не следует напрямую переносить внешние или транспортные структуры в Domain.
+When integrating with external systems or receiving events, external or transport structures must not be transferred directly into Domain.
 
-В Notification Service:
-- транспортный Redis Stream envelope декодируется декодером `AlertTriggeredV1Decoder` в неизменяемый прикладной DTO `AlertTriggeredV1`;
-- Application use case `ConsumeAlertTriggered` преобразует DTO в локальную доменную сущность `Notification` и запись дедупликации `ConsumedEvent`;
-- Domain слой сервиса уведомлений ничего не знает о Redis, Eloquent или моделях сервиса аналитики.
+In Notification Service:
 
-## Совместимость и версионирование
+- the Redis Stream transport envelope is decoded by `AlertTriggeredV1Decoder` into the immutable application DTO `AlertTriggeredV1`;
+- the `ConsumeAlertTriggered` Application use case converts the DTO into the local `Notification` domain entity and a `ConsumedEvent` deduplication record;
+- the notification service's Domain layer knows nothing about Redis, Eloquent, or the analytics service's models.
 
-При развитии API и event contracts соблюдается строгая политика совместимости:
+## Compatibility and Versioning
 
-- **OpenAPI HTTP API:** версионируется в URL (`/api/v2/...` для Analytics, `/api/v1/...` для Notification). Защищённые эндпоинты v1 Analytics возвращают `410 Gone`, требуя Bearer-авторизации Sanctum через v2.
-- **Event Contracts:** схема `alert.triggered.v1` (`contracts/events/alert-triggered.v1.schema.json`) после публикации неизменна (`immutable`).
-- Любое изменение семантики или добавление обязательных полей требует новой версии события (например, `alert.triggered.v2`) с отдельным декодером и обработчиком. Неподдерживаемые версии событий отправляются в dead-letter stream и не приводят к сбою consumer group.
+API and event contract evolution follows a strict compatibility policy:
 
-## Авторизация API и Capability Checks (Workspace RBAC)
+- **OpenAPI HTTP API:** versioned in the URL (`/api/v2/...` for Analytics, `/api/v1/...` for Notification). Protected Analytics v1 endpoints return `410 Gone`, requiring Sanctum Bearer authentication through v2.
+- **Event Contracts:** the `alert.triggered.v1` schema (`contracts/events/alert-triggered.v1.schema.json`) is immutable after publication (`immutable`).
+- Any semantic change or addition of required fields requires a new event version (for example, `alert.triggered.v2`) with a separate decoder and handler. Unsupported event versions are sent to the dead-letter stream and do not crash the consumer group.
 
-Разграничение доступа к ресурсам аналитического сервиса осуществляется на уровне возможностей (capabilities):
+## API Authorization and Capability Checks (Workspace RBAC)
 
-1. **Контракт OpenAPI (`contracts/openapi/analytics-v2.yaml`):**
-   - Все защищённые endpoints аннотированы расширением `x-required-capability`, фиксирующим обязательное атомарное право для выполнения операции:
-     - `analytics.view`: аналитические отчёты и сводки (продажи, склад, ABC/XYZ, поставщики);
-     - `dashboards.view`: чтение списка и конфигураций дашбордов и сохранённых представлений;
-     - `dashboards.manage`: создание, изменение и удаление дашбордов и представлений;
-     - `imports.view`: чтение батчей и статусов импортов данных;
-     - `imports.manage`: загрузка файлов и повторный запуск импорта;
-     - `alerts.view`: чтение правил алертов, активных инцидентов и сводки;
-     - `alerts.manage`: создание, редактирование, удаление, переключение правил, ручной запуск оценки, подтверждение и резолюция алертов;
-     - `workspace.members.manage`: просмотр участников рабочего пространства и изменение их ролей;
-     - `workspace.settings.manage`: переименование рабочего пространства (только владелец).
-   - Схема `WorkspaceResponse` включает обязательный массив `capabilities: string[]`, вычисляемый backend на основе роли текущего пользователя в запрашиваемом воркспейсе.
+Access to analytics service resources is controlled at the capability level:
+
+1. **OpenAPI contract (`contracts/openapi/analytics-v2.yaml`):**
+   - All protected endpoints are annotated with the `x-required-capability` extension, specifying the atomic permission required for the operation:
+     - `analytics.view`: analytical reports and summaries (sales, inventory, ABC/XYZ, suppliers);
+     - `dashboards.view`: reading dashboard and saved view lists and configurations;
+     - `dashboards.manage`: creating, updating, and deleting dashboards and views;
+     - `imports.view`: reading data import batches and statuses;
+     - `imports.manage`: uploading files and retrying imports;
+     - `alerts.view`: reading alert rules, active incidents, and summaries;
+     - `alerts.manage`: creating, editing, deleting, and toggling rules, manually triggering evaluation, acknowledging and resolving alerts;
+     - `workspace.members.manage`: viewing workspace members and changing their roles;
+     - `workspace.settings.manage`: renaming the workspace (owner only).
+   - The `WorkspaceResponse` schema includes a required `capabilities: string[]` array, calculated by the backend from the current user's role in the requested workspace.
 2. **Backend Enforcement:**
-   - Middleware `RequireWorkspaceCapabilityMiddleware` валидирует контекст тенанта и право доступа вызывающего пользователя до передачи управления контроллерам и сервисным слоям.
-   - При отсутствии требуемой возможности возвращается унифицированный ответ:
+   - `RequireWorkspaceCapabilityMiddleware` validates the tenant context and the caller's permission before passing control to controllers and service layers.
+   - If the required capability is absent, a standardized response is returned:
      ```json
      {
        "error": "INSUFFICIENT_CAPABILITY",
@@ -104,6 +105,5 @@ HTTP подходит для сценариев, где:
        "required_capability": "..."
      }
      ```
-   - Защита от race condition и инвариант наличия хотя бы одного владельца обеспечивается транзакционной блокировкой воркспейса; нарушение возвращает `409 LAST_WORKSPACE_OWNER`.
-   - Cross-workspace isolation проверяется строго до выполнения бизнес-операций.
-
+   - Race condition protection and the invariant requiring at least one owner are enforced by a transactional workspace lock; violations return `409 LAST_WORKSPACE_OWNER`.
+   - Cross-workspace isolation is strictly checked before business operations execute.

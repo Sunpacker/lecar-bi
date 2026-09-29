@@ -1,126 +1,128 @@
 # 06. Data and Analytics Architecture
 
-## Общий подход
+## General Approach
 
-AutoBI является read-heavy системой.
+AutoBI is a read-heavy system.
 
-Архитектура должна быть оптимизирована не только под транзакционные use cases, но и под большое количество агрегированных аналитических запросов.
+The architecture must be optimized not only for transactional use cases but also for a large number of aggregated analytical queries.
 
-## Разделение моделей
+## Model Separation
 
-Следует различать:
+Distinguish between:
 
-- доменную модель;
-- модель хранения;
-- аналитическую модель;
+- the domain model;
+- the storage model;
+- the analytical model;
 - read models;
 - API representation.
 
-Не требуется заставлять все эти уровни использовать одну и ту же структуру данных.
+There is no requirement to make all these layers use the same data structure.
 
 ## PostgreSQL
 
-PostgreSQL является основным постоянным хранилищем analytics-сервиса.
+PostgreSQL is the analytics service's primary persistent store.
 
-Он хранит:
+It stores:
 
-- настройки;
-- пользовательские dashboard;
+- settings;
+- user dashboards;
 - alert rules;
-- импортированные данные;
-- staging-данные;
-- аналитические факты;
-- измерения;
-- технические таблицы.
+- imported data;
+- staging data;
+- analytical facts;
+- dimensions;
+- technical tables.
 
-## Логическое разделение данных
+## Logical Data Separation
 
-Рекомендуется логически отделять:
+The following should be logically separated:
 
-- core-данные;
+- core data;
 - staging;
 - analytics.
 
-Это упрощает понимание жизненного цикла данных.
+This makes the data lifecycle easier to understand.
 
 ## Star Schema
 
-Для аналитических наборов данных допускается использование элементов Star Schema.
+Analytical datasets may use elements of a Star Schema.
 
-Основная идея:
+The main idea:
 
-- facts хранят измеримые события;
-- dimensions описывают контекст;
-- аналитические запросы строятся вокруг агрегирования facts по dimensions.
+- facts store measurable events;
+- dimensions describe context;
+- analytical queries are built around aggregating facts by dimensions.
 
-Подход особенно полезен для:
+The approach is especially useful for:
 
-- продаж;
-- снимков остатков;
-- поставок;
-- временных разрезов;
-- регионов;
-- товаров;
-- поставщиков;
-- складов.
+- sales;
+- inventory snapshots;
+- deliveries;
+- time-based breakdowns;
+- regions;
+- products;
+- suppliers;
+- warehouses.
 
 ## Read Models
 
-Для сложных dashboard должны создаваться специализированные read models.
+Specialized read models must be created for complex dashboards.
 
-Они могут использовать:
+They may use:
 
-- оптимизированные SQL-запросы;
-- агрегированные таблицы;
+- optimized SQL queries;
+- aggregate tables;
 - materialized views;
-- предварительно вычисленные показатели;
-- кэш.
+- precomputed metrics;
+- caching.
 
-Read model не обязан быть доменной entity.
+A read model does not have to be a domain entity.
 
 ## CQRS-lite
 
-В проекте используется облегчённое разделение command и query.
+The project uses lightweight command/query separation.
 
-Commands изменяют состояние системы.
+Commands change system state.
 
-Queries получают данные и могут использовать специализированные аналитические модели.
+Queries retrieve data and may use specialized analytical models.
 
-Не требуется вводить отдельные физические базы данных для command и query частей на раннем этапе.
+Separate physical databases for the command and query sides are not required at an early stage.
 
-## Производительность и селективное кэширование
+## Performance and Selective Caching
 
-При построении аналитических запросов приоритетом является эффективное выполнение на стороне СУБД.
+Efficient execution in the DBMS is the priority when building analytical queries.
 
-Не следует загружать большие объёмы аналитических данных в память PHP только для последующего агрегирования.
+Do not load large volumes of analytical data into PHP memory merely to aggregate them afterward.
 
-В Phase 16 внедрен инженерный контракт производительности:
-1. **Покрывающие и композитные B-tree индексы в PostgreSQL:**
-   - Индекс `idx_foi_ws_order_covering` на `fact_order_items (workspace_id, order_id) INCLUDE (total_price, gross_profit)` позволил перевести ключевые агрегаты продаж (`SALES-01`, дашборды `DASH-01`, `DASH-02`) в режим `Index Only Scan` без дисковых сбросов сортировки (`Temp Read/Written: 0`), сократив p95 с 1 947 ms до 370 ms на 100k+ заказов.
-   - Композитные индексы для фильтрации по датам, категориям, регионам и остаткам обеспечили попадание всех 23 сценариев в установленные бюджеты без внешних аналитических хранилищ.
-2. **Обоснованное решение по материализованным представлениям / проекциям:**
-   - На основе измерений на эталонном профиле `large` (100k заказов, 300k позиций, 500k остатков) создание специализированных projection-таблиц **отклонено**: все сценарии достигли бюджетов (p95 ≤ 1 000 ms для summary, ≤ 1 500 ms для списков) чисто средствами SQL и индексов.
-   - Это сохранило архитектурную простоту, исключило write amplification при пакетном импорте и предотвратило рассинхронизацию данных.
+Phase 16 introduced an engineering performance contract:
+
+1. **Covering and composite B-tree indexes in PostgreSQL:**
+   - The `idx_foi_ws_order_covering` index on `fact_order_items (workspace_id, order_id) INCLUDE (total_price, gross_profit)` enabled `Index Only Scan` for key sales aggregates (`SALES-01`, dashboards `DASH-01`, `DASH-02`) without sort spills to disk (`Temp Read/Written: 0`), reducing p95 from 1,947 ms to 370 ms on 100k+ orders.
+   - Composite indexes for filtering by dates, categories, regions, and stock levels brought all 23 scenarios within the defined budgets without external analytics stores.
+2. **Evidence-based decision on materialized views / projections:**
+   - Based on measurements using the reference `large` profile (100k orders, 300k line items, 500k stock records), dedicated projection tables were **rejected**: all scenarios met their budgets (p95 ≤ 1,000 ms for summaries, ≤ 1,500 ms for lists) using SQL and indexes alone.
+   - This preserved architectural simplicity, eliminated write amplification during batch imports, and prevented data divergence.
 3. **Selective Versioned Cache (Redis):**
-   - Кэшируются только детерминированные низкокардинальные агрегаты и справочники фильтров (allowlist из 7 методов).
-   - Поисковые запросы и пагинированные списки записей категорически не кэшируются.
-   - Кэш расположен строго внутри инфраструктурных декораторов Read Model за границей авторизации и валидации workspace.
-   - Инвалидация основана на монотонных версиях датасетов в таблице `analytics_dataset_versions`. При импорте новых фактов версия инкрементируется, старые ключи становятся недостижимыми и вытесняются по TTL (120–300 с) без блокирующих операций `KEYS *` или `Cache::flush()`.
-   - Семантика Fail-Open: сбой Redis мягко деградирует задержку до прямого SQL-запроса к PostgreSQL без ошибки 500 для пользователя.
+   - Only deterministic, low-cardinality aggregates and filter option lists are cached (an allowlist of 7 methods).
+   - Search queries and paginated record lists are strictly excluded from caching.
+   - The cache resides strictly within Read Model infrastructure decorators, behind the workspace authorization and validation boundary.
+   - Invalidation uses monotonic dataset versions in the `analytics_dataset_versions` table. Importing new facts increments the version; old keys become unreachable and expire by TTL (120–300 s), without blocking `KEYS *` or `Cache::flush()` operations.
+   - Fail-Open semantics: a Redis failure gracefully falls back to the latency of a direct PostgreSQL query without a user-facing 500 error.
 
-## Аналитика ассортимента и сегментация (ABC/XYZ)
+## Assortment Analytics and Segmentation (ABC/XYZ)
 
-Для сегментации ассортимента и оптимизации структуры запасов применяется совмещенный ABC/XYZ анализ:
-- **ABC-анализ** классифицирует позиции по вкладу в совокупную выручку на основе закона Парето (A: 80%, B: 15%, C: 5%).
-- **XYZ-анализ** классифицирует позиции по стабильности спроса на основе выборочного коэффициента вариации $CV = \frac{s}{\bar{x}} \times 100\%$ (X: $\le 15\%$, Y: $15\% - 35\%$, Z: $> 35\%$).
-- Матрица $3 \times 3$ объединяет 9 групп (AX...CZ) и определяет дифференцированные политики пополнения, нормирования страхового запаса и снижения риска неликвидов.
+Combined ABC/XYZ analysis is used to segment the assortment and optimize inventory composition:
 
-Подробная математическая модель, пороговые значения и бизнес-стратегии описаны в [Методологии совмещенного ABC/XYZ анализа](abc-xyz-methodology.md).
+- **ABC analysis** classifies items by their contribution to total revenue based on the Pareto principle (A: 80%, B: 15%, C: 5%).
+- **XYZ analysis** classifies items by demand stability using the sample coefficient of variation $CV = \frac{s}{\bar{x}} \times 100\%$ (X: $\le 15\%$, Y: $15\% - 35\%$, Z: $> 35\%$).
+- The $3 \times 3$ matrix combines 9 groups (AX...CZ) and defines differentiated policies for replenishment, safety stock sizing, and reducing dead stock risk.
 
-## Владение базой данных
+The detailed mathematical model, thresholds, and business strategies are described in the [Combined ABC/XYZ Analysis Methodology](abc-xyz-methodology.md).
 
-Analytics-сервис владеет собственной базой.
+## Database Ownership
 
-Будущие микросервисы не должны обращаться к этой базе напрямую.
+The analytics service owns its database.
 
-Если другому сервису нужны данные, они передаются через API или события.
+Future microservices must not access this database directly.
+
+If another service needs data, it is delivered through APIs or events.

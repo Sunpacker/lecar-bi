@@ -1,60 +1,60 @@
 # 03. Frontend Architecture — Next.js
 
-## Роль frontend
+## Frontend Role
 
-Next.js является пользовательским web-приложением AutoBI.
+Next.js is AutoBI's user-facing web application.
 
-Его задача — предоставить быстрый, интерактивный и удобный интерфейс для работы с аналитикой.
+Its purpose is to provide a fast, interactive, and convenient interface for working with analytics.
 
-## Обязательный UI-стек
+## Required UI Stack
 
-Для построения интерфейса необходимо использовать **shadcn/ui в связке с Tailwind CSS**.
+The interface must be built using **shadcn/ui together with Tailwind CSS**.
 
-- shadcn/ui — основа переиспользуемых UI-компонентов.
-- Tailwind CSS — основной инструмент стилизации и адаптивной вёрстки.
-- Общие UI-компоненты размещаются в shared UI и переиспользуются в функциональных областях.
+- shadcn/ui is the foundation for reusable UI components.
+- Tailwind CSS is the primary tool for styling and responsive layouts.
+- Common UI components belong in shared UI and are reused across functional areas.
 
-Выбор стека закреплён в [ADR-016](12-architecture-decisions.md#adr-016--shadcnui-and-tailwind-css).
+This stack choice is recorded in [ADR-016](12-architecture-decisions.md#adr-016--shadcnui-and-tailwind-css).
 
-## Основная ответственность
+## Main Responsibilities
 
-Frontend отвечает за:
+The frontend is responsible for:
 
-- отображение аналитических данных;
-- интерактивные dashboard;
-- построение графиков;
-- таблицы;
-- глобальные и локальные фильтры;
-- drill-down сценарии;
-- dashboard builder;
-- клиентское состояние;
-- пользовательскую навигацию;
-- SSR и server-side data fetching;
-- обработку frontend-сессии;
-- frontend-specific mapping данных.
+- displaying analytical data;
+- interactive dashboards;
+- charting;
+- tables;
+- global and local filters;
+- drill-down flows;
+- the dashboard builder;
+- client state;
+- user navigation;
+- SSR and server-side data fetching;
+- frontend session handling;
+- frontend-specific data mapping.
 
-## Ограничение бизнес-логики
+## Business Logic Constraints
 
-Frontend не должен определять доменные правила.
+The frontend must not define domain rules.
 
-Если показатель влияет на бизнес-интерпретацию, его вычисление должно находиться на backend.
+If a metric affects business interpretation, it must be calculated on the backend.
 
-Примеры таких правил:
+Examples of such rules:
 
-- определение критического остатка;
-- расчёт days of stock;
-- ABC/XYZ-классификация;
-- определение overstock;
-- расчёт KPI;
-- правила срабатывания alert.
+- determining critical stock levels;
+- calculating days of stock;
+- ABC/XYZ classification;
+- determining overstock;
+- calculating KPIs;
+- alert triggering rules.
 
-Frontend получает уже рассчитанные значения и отвечает за их представление.
+The frontend receives precomputed values and is responsible for their presentation.
 
-## Feature-oriented структура
+## Feature-Oriented Structure
 
-Frontend рекомендуется организовывать по функциональным областям, а не переносить backend-DDD буквально.
+The frontend should be organized by functional area, rather than literally reproducing backend DDD.
 
-Допустимые крупные области:
+Possible major areas:
 
 - dashboards;
 - sales analytics;
@@ -66,47 +66,46 @@ Frontend рекомендуется организовывать по функц
 - shared API client;
 - shared utilities.
 
-## Работа с API
+## API Access
 
-Frontend должен обращаться к backend через типизированный клиент, сформированный на основе OpenAPI-контракта.
+The frontend must access the backend through a typed client generated from the OpenAPI contract.
 
-Это позволяет:
+This helps:
 
-- уменьшить количество расхождений типов;
-- контролировать изменение API;
-- упростить рефакторинг;
-- сделать ошибки контракта заметными на этапе разработки.
+- reduce type mismatches;
+- control API changes;
+- simplify refactoring;
+- expose contract errors during development.
 
 ## BFF
 
-Next.js может выполнять роль тонкого BFF.
+Next.js may act as a thin BFF.
 
-BFF может:
+The BFF may:
 
-- работать с cookie и сессиями;
-- выполнять server-side запросы к Laravel;
-- скрывать внутренний адрес backend;
-- объединять несколько технических запросов для нужд UI;
-- выполнять преобразования, специфичные только для frontend.
+- handle cookies and sessions;
+- make server-side requests to Laravel;
+- hide the backend's internal address;
+- combine several technical requests for UI needs;
+- perform frontend-specific transformations.
 
-BFF не должен:
+The BFF must not:
 
-- реализовывать бизнес-правила;
-- рассчитывать аналитические метрики;
-- определять статусы предметной области;
-- заменять Application Layer backend.
+- implement business rules;
+- calculate analytical metrics;
+- determine domain statuses;
+- replace the backend Application Layer.
 
-## Авторизация и разграничение доступа (RBAC)
+## Authorization and Access Control (RBAC)
 
-Разграничение доступа во frontend реализовано по принципу **capabilities-driven UX**:
+Frontend access control follows **capabilities-driven UX**:
 
-- Frontend использует список возможностей (`capabilities`), возвращаемый backend в контракте `WorkspaceResponse` (эндпоинты `/workspaces`, `/workspaces/current`, `/workspaces/{id}`).
-- Frontend **никогда не вычисляет права из строковых ролей** (`owner`, `member`, `viewer`). Доменная роль остаётся исключительно в Workspace Domain на backend.
-- В приложении используется React context `WorkspaceAccessProvider` и хук `useWorkspaceAccess`, предоставляющий функцию `hasCapability(requiredCapability)`.
-- Реализован принцип **fail-closed**: если контекст доступа отсутствует или список capabilities не передан, проверка возвращает `false`, предотвращая несанкционированные мутации.
-- Скрытие или отключение управляющих элементов (кнопки создания/удаления дашбордов, создания/переключения алертов, загрузки импортов, меню пресетов) является исключительно UX-оптимизацией для чистоты интерфейса. Единственным авторитетным источником контроля доступа остаётся backend (HTTP `403 INSUFFICIENT_CAPABILITY`).
-- Страница `/settings/access` отображает список участников и форму смены ролей только при наличии `workspace.members.manage`.
-
+- The frontend uses the list of capabilities (`capabilities`) returned by the backend in the `WorkspaceResponse` contract (endpoints `/workspaces`, `/workspaces/current`, `/workspaces/{id}`).
+- The frontend **never derives permissions from role strings** (`owner`, `member`, `viewer`). The domain role remains exclusively in the backend Workspace Domain.
+- The application uses the `WorkspaceAccessProvider` React context and the `useWorkspaceAccess` hook, which provides `hasCapability(requiredCapability)`.
+- The **fail-closed** principle is implemented: if the access context is absent or the capabilities list is missing, the check returns `false`, preventing unauthorized mutations.
+- Hiding or disabling controls (dashboard create/delete buttons, alert create/toggle buttons, import uploads, preset menus) is purely a UX optimization to keep the interface clear. The backend remains the sole authoritative source of access control (HTTP `403 INSUFFICIENT_CAPABILITY`).
+- The `/settings/access` page displays the member list and role change form only when `workspace.members.manage` is available.
 
 ## UI Component Catalog
 

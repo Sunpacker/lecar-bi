@@ -1,18 +1,18 @@
-# Phase 0 — Bootstrap репозитория
+# Phase 0 — Repository Bootstrap
 
-[Индекс и правила roadmap](README.md) · [Маршрутизатор агентов](../../AGENTS.md)
+[Roadmap index and rules](ROADMAP.md) · [Agent router](../../AGENTS.md)
 
-## Цель
+## Goal
 
-Создать стабильную основу монорепозитория.
+Create a stable foundation for the monorepo.
 
-## Функциональность
+## Functionality
 
-- корневая monorepo-структура;
-- Next.js в выделенном корне приложения;
-- Laravel analytics service в выделенном корне сервиса;
+- root monorepo structure;
+- Next.js in a dedicated application root;
+- Laravel analytics service in a dedicated service root;
 - `docs/architecture/`;
-- общие contracts;
+- shared contracts;
 - infrastructure directory;
 - environment conventions;
 - root developer commands;
@@ -22,11 +22,11 @@
 
 ## Exit Criteria
 
-Frontend/backend имеют независимые корни, пути документации соответствуют `docs/architecture/`, ownership однозначен, root workflow документирован.
+Frontend/backend have independent roots, documentation paths match `docs/architecture/`, ownership is unambiguous, and the root workflow is documented.
 
-## Прогресс
+## Progress
 
-- Compose-конфигурация принимает параметры окружения для образов, host-портов, публичных URL и настроек приложений; публичные Next.js URL также передаются на этапе сборки.
-- Секреты backend и PostgreSQL передаются через `infra/.env`; шаблон хранится в `infra/.env.example`.
-- Root-команды загружают `infra/.env`, а при его отсутствии используют локальные значения из `infra/.env.example`.
-- Остаётся проверить остальные exit criteria bootstrap-фазы перед её закрытием.
+- The Compose configuration accepts environment parameters for images, host ports, public URLs, and application settings; public Next.js URLs are also passed at build time.
+- Backend and PostgreSQL secrets are passed through `infra/.env`; the template is stored in `infra/.env.example`.
+- Root commands load `infra/.env` and fall back to local values from `infra/.env.example` when it is absent.
+- The remaining bootstrap exit criteria still need to be verified before closing the phase.

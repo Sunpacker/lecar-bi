@@ -1,50 +1,50 @@
-# ADR-021: Переход на Laravel Sanctum для аутентификации API
+# ADR-021: Migration to Laravel Sanctum for API Authentication
 
-## Статус
+## Status
 
-Принято (2026-09-25)
+Accepted (2026-09-25)
 
-## Контекст
+## Context
 
-Backend аутентифицировал запросы через заголовок `X-User-Id`, который передавался из Next.js BFF. Этот подход имел критическую уязвимость: любой, кто мог отправить HTTP-запрос напрямую к backend, мог указать произвольный `X-User-Id` и получить доступ к любому аккаунту без проверки.
+The backend authenticated requests through the `X-User-Id` header forwarded by the Next.js BFF. This approach had a critical vulnerability: anyone able to send an HTTP request directly to the backend could supply an arbitrary `X-User-Id` and access any account without verification.
 
-Frontend хранил сессию в подписанной HMAC cookie (`autobi_session`), но backend не участвовал в сессионном управлении: logout удалял cookie на стороне frontend, при этом «сессия» на backend не существовала — не было механизма отзыва.
+The frontend stored the session in a signed HMAC cookie (`autobi_session`), but the backend did not participate in session management: logout deleted the frontend cookie, while no backend "session" existed and there was no revocation mechanism.
 
-## Решение
+## Decision
 
-Использовать **Laravel Sanctum** (API tokens) для аутентификации:
+Use **Laravel Sanctum** (API tokens) for authentication:
 
-1. **Login** возвращает одноразовый plainText token; frontend сохраняет его в HttpOnly cookie.
-2. **Каждый запрос** к backend содержит `Authorization: Bearer {token}`.
-3. **Sanctum middleware** (`auth:sanctum`) проверяет токен, извлекает пользователя и устанавливает `authenticated_user_id` в request attributes.
-4. **Logout** отзывает текущий токен на стороне backend.
-5. **Смена пароля** отзывает все токены и требует повторного входа.
-6. **Срок действия** токена — 7 дней (Sanctum expiration).
+1. **Login** returns the plainText token once; the frontend stores it in an HttpOnly cookie.
+2. **Every request** to the backend contains `Authorization: Bearer {token}`.
+3. **Sanctum middleware** (`auth:sanctum`) validates the token, retrieves the user, and sets `authenticated_user_id` in request attributes.
+4. **Logout** revokes the current token on the backend.
+5. **Password changes** revoke all tokens and require signing in again.
+6. **Token lifetime** is 7 days (Sanctum expiration).
 
-### Миграционный путь
+### Migration Path
 
-- API v2 с Bearer-аутентификацией сосуществует параллельно.
-- V1 защищённые маршруты возвращают `410 Gone` — требуется повторный вход.
-- Health endpoints v1 сохранены для обратной совместимости мониторинга.
-- Frontend перенаправляет все API-запросы через BFF proxy (`/api/backend/[...path]`), который добавляет Bearer token из cookie.
+- API v2 with Bearer authentication coexists in parallel.
+- Protected v1 routes return `410 Gone`, requiring a new sign-in.
+- V1 health endpoints are retained for monitoring backward compatibility.
+- The frontend routes all API requests through the BFF proxy (`/api/backend/[...path]`), which adds the Bearer token from the cookie.
 
-### Токены
+### Tokens
 
-- `tokenable_id` — строка (совместимость с существующими string user IDs).
-- Таблица `personal_access_tokens` — стандартная Sanctum, с адаптированным типом ID.
+- `tokenable_id` is a string (compatible with existing string user IDs).
+- The `personal_access_tokens` table is the standard Sanctum table with an adapted ID type.
 
-## Альтернативы
+## Alternatives
 
-| Альтернатива | Причина отказа |
-|---|---|
-| JWT (self-contained) | Невозможность мгновенного отзыва без дополнительной инфраструктуры (blacklist) |
-| Passport (OAuth2) | Избыточная сложность для single-application use case |
-| Laravel Session (cookie-based) | Сложность интеграции с Next.js SSR; stateful sessions плохо масштабируются |
-| Оставить X-User-Id | Критическая уязвимость — не вариант |
+| Alternative                    | Reason for Rejection                                                               |
+| ------------------------------ | ---------------------------------------------------------------------------------- |
+| JWT (self-contained)           | Immediate revocation is impossible without additional infrastructure (a blacklist) |
+| Passport (OAuth2)              | Excessive complexity for a single-application use case                             |
+| Laravel Session (cookie-based) | Difficult integration with Next.js SSR; stateful sessions scale poorly             |
+| Retain X-User-Id               | Critical vulnerability — not an option                                             |
 
-## Последствия
+## Consequences
 
-- Все существующие тесты требуют обновления: вместо `'X-User-Id' => 'user-1'` нужно создавать Sanctum-токен.
-- Frontend workspace-gateway и другие API gateways не передают `userId` — авторизация автоматическая.
-- Rate limiters используют `authenticated_user_id` из request attributes.
-- Согласованный релиз frontend/backend обязателен.
+- All existing tests require updates: create a Sanctum token instead of using `'X-User-Id' => 'user-1'`.
+- The frontend workspace-gateway and other API gateways do not pass `userId`; authorization is automatic.
+- Rate limiters use `authenticated_user_id` from request attributes.
+- A coordinated frontend/backend release is mandatory.

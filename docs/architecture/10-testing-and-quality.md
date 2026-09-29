@@ -1,106 +1,107 @@
 # 10. Testing and Quality
 
-## Общая стратегия
+## General Strategy
 
-Тестирование должно соответствовать архитектурным слоям и давать быстрый feedback при изменении кода.
+Testing must align with the architectural layers and provide fast feedback when code changes.
 
 ## Domain Tests
 
-Domain Layer тестируется преимущественно unit-тестами.
+The Domain Layer is tested primarily with unit tests.
 
-Основные цели:
+Main goals:
 
-- проверка бизнес-правил;
-- проверка invariant;
-- проверка value objects;
-- проверка domain services;
-- проверка domain events.
+- verify business rules;
+- verify invariants;
+- verify value objects;
+- verify domain services;
+- verify domain events.
 
-Domain-тесты не должны требовать запуска Laravel или базы данных без необходимости.
+Domain tests must not require starting Laravel or a database unless necessary.
 
 ## Application Tests
 
-Application Layer тестирует use cases.
+The Application Layer tests use cases.
 
-В таких тестах допустимо использовать:
+These tests may use:
 
 - fakes;
 - mocks;
 - in-memory repository implementations;
-- test doubles внешних интерфейсов.
+- test doubles for external interfaces.
 
-Цель — проверить orchestration и корректное взаимодействие с Domain.
+The goal is to verify orchestration and correct interaction with Domain.
 
 ## Infrastructure Tests
 
-Infrastructure Layer должен иметь integration tests.
+The Infrastructure Layer must have integration tests.
 
-Они проверяют:
+They verify:
 
 - PostgreSQL;
 - Eloquent mappings;
 - repository implementations;
 - Redis;
-- очереди;
+- queues;
 - integrations;
-- миграции.
+- migrations.
 
 ## Presentation Tests
 
-HTTP API должен покрываться feature и API tests.
+The HTTP API must be covered by feature and API tests.
 
-Проверяются:
+These verify:
 
 - validation;
 - status codes;
-- сериализация;
+- serialization;
 - authorization;
-- соответствие API-контракту.
+- API contract compliance.
 
 ## Frontend Tests
 
-Frontend должен включать:
+The frontend must include:
 
-- unit-тесты для utilities;
+- unit tests for utilities;
 - component tests;
-- integration tests для сложных UI-сценариев;
-- end-to-end тесты ключевых пользовательских потоков.
+- integration tests for complex UI flows;
+- end-to-end tests for key user journeys.
 
 ## Contract Tests
 
-Необходимо проверять соответствие Laravel API опубликованному OpenAPI-контракту.
+The Laravel API must be checked for compliance with the published OpenAPI contract.
 
-Изменение API должно обнаруживаться до production.
+API changes must be detected before production.
 
-## Архитектурные тесты
+## Architecture Tests
 
-Желательно автоматически контролировать ключевые ограничения:
+Key constraints should be checked automatically:
 
-- Domain не зависит от Infrastructure;
-- bounded contexts не обходят публичные границы;
-- запрещённые framework-зависимости не попадают в Domain;
-- frontend не импортирует внутренности backend.
+- Domain does not depend on Infrastructure;
+- bounded contexts do not bypass public boundaries;
+- forbidden framework dependencies do not enter Domain;
+- the frontend does not import backend internals.
 
-## Тестирование производительности и инвариантов запросов
+## Performance and Query Invariant Testing
 
-В рамках Phase 16 введены строгие правила тестирования производительности:
-- **Запрет wall-clock assertions в CI:** Утверждения вида `$this->assertLessThan(200, $durationMs)` категорически запрещены в стандартных тестах CI во избежание ложных падений (flaky tests) на разнородных раннерах.
-- **Инварианты, проверяемые CI:**
-  1. *Функциональный паритет:* 100% совпадение полезной нагрузки между состояниями `cache=disabled`, `cache=cold` и `cache=warm`.
-  2. *Количество SQL-запросов (Query Count):* При попадании в прогретый кэш (`warm cache`) выполняется ровно 0 аналитических SQL-запросов к фактам. Пагинированные списки не порождают N+1.
-  3. *Инварианты планов запросов (Plan Invariants):* Проверка планов `EXPLAIN (ANALYZE, BUFFERS)` на отсутствие непреднамеренных `Seq Scan` и дисковых сбросов сортировки (`Temp Written Blocks = 0`, использование `Index Only Scan`).
-  4. *Multi-tenancy изоляция:* Проверка невозможности утечки кэша между разными `workspace_id`.
-- **Воспроизводимый бенчмаркинг:** Замеры перцентилей p50/p95 (5 warm-up + 30 measured runs) выполняются в изолированном эталонном Docker-окружении через команду `make performance-benchmark` с фиксацией артефактов в `docs/performance/`.
+Phase 16 introduced strict performance testing rules:
+
+- **No wall-clock assertions in CI:** Assertions such as `$this->assertLessThan(200, $durationMs)` are strictly forbidden in standard CI tests to avoid false failures (flaky tests) across heterogeneous runners.
+- **Invariants checked by CI:**
+  1. _Functional parity:_ 100% payload equality across `cache=disabled`, `cache=cold`, and `cache=warm` states.
+  2. _SQL query count (Query Count):_ A warm cache hit (`warm cache`) executes exactly 0 analytical SQL queries against facts. Paginated lists do not produce N+1 queries.
+  3. _Query plan invariants (Plan Invariants):_ Check `EXPLAIN (ANALYZE, BUFFERS)` plans for unintended `Seq Scan` operations and sort spills to disk (`Temp Written Blocks = 0`, use of `Index Only Scan`).
+  4. _Multi-tenancy isolation:_ Verify that cache data cannot leak between different `workspace_id` values.
+- **Reproducible benchmarking:** p50/p95 percentile measurements (5 warm-up + 30 measured runs) are taken in an isolated reference Docker environment using `make performance-benchmark`, with artifacts saved in `docs/performance/`.
 
 ## Definition of Done
 
-Функциональность не считается завершённой без:
+A feature is not complete without:
 
-- тестов нужного уровня;
-- обновлённого API-контракта при изменении интерфейса;
-- обновлённой документации при изменении архитектуры;
-- миграций при изменении схемы данных;
-- проверок CI.
+- tests at the appropriate level;
+- an updated API contract when the interface changes;
+- updated documentation when the architecture changes;
+- migrations when the data schema changes;
+- CI checks.
 
 ## Storybook Browser Checks
 

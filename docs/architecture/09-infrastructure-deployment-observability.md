@@ -1,48 +1,48 @@
 # 09. Infrastructure, Deployment and Observability
 
-## Контейнеризация
+## Containerization
 
-Каждый deployable-сервис должен иметь собственный Docker image.
+Each deployable service must have its own Docker image.
 
-Локальная среда должна позволять запускать всю систему через единый orchestration-файл для разработки.
+The local environment must allow the entire system to run through a single development orchestration file.
 
-## Базовые инфраструктурные компоненты
+## Core Infrastructure Components
 
-В состав инфраструктуры входят:
+The infrastructure includes:
 
 - `frontend` — Next.js UI / BFF;
 - `backend` — Laravel Analytics Service;
-- `postgres` (analytics) — хранилище аналитики и outbox;
+- `postgres` (analytics) — analytics and outbox storage;
 - `notification` — Laravel Notification Service (HTTP health/readiness endpoints);
-- `notification-worker` — процесс потребления событий `notifications:consume`;
-- `notification-postgres` — отдельная база данных PostgreSQL и volume для сервиса уведомлений;
-- `redis` — общий транспорт интеграционных событий (Streams), кэш и очереди:
+- `notification-worker` — the `notifications:consume` event consumption process;
+- `notification-postgres` — a separate PostgreSQL database and volume for the notification service;
+- `redis` — shared integration event transport (Streams), cache, and queues:
   - database 0: default / queues;
-  - database 1: аналитический селективный кэш (отдельная изолированная БД, `volatile-ttl`);
-  - database 2: интеграционные события Redis Stream (`autobi.integration-events`).
+  - database 1: selective analytics cache (a separate isolated DB, `volatile-ttl`);
+  - database 2: Redis Stream integration events (`autobi.integration-events`).
 
-Notification service не получает учетных данных от `postgres` аналитики и не имеет сетевой зависимости от нее.
+The notification service does not receive credentials for analytics `postgres` and has no network dependency on it.
 
-## Независимый деплой
+## Independent Deployment
 
-Frontend, Analytics и Notification разворачиваются независимо:
+Frontend, Analytics, and Notification are deployed independently:
 
-- Каждый сервис имеет собственный Dockerfile и build target.
-- Изменение Notification Service не требует пересборки Analytics или Frontend.
-- Остановка `notification` или `notification-worker` не влияет на readiness/liveness сервисов Analytics и Frontend.
-- Скрипты миграций выполняются независимо для каждой базы данных.
+- Each service has its own Dockerfile and build target.
+- A change to Notification Service does not require rebuilding Analytics or Frontend.
+- Stopping `notification` or `notification-worker` does not affect Analytics or Frontend readiness/liveness.
+- Migration scripts run independently for each database.
 
-Для VPS backend и notification собираются после CI и публикуются в GHCR с тегом полного commit SHA. Сервер запускает готовые образы через `infra/docker-compose.vps.yml`; frontend в этом Compose отсутствует. Релиз включает Compose и конфигурацию observability, а секретный env-файл и бэкапы размещаются вне каталогов релизов. Перед миграциями выполняются бэкапы обеих БД. Возврат предыдущих образов не откатывает схему, поэтому production-миграции должны быть совместимы с предыдущим релизом. Подробная процедура — в `infra/README.md`.
+For the VPS, backend and notification are built after CI and published to GHCR with the full commit SHA as the tag. The server runs prebuilt images through `infra/docker-compose.vps.yml`; frontend is absent from this Compose file. A release includes Compose and observability configuration, while the secret env file and backups are stored outside release directories. Both databases are backed up before migrations. Restoring previous images does not roll back the schema, so production migrations must be compatible with the previous release. The detailed procedure is in `infra/README.md`.
 
-## Конфигурация
+## Configuration
 
-Конфигурация среды должна храниться вне бизнес-кода.
+Environment configuration must be stored outside business code.
 
-Секреты не должны находиться в репозитории.
+Secrets must not be stored in the repository.
 
 ## Observability
 
-Система должна постепенно включать:
+The system should gradually incorporate:
 
 - structured logs;
 - request identifiers;
@@ -54,51 +54,52 @@ Frontend, Analytics и Notification разворачиваются незави�
 
 ## Correlation ID
 
-При прохождении одного пользовательского запроса через несколько сервисов должен сохраняться общий correlation identifier.
+A common correlation identifier must be preserved as a single user request passes through multiple services.
 
-Это необходимо для поиска связанных записей в логах и дальнейшего distributed tracing.
+This is necessary to find related log entries and support distributed tracing later.
 
 ## Structured Logging
 
-Логи должны быть пригодны для машинной обработки.
+Logs must be machine-readable.
 
-Следует избегать неструктурированных произвольных сообщений как единственного источника информации.
+Avoid relying on arbitrary unstructured messages as the sole source of information.
 
-### Санитарное логирование при сбоях кэша (Sanitized Fail-Open Logging)
+### Sanitized Fail-Open Logging for Cache Failures
 
-При недоступности, таймаутах или деградации Redis инфраструктурный кэш логирует предупреждение уровня warning:
-- В контекст включаются только технические метаданные: имя датасета (`dataset`), `workspace_id`, каноническая операция (`operation`) и класс ошибки (`RedisException`).
-- Категорически исключаются: полезная нагрузка ответов (payload), персональные данные, заголовки авторизации и параметры SQL.
-- Ошибка не прерывает запрос: система выполняет fail-open fallback на прямое обращение к PostgreSQL Read Model.
+When Redis is unavailable, times out, or degrades, the infrastructure cache logs a warning:
 
+- The context includes only technical metadata: dataset name (`dataset`), `workspace_id`, canonical operation (`operation`), and error class (`RedisException`).
+- Response payloads, personal data, authorization headers, and SQL parameters are strictly excluded.
+- The error does not interrupt the request: the system performs a fail-open fallback to a direct PostgreSQL Read Model call.
 
 ## Health Checks
 
-Каждый сервис предоставляет технические health checks:
+Each service provides technical health checks:
 
-- **Analytics Service:** `GET /api/v1/health` — проверка доступности HTTP API и готовности сервиса.
+- **Analytics Service:** `GET /api/v1/health` — checks HTTP API availability and service readiness.
 - **Notification Service:**
-  - `GET /api/v1/health/live` — liveness probe: проверяет, что HTTP-процесс запущен и принимает запросы.
-  - `GET /api/v1/health/ready` — readiness probe: проверяет доступность локальной PostgreSQL notification service и Redis Stream транспорта. Analytics не является runtime-зависимостью и не опрашивается.
-- Состояние фоновых workers логируется структурно (heartbeat / processed count). Остановка worker не влияет на liveness веб-процессов.
+  - `GET /api/v1/health/live` — liveness probe: verifies that the HTTP process is running and accepting requests.
+  - `GET /api/v1/health/ready` — readiness probe: checks availability of the notification service's local PostgreSQL and the Redis Stream transport. Analytics is not a runtime dependency and is not polled.
+- Background worker state is logged in structured form (heartbeat / processed count). Stopping a worker does not affect web process liveness.
 
-## Observability Стек
+## Observability Stack
 
-Внедрён централизованный стек сбора метрик, логов и дашбордов:
-- **Prometheus** (`prom/prometheus:v2.54.1`): сбор метрик через внутренние эндпоинты `/metrics` сервисов `backend:8080` и `notification:8081` каждые 10 секунд. Оценка эксплуатационных alert rules (`TargetDown`, `ReadinessFailed`, `NotificationWorkerHeartbeatMissing`, `OutboxBacklogGrowing`, `OutboxOldMessageStuck`, `IntegrationDeadLetterMessagesPresent`, `HttpHighErrorRate`).
-- **Grafana Loki** (`grafana/loki:3.1.1`): единое хранилище структурированных JSON-логов с политикой хранения 7 дней (`retention_period: 168h`).
-- **Grafana Alloy** (`grafana/alloy:v1.3.1`): контейнерный коллектор логов, считывающий stdout/stderr через сокет `/var/run/docker.sock` с нормализацией низкокардинальных лейблов (`service`, `container`).
-- **Grafana** (`grafana/grafana:11.2.0`): автоматический provisioning источников (Prometheus, Loki) и встроенные дашборды:
-  - *Service Overview*: доступность, RPS по маршрутам, 5xx ошибки, p95 latency, health dependencies;
-  - *Background Processes*: outbox backlog, возраст сообщений, worker heartbeat, lag стримов, dead-letter очередь, job executions;
-  - *Log Search*: кросс-сервисный поиск логов по `request_id`, `correlation_id`, `event_id`.
+A centralized stack for collecting metrics, logs, and dashboards has been implemented:
 
-Эндпоинты `/metrics` изолированы внутри Docker-сети `internal` и не экспортируются в публичный интернет через реверс-прокси.
-Grafana подключена также к отдельной сети `grafana-host`, чтобы Docker мог опубликовать её интерфейс только на `127.0.0.1:3001` VPS.
+- **Prometheus** (`prom/prometheus:v2.54.1`): collects metrics through internal `/metrics` endpoints on `backend:8080` and `notification:8081` every 10 seconds. Evaluates operational alert rules (`TargetDown`, `ReadinessFailed`, `NotificationWorkerHeartbeatMissing`, `OutboxBacklogGrowing`, `OutboxOldMessageStuck`, `IntegrationDeadLetterMessagesPresent`, `HttpHighErrorRate`).
+- **Grafana Loki** (`grafana/loki:3.1.1`): unified storage for structured JSON logs with a 7-day retention policy (`retention_period: 168h`).
+- **Grafana Alloy** (`grafana/alloy:v1.3.1`): container log collector reading stdout/stderr through `/var/run/docker.sock`, with normalization of low-cardinality labels (`service`, `container`).
+- **Grafana** (`grafana/grafana:11.2.0`): automatic provisioning of data sources (Prometheus, Loki) and built-in dashboards:
+  - _Service Overview_: availability, RPS by route, 5xx errors, p95 latency, health dependencies;
+  - _Background Processes_: outbox backlog, message age, worker heartbeat, stream lag, dead-letter queue, job executions;
+  - _Log Search_: cross-service log search by `request_id`, `correlation_id`, `event_id`.
 
-## Дальнейшая эволюция
+The `/metrics` endpoints are isolated within the `internal` Docker network and are not exposed to the public internet through the reverse proxy.
+Grafana is also connected to a separate `grafana-host` network so Docker can publish its interface only on the VPS's `127.0.0.1:3001`.
 
-- **OpenTelemetry / Tempo**: подключение distributed tracing при необходимости сквозного профилирования задержек по пути Next.js → Analytics → Outbox → Notification.
-- **Внешние каналы оповещений**: настройка Alertmanager (Telegram, Email, Webhook) через секреты окружения.
+## Further Evolution
 
-Выбор конкретного инструмента не влияет на Domain Layer.
+- **OpenTelemetry / Tempo**: add distributed tracing when end-to-end latency profiling is needed along Next.js → Analytics → Outbox → Notification.
+- **External alert channels**: configure Alertmanager (Telegram, Email, Webhook) through environment secrets.
+
+The choice of a specific tool does not affect the Domain Layer.

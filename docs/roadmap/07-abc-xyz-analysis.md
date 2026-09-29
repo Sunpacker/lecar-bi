@@ -1,77 +1,79 @@
 # Phase 7 — ABC/XYZ Analysis
 
-[Индекс и правила roadmap](README.md) · [Маршрутизатор агентов](../../AGENTS.md)
+[Roadmap index and rules](ROADMAP.md) · [Agent router](../../AGENTS.md)
 
-## Цель
+## Goal
 
-Добавить узнаваемую inventory BI-feature: совмещенный ABC/XYZ анализ для сегментации ассортимента, оптимизации структуры оборотного капитала и выявления зон риска (неликвиды, дефицит ключевых позиций).
+Add a recognizable inventory BI feature: combined ABC/XYZ analysis for assortment segmentation, working capital allocation optimization, and risk identification (dead stock, shortages of key items).
 
-## Функциональность
+## Functionality
 
-ABC, XYZ, combined matrix, period selection, product-level results, category/supplier filters, объяснение критериев в UI.
+ABC, XYZ, combined matrix, period selection, product-level results, category/supplier filters, and criteria explanations in the UI.
 
-Если расчёт становится дорогим, переходить к projection/scheduled calculation.
+If calculation becomes expensive, move to a projection/scheduled calculation.
 
 ## Exit Criteria
 
-Algorithm документирован, boundary cases покрыты, product-level результат доступен, UI позволяет исследовать matrix, calculation strategy масштабируема.
+The algorithm is documented, boundary cases are covered, product-level results are available, the UI supports matrix exploration, and the calculation strategy is scalable.
 
 ---
 
-## Прогресс
+## Progress
 
-### Что сделано
+### Completed
 
-1. **OpenAPI Контракт (`contracts/openapi/analytics-v1.yaml`):**
-   - Добавлены эндпоинты `/analytics/inventory/abc-xyz/summary` и `/analytics/inventory/abc-xyz/items`.
-   - Добавлены схемы `AbcXyzSummaryResponse`, `AbcXyzSummary`, `AbcXyzMatrixCell`, `AbcDistributionItem`, `XyzDistributionItem`, `AbcXyzItemsResponse`, `AbcXyzProductItem`.
-   - Расширен `InventoryFilterOptionsResponse` полями `categories` и `suppliers`.
-   - Сгенерирован TypeScript клиент `frontend/src/shared/api/generated/schema.ts` и обновлен `ApiContractTest`.
+1. **OpenAPI Contract (`contracts/openapi/analytics-v1.yaml`):**
+   - Added `/analytics/inventory/abc-xyz/summary` and `/analytics/inventory/abc-xyz/items` endpoints.
+   - Added `AbcXyzSummaryResponse`, `AbcXyzSummary`, `AbcXyzMatrixCell`, `AbcDistributionItem`, `XyzDistributionItem`, `AbcXyzItemsResponse`, and `AbcXyzProductItem` schemas.
+   - Extended `InventoryFilterOptionsResponse` with `categories` and `suppliers` fields.
+   - Generated the TypeScript client `frontend/src/shared/api/generated/schema.ts` and updated `ApiContractTest`.
 2. **Domain Layer (`App\Modules\InventoryAnalytics\Domain`):**
-   - Добавлены Value Objects / Enums: `AbcClass` (A: $\le 80\%$, B: $80-95\%$, C: $>95\%$), `XyzClass` (X: $CV \le 15\%$, Y: $15-35\%$, Z: $>35\%$), `AbcXyzGroup` (AX...CZ с бизнес-наименованиями и рекомендациями по управлению запасами).
-   - Разработан чистый доменный калькулятор `AbcXyzCalculator`, реализующий статистику ($CV$, выборочное стандартное отклонение), сортировку Парето и агрегацию 9 сегментов матрицы.
-   - Написан изолированный модульный тест `AbcXyzCalculatorTest` (7 тестов, 66 проверок).
+   - Added Value Objects / Enums: `AbcClass` (A: $\le 80\%$, B: $80-95\%$, C: $>95\%$), `XyzClass` (X: $CV \le 15\%$, Y: $15-35\%$, Z: $>35\%$), `AbcXyzGroup` (AX...CZ with business names and inventory management recommendations).
+   - Developed the pure domain calculator `AbcXyzCalculator`, implementing statistics ($CV$, sample standard deviation), Pareto sorting, and aggregation of the 9 matrix segments.
+   - Wrote the isolated unit test `AbcXyzCalculatorTest` (7 tests, 66 assertions).
 3. **Application Layer (`App\Modules\InventoryAnalytics\Application`):**
-   - Добавлены DTO: `AbcXyzSummaryCriteriaDto`, `AbcXyzItemsCriteriaDto`, `AbcXyzMatrixCellDto`, `AbcDistributionDto`, `XyzDistributionDto`, `AbcXyzSummaryDto`, `AbcXyzProductItemDto`, `AbcXyzProductItemsPaginatedDto`.
-   - Разработаны CQRS Queries и Handlers: `GetAbcXyzSummaryQuery`, `GetAbcXyzSummaryHandler`, `GetAbcXyzItemsQuery`, `GetAbcXyzItemsHandler`.
-   - Добавлены методы в интерфейс `InventoryAnalyticsReadModelInterface` и реализованы в `InMemoryInventoryAnalyticsReadModel` с модульными тестами `AbcXyzApplicationTest`.
+   - Added DTOs: `AbcXyzSummaryCriteriaDto`, `AbcXyzItemsCriteriaDto`, `AbcXyzMatrixCellDto`, `AbcDistributionDto`, `XyzDistributionDto`, `AbcXyzSummaryDto`, `AbcXyzProductItemDto`, `AbcXyzProductItemsPaginatedDto`.
+   - Developed CQRS Queries and Handlers: `GetAbcXyzSummaryQuery`, `GetAbcXyzSummaryHandler`, `GetAbcXyzItemsQuery`, `GetAbcXyzItemsHandler`.
+   - Added methods to `InventoryAnalyticsReadModelInterface` and implemented them in `InMemoryInventoryAnalyticsReadModel`, with `AbcXyzApplicationTest` unit tests.
 4. **Infrastructure Layer (`PostgresInventoryAnalyticsReadModel`):**
-   - Реализована высокопроизводительная агрегация в PostgreSQL (`fetchRawAbcXyzProducts`) с вычислением продаж по временным интервалам, остатков и стоимости запасов.
-   - Покрыто тестами `InventoryAnalyticsReadModelTest`.
+   - Implemented high-performance PostgreSQL aggregation (`fetchRawAbcXyzProducts`) calculating sales by time interval, stock quantities, and inventory value.
+   - Covered by `InventoryAnalyticsReadModelTest`.
 5. **Presentation Layer (`App\Modules\InventoryAnalytics\Presentation`):**
-   - Созданы Form Requests `GetAbcXyzSummaryRequest` и `GetAbcXyzItemsRequest` с валидацией периодов ($30, 90, 180, 365$), классов, групп и сортировок.
-   - Реализованы контроллеры `InventoryAnalyticsController::abcXyzSummary` и `InventoryAnalyticsController::abcXyzItems`.
-   - Маршруты зарегистрированы в `routes/api.php`.
-   - Добавлены Feature-тесты `InventoryAbcXyzApiTest` (7 тестов, 292 assertions) с проверкой изоляции рабочих пространств и фильтрации.
+   - Created Form Requests `GetAbcXyzSummaryRequest` and `GetAbcXyzItemsRequest`, validating periods ($30, 90, 180, 365$), classes, groups, and sorting.
+   - Implemented controllers `InventoryAnalyticsController::abcXyzSummary` and `InventoryAnalyticsController::abcXyzItems`.
+   - Registered routes in `routes/api.php`.
+   - Added `InventoryAbcXyzApiTest` feature tests (7 tests, 292 assertions), checking workspace isolation and filtering.
 6. **Frontend Gateway & UI (`frontend/src/features/inventory-analytics`):**
-   - Расширен `inventoryGateway` методами `getAbcXyzSummary` и `getAbcXyzItems`.
-   - Разработана интерактивная матрица 3×3 `AbcXyzMatrixGrid` с быстрой фильтрацией каталога по клику на ячейку.
-   - Создана карточка методологии `AbcXyzMethodologyCard` со складным объяснением формул и стратегий для 9 групп.
-   - Создана панель фильтров `AbcXyzFiltersBar` (период, склад, категория, поставщик, быстрый выбор группы, текстовый поиск).
-   - Создана таблица номенклатуры `AbcXyzItemsTable` с пагинацией, бейджами классов и сортировкой по 8 колонкам.
-   - Разработан корневой координатор `AbcXyzView`, вкладки навигации `InventoryTabsNav` и `InventoryTabsContainer`.
-   - Интегрированы вкладки в страницу `app/(dashboard)/inventory/page.tsx`.
-   - Написаны тесты компонентов `abc-xyz-components.test.tsx` (8 тестов).
-7. **Документация и верификация:**
-   - Создан документ [docs/architecture/abc-xyz-methodology.md](../architecture/abc-xyz-methodology.md).
-   - Обновлен [docs/architecture/06-data-and-analytics.md](../architecture/06-data-and-analytics.md).
-   - Обновлен скрипт интеграционной проверки `scripts/verify-integration.sh`.
+   - Extended `inventoryGateway` with `getAbcXyzSummary` and `getAbcXyzItems` methods.
+   - Developed the interactive 3×3 `AbcXyzMatrixGrid`, with quick catalog filtering by clicking a cell.
+   - Created the `AbcXyzMethodologyCard` methodology card with a collapsible explanation of formulas and strategies for 9 groups.
+   - Created `AbcXyzFiltersBar` (period, warehouse, category, supplier, quick group selection, text search).
+   - Created the `AbcXyzItemsTable` product table with pagination, class badges, and sorting by 8 columns.
+   - Developed the root coordinator `AbcXyzView`, navigation tabs `InventoryTabsNav`, and `InventoryTabsContainer`.
+   - Integrated tabs into `app/(dashboard)/inventory/page.tsx`.
+   - Wrote component tests in `abc-xyz-components.test.tsx` (8 tests).
+7. **Documentation and Verification:**
+   - Created [docs/architecture/abc-xyz-methodology.md](../architecture/abc-xyz-methodology.md).
+   - Updated [docs/architecture/06-data-and-analytics.md](../architecture/06-data-and-analytics.md).
+   - Updated the `scripts/verify-integration.sh` integration verification script.
 
 ---
 
-## Проверка завершения
+## Completion Verification
 
-- **Дата завершения:** 2026-09-22
-- **Статус:** Выполнено (все exit criteria подтверждены).
+- **Completion date:** 2026-09-22
+- **Status:** Complete (all exit criteria confirmed).
 
-### Подтверждение Exit Criteria
-1. **Algorithm документирован:** Документ `docs/architecture/abc-xyz-methodology.md` подробно описывает математическую модель (Парето по выручке, формулу выборочного стандартного отклонения $s$ и $CV = (s/\bar{x})\times 100\%$, дискретизацию временного ряда) и стратегии для всех 9 групп AX...CZ. Ссылка включена в `docs/architecture/06-data-and-analytics.md`.
-2. **Boundary cases покрыты:** Тесты `AbcXyzCalculatorTest` покрывают краевые ситуации: пустой каталог ($N=0$), товары без продаж за период, случай $N=1$ временного бакета (исключение деления на $n-1$), нулевую общую выручку.
-3. **Product-level результат доступен:** Реализован эндпоинт `/api/v1/analytics/inventory/abc-xyz/items` с пагинацией, фильтрацией и сортировкой, а также компонент `AbcXyzItemsTable`.
-4. **UI позволяет исследовать matrix:** Интерактивная сетка 3×3 в `AbcXyzMatrixGrid` визуализирует доли и объемы выручки/остатков; клик по любой ячейке фильтрует каталог по соответствующей группе.
-5. **Calculation strategy масштабируема:** Тяжелая агрегация временных рядов продаж и складских остатков выполняется на стороне PostgreSQL; расчет коэффициента вариации и кумулятивных долей в памяти PHP оптимизирован для произвольного количества товаров.
+### Exit Criteria Confirmation
 
-### Результаты автоматических проверок (`make check`)
+1. **Algorithm documented:** `docs/architecture/abc-xyz-methodology.md` describes the mathematical model in detail (revenue-based Pareto analysis, the sample standard deviation formula $s$ and $CV = (s/\bar{x})\times 100\%$, time series discretization) and strategies for all 9 AX...CZ groups. The link is included in `docs/architecture/06-data-and-analytics.md`.
+2. **Boundary cases covered:** `AbcXyzCalculatorTest` covers edge cases: an empty catalog ($N=0$), products with no sales during the period, a single time bucket ($N=1$, avoiding division by $n-1$), and zero total revenue.
+3. **Product-level results available:** Implemented `/api/v1/analytics/inventory/abc-xyz/items` with pagination, filtering, and sorting, and the `AbcXyzItemsTable` component.
+4. **UI supports matrix exploration:** The interactive 3×3 grid in `AbcXyzMatrixGrid` visualizes revenue/stock shares and amounts; clicking any cell filters the catalog by the corresponding group.
+5. **Calculation strategy scalable:** Heavy aggregation of sales time series and inventory balances runs in PostgreSQL; the calculation of variation coefficients and cumulative shares in PHP memory is optimized for an arbitrary number of products.
+
+### Automated Check Results (`make check`)
+
 - `npm --prefix frontend run contracts:validate`: OK (OpenAPI 3.0.3 valid)
 - `npm --prefix frontend run format:check`: OK (Prettier)
 - `npm --prefix frontend run lint`: OK (ESLint 0 errors)

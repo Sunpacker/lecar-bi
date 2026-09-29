@@ -1,159 +1,161 @@
 # Phase 9 — Shared Filters and Saved Views
 
-[Индекс и правила roadmap](README.md) · [Маршрутизатор агентов](../../AGENTS.md)
+[Roadmap index and rules](ROADMAP.md) · [Agent router](../../AGENTS.md)
 
-## Цель
+## Goal
 
-Сделать dashboard переиспользуемыми.
+Make dashboards reusable.
 
-## Функциональность
+## Functionality
 
-Dashboard-level filters, widget-level filters где нужно, saved presets, reusable date ranges, consistent serialization, restoring saved state.
+Dashboard-level filters, widget-level filters where needed, saved presets, reusable date ranges, consistent serialization, restoring saved state.
 
 ## Exit Criteria
 
-Filtered view сохраняется/восстанавливается, filter semantics едина, ownership соблюдается, несовместимые combinations обрабатываются явно.
+Filtered views can be saved/restored, filter semantics are consistent, ownership is respected, and incompatible combinations are handled explicitly.
 
 ## Integration Checkpoint
 
-Перед завершением этапа пройти [интеграционную проверку](ROADMAP.md#integration-checkpoints).
+Complete the [integration check](ROADMAP.md#integration-checkpoints) before finishing the phase.
 
 ---
 
-## Прогресс
+## Progress
 
-### Что сделано
+### Completed
 
-1. **OpenAPI 3.0.3 Контракт (`contracts/openapi/analytics-v1.yaml`):**
-   - Добавлены маршруты управления сохранёнными представлениями дашборда:
-     - `GET /dashboards/{dashboardId}/views` — список сохранённых представлений и фильтр-пресетов;
-     - `POST /dashboards/{dashboardId}/views` — создание сохранённого представления;
-     - `GET /dashboards/{dashboardId}/views/{viewId}` — получение сохранённого представления;
-     - `PUT /dashboards/{dashboardId}/views/{viewId}` — обновление представления (название, фильтры, признак `is_default`);
-     - `DELETE /dashboards/{dashboardId}/views/{viewId}` — удаление представления (204 No Content).
-   - Спроектированы семантические схемы: `DashboardFilterValues` (`date_range`, `date_from`, `date_to`, `category_id`, `region_id`, `warehouse_id`, `stock_health`), `DashboardSavedView`, `DashboardSavedViewListResponse`, `DashboardSavedViewResponse`, `CreateDashboardSavedViewRequest`, `UpdateDashboardSavedViewRequest`.
-   - В схему `WidgetQueryConfig` добавлено свойство `filters` (`DashboardFilterValues`) для поддержки локальных фильтр-оверрайдов на уровне виджета.
-   - Валидация контракта пройдена (`npm run contracts:validate`), сгенерированы TypeScript-типы (`npm run api:generate`).
-   - Добавлены assertions в `ApiContractTest`.
+1. **OpenAPI 3.0.3 Contract (`contracts/openapi/analytics-v1.yaml`):**
+   - Added routes for managing saved dashboard views:
+     - `GET /dashboards/{dashboardId}/views` — list saved views and filter presets;
+     - `POST /dashboards/{dashboardId}/views` — create a saved view;
+     - `GET /dashboards/{dashboardId}/views/{viewId}` — retrieve a saved view;
+     - `PUT /dashboards/{dashboardId}/views/{viewId}` — update a view (name, filters, `is_default` flag);
+     - `DELETE /dashboards/{dashboardId}/views/{viewId}` — delete a view (204 No Content).
+   - Designed semantic schemas: `DashboardFilterValues` (`date_range`, `date_from`, `date_to`, `category_id`, `region_id`, `warehouse_id`, `stock_health`), `DashboardSavedView`, `DashboardSavedViewListResponse`, `DashboardSavedViewResponse`, `CreateDashboardSavedViewRequest`, `UpdateDashboardSavedViewRequest`.
+   - Added the `filters` (`DashboardFilterValues`) property to `WidgetQueryConfig` to support local filter overrides at the widget level.
+   - Contract validation passed (`npm run contracts:validate`); TypeScript types generated (`npm run api:generate`).
+   - Added assertions to `ApiContractTest`.
 
 2. **Domain Layer (`App\Modules\Dashboard\Domain`):**
-   - Создан чистый Value Object `SavedViewId` с генерацией UUID v4 (RFC 4122) без сторонних фреймворковых зависимостей.
-   - Создан Value Object `DashboardFilters` с проверкой корректности диапазонов дат (`date_from <= date_to`, выброс `InvalidFilterException`) и методами проекции на датасеты: `forSalesDataset()` (отсекает неподдерживаемые `warehouse_id`, `stock_health`) и `forInventoryDataset()` (отсекает неподдерживаемый `region_id`).
-   - Создана Entity `SavedView` с инвариантами названия, сериализацией фильтров, управлением признаком `is_default` и временными метками.
-   - Определён интерфейс репозитория `SavedViewRepositoryInterface` (`findById`, `findByDashboardId`, `save`, `delete`, `clearDefault`).
-   - Созданы доменные исключения `SavedViewNotFoundException` и `InvalidFilterException`.
-   - Чистота доменного слоя проверена `ArchitectureTest` (0 запрещённых зависимостей).
-   - Покрыто юнит-тестами `SavedViewDomainTest`.
+   - Created the pure `SavedViewId` Value Object with UUID v4 (RFC 4122) generation and no external framework dependencies.
+   - Created the `DashboardFilters` Value Object with date range validation (`date_from <= date_to`, throwing `InvalidFilterException`) and dataset projection methods: `forSalesDataset()` (strips unsupported `warehouse_id`, `stock_health`) and `forInventoryDataset()` (strips unsupported `region_id`).
+   - Created the `SavedView` Entity with name invariants, filter serialization, `is_default` flag management, and timestamps.
+   - Defined `SavedViewRepositoryInterface` (`findById`, `findByDashboardId`, `save`, `delete`, `clearDefault`).
+   - Created `SavedViewNotFoundException` and `InvalidFilterException` domain exceptions.
+   - Domain layer purity verified by `ArchitectureTest` (0 forbidden dependencies).
+   - Covered by `SavedViewDomainTest` unit tests.
 
 3. **Application Layer (`App\Modules\Dashboard\Application`):**
-   - Разработаны DTO: `DashboardFiltersDto`, `SavedViewDto`.
-   - Реализованы CQRS команды и обработчики: `CreateSavedViewHandler`, `UpdateSavedViewHandler`, `DeleteSavedViewHandler`.
-   - Реализованы CQRS запросы и обработчики: `GetSavedViewsByDashboardHandler`, `GetSavedViewByIdHandler`.
-   - Реализована строгая проверка прав доступа: доступ к дашборду и его представлениям разрешён только внутри рабочего пространства пользователя (`workspace_id`), межпространственные запросы отклоняются с `DashboardNotFoundException` / `404` или `403 Forbidden`.
-   - Реализована логика эксклюзивности представления по умолчанию (`clearDefault` снимает признак с других представлений дашборда при установке нового).
-   - Покрыто юнит-тестами `SavedViewApplicationTest`.
+   - Developed DTOs: `DashboardFiltersDto`, `SavedViewDto`.
+   - Implemented CQRS commands and handlers: `CreateSavedViewHandler`, `UpdateSavedViewHandler`, `DeleteSavedViewHandler`.
+   - Implemented CQRS queries and handlers: `GetSavedViewsByDashboardHandler`, `GetSavedViewByIdHandler`.
+   - Implemented strict access checks: access to a dashboard and its views is allowed only within the user's workspace (`workspace_id`); cross-workspace requests are rejected with `DashboardNotFoundException` / `404` or `403 Forbidden`.
+   - Implemented default view exclusivity (`clearDefault` clears the flag on other dashboard views when a new default is set).
+   - Covered by `SavedViewApplicationTest` unit tests.
 
 4. **Infrastructure Layer (`App\Modules\Dashboard\Infrastructure`):**
-   - Создана миграция PostgreSQL `2026_09_23_000022_create_dashboard_saved_views_table.php` с внешним ключом к таблице `dashboards` (`cascadeOnDelete`), полем `filters` типа `jsonb` и составным индексом `(dashboard_id, created_at)`.
-   - Создана Eloquent-модель `DashboardSavedViewModel` с типизацией и кастингом `filters` в массив и `is_default` в boolean.
-   - В модель `DashboardModel` добавлена связь `savedViews(): HasMany`.
-   - Реализован `EloquentSavedViewRepository` с транзакционной логикой сброса флага по умолчанию.
-   - Реализован `InMemorySavedViewRepository` для изолированного модульного тестирования.
-   - Зарегистрирован биндинг `SavedViewRepositoryInterface` в `AppServiceProvider`.
-   - Покрыто тестами `SavedViewRepositoryTest`.
+   - Created the PostgreSQL migration `2026_09_23_000022_create_dashboard_saved_views_table.php` with a foreign key to `dashboards` (`cascadeOnDelete`), a `jsonb` `filters` field, and a composite `(dashboard_id, created_at)` index.
+   - Created the typed `DashboardSavedViewModel` Eloquent model, casting `filters` to an array and `is_default` to boolean.
+   - Added the `savedViews(): HasMany` relationship to `DashboardModel`.
+   - Implemented `EloquentSavedViewRepository` with transactional default flag reset logic.
+   - Implemented `InMemorySavedViewRepository` for isolated unit testing.
+   - Registered the `SavedViewRepositoryInterface` binding in `AppServiceProvider`.
+   - Covered by `SavedViewRepositoryTest`.
 
 5. **Presentation Layer (`App\Modules\Dashboard\Presentation`):**
-   - Разработаны Form Requests с валидацией входных данных: `CreateSavedViewRequest` и `UpdateSavedViewRequest` (проверка строковых полей, допустимых значений enum периодов, валидности дат и условия `date_to >= date_from`).
-   - Реализован REST-контроллер `DashboardSavedViewController` (`index`, `store`, `show`, `update`, `destroy`) с интеграцией `GetCurrentWorkspaceHandler` и стандартизированными кодами ответов (200, 201, 204, 403, 404, 422).
-   - Маршруты зарегистрированы в `backend/routes/api.php` внутри защищённой middleware-группы `AuthenticateUserIdMiddleware`.
-   - Комплексно протестировано в `DashboardSavedViewApiTest` и `DashboardFilterSemanticsTest`.
+   - Developed Form Requests with input validation: `CreateSavedViewRequest` and `UpdateSavedViewRequest` (string fields, allowed period enum values, valid dates, and `date_to >= date_from`).
+   - Implemented the `DashboardSavedViewController` REST controller (`index`, `store`, `show`, `update`, `destroy`) with `GetCurrentWorkspaceHandler` integration and standardized response codes (200, 201, 204, 403, 404, 422).
+   - Registered routes in `backend/routes/api.php` within the protected `AuthenticateUserIdMiddleware` group.
+   - Comprehensively tested in `DashboardSavedViewApiTest` and `DashboardFilterSemanticsTest`.
 
-6. **Тестирование и интеграция:**
-   - Добавлены проверки чистоты семантического контракта фильтров в `DashboardContractSemanticsTest`.
-   - Расширен интеграционный bash-скрипт `scripts/verify-integration.sh` шагами создания, чтения, модификации, изоляции и удаления сохранённых представлений дашборда.
-   - Все автоматические проверки (`make check`: OpenAPI lint, Prettier, ESLint, TypeScript, Vitest, Pint, PHPStan, PHPUnit) пройдены без ошибок (134 теста бэкенда, 104 теста фронтенда).
+6. **Testing and Integration:**
+   - Added filter semantic contract purity checks to `DashboardContractSemanticsTest`.
+   - Extended the `scripts/verify-integration.sh` integration bash script with steps for creating, reading, modifying, isolating, and deleting saved dashboard views.
+   - All automated checks (`make check`: OpenAPI lint, Prettier, ESLint, TypeScript, Vitest, Pint, PHPStan, PHPUnit) passed without errors (134 backend tests, 104 frontend tests).
 
-7. **Frontend API Gateway & Сериализация фильтров (`frontend/src/features/dashboard/api`):**
-   - Расширен `DashboardGateway` методами управления сохранёнными представлениями: `listSavedViews`, `getSavedView`, `createSavedView`, `updateSavedView`, `deleteSavedView`.
-   - Покрыто юнит-тестами `dashboard-gateway.test.ts` (11 тестов).
+7. **Frontend API Gateway & Filter Serialization (`frontend/src/features/dashboard/api`):**
+   - Extended `DashboardGateway` with saved view management methods: `listSavedViews`, `getSavedView`, `createSavedView`, `updateSavedView`, `deleteSavedView`.
+   - Covered by `dashboard-gateway.test.ts` unit tests (11 tests).
 
-8. **Frontend Доменная логика фильтров и проекция на датасеты (`frontend/src/features/dashboard/model`):**
-   - Реализован модуль `filter-resolver.ts`:
-     - Резолвинг пресетов дат: `30d`, `90d`, `180d`, `365d`, `all`, `custom`;
-     - Слияние фильтров дашборда и локальных оверрайдов виджета (`mergeFilters`);
-     - Семантическая проекция и санитизация фильтров по датасетам (`sanitizeFiltersForDataset`): отсечение `warehouse_id` и `stock_health` для Sales, отсечение `region_id` для Inventory;
-     - Сравнение на равенство фильтров (`isFiltersEqual`) и проверка активности фильтров (`hasActiveFilters`).
-   - Покрыто юнит-тестами `filter-resolver.test.ts` (11 тестов).
+8. **Frontend Filter Domain Logic and Dataset Projection (`frontend/src/features/dashboard/model`):**
+   - Implemented `filter-resolver.ts`:
+     - Date preset resolution: `30d`, `90d`, `180d`, `365d`, `all`, `custom`;
+     - Merging dashboard filters with widget-local overrides (`mergeFilters`);
+     - Semantic filter projection and sanitization by dataset (`sanitizeFiltersForDataset`): stripping `warehouse_id` and `stock_health` for Sales, stripping `region_id` for Inventory;
+     - Filter equality comparison (`isFiltersEqual`) and active filter checking (`hasActiveFilters`).
+   - Covered by `filter-resolver.test.ts` unit tests (11 tests).
 
-9. **Frontend State & Синхронизация с URL (`frontend/src/features/dashboard/model/use-dashboard-filters.ts`):**
-   - Разработан хук `useDashboardFilters`:
-     - Поддержка активного представления (`activeViewId`), отслеживание изменений относительно сохранённого пресета (`isModifiedFromActiveView`);
-     - Двусторонняя синхронизация фильтров с URL query-параметрами (`window.history.replaceState` без лишних перерендеров);
-     - Автоматический выбор дефолтного представления (`is_default = true`) при загрузке через чистый derived state;
-     - Функции управления: `setFilters`, `patchFilters`, `resetFilters`, `applyView`, `saveCurrentAsView`, `updateCurrentView`, `removeView`, `toggleDefaultView`.
-   - Покрыто юнит-тестами `use-dashboard-filters.test.ts` (4 теста).
+9. **Frontend State & URL Synchronization (`frontend/src/features/dashboard/model/use-dashboard-filters.ts`):**
+   - Developed the `useDashboardFilters` hook:
+     - Active view support (`activeViewId`), tracking changes relative to the saved preset (`isModifiedFromActiveView`);
+     - Bidirectional filter synchronization with URL query parameters (`window.history.replaceState` without unnecessary re-renders);
+     - Automatic default view selection (`is_default = true`) on load through pure derived state;
+     - Management functions: `setFilters`, `patchFilters`, `resetFilters`, `applyView`, `saveCurrentAsView`, `updateCurrentView`, `removeView`, `toggleDefaultView`.
+   - Covered by `use-dashboard-filters.test.ts` unit tests (4 tests).
 
-10. **Frontend Загрузка данных виджетов (`frontend/src/features/dashboard/model/widget-data-loader.ts`):**
-    - Обновлён `loadWidgetData`: поддержка фильтров дашборда, объединение с локальными оверрайдами виджета, резолвинг диапазонов дат, санитизация параметров под датасет, маппинг `stock_health` (`low_stock` -> `critical`, `in_stock` -> `optimal`).
-    - Покрыто тестами `widget-data-loader.test.ts` (9 тестов).
+10. **Frontend Widget Data Loading (`frontend/src/features/dashboard/model/widget-data-loader.ts`):**
+    - Updated `loadWidgetData`: dashboard filter support, merging with widget-local overrides, date range resolution, parameter sanitization for the dataset, `stock_health` mapping (`low_stock` -> `critical`, `in_stock` -> `optimal`).
+    - Covered by `widget-data-loader.test.ts` (9 tests).
 
-11. **Frontend UI Компоненты (`frontend/src/features/dashboard/ui`):**
-    - `DashboardFilterBar`: панель фильтров с кнопками периодов дат, селекторами `date_from`/`date_to`, выбором категорий, регионов, складов, статуса запасов и кнопкой сброса активных фильтров.
-    - `DashboardSavedViewsMenu`: меню выбора сохранённых представлений, индикатор изменённости текущих фильтров (*), создание нового пресета (с возможностью назначения по умолчанию), переключение дефолтного пресета (звёздочка), удаление пресетов.
-    - Интеграция в `DashboardViewer` и сквозная передача фильтров через `DashboardGrid` в `WidgetRenderer`.
-    - Компоненты покрыты тестами: `dashboard-filter-bar.test.tsx` (3 теста), `dashboard-saved-views-menu.test.tsx` (2 теста), `dashboard-viewer.test.tsx` (4 теста).
+11. **Frontend UI Components (`frontend/src/features/dashboard/ui`):**
+    - `DashboardFilterBar`: filter bar with date period buttons, `date_from`/`date_to` selectors, category, region, warehouse, and stock status selection, and an active filter reset button.
+    - `DashboardSavedViewsMenu`: saved view selection menu, current filter modification indicator (*), new preset creation (with an option to make it the default), default preset switching (star), and preset deletion.
+    - Integration into `DashboardViewer` and filter propagation through `DashboardGrid` to `WidgetRenderer`.
+    - Components covered by tests: `dashboard-filter-bar.test.tsx` (3 tests), `dashboard-saved-views-menu.test.tsx` (2 tests), `dashboard-viewer.test.tsx` (4 tests).
 
-12. **Сквозное E2E тестирование (`frontend/src/features/dashboard/ui/dashboard-saved-views-flow.test.tsx`):**
-    - Написан комплексный интеграционный тест: автоматическая загрузка дефолтного представления -> смена фильтра периода (30d -> 90d) -> запрос sales overview с обновлённым интервалом -> сохранение нового пресета через модальное меню -> сброс фильтров.
-    - Пройден полный цикл валидации frontend (Prettier format:check, ESLint, TypeScript check, 134 теста Vitest).
+12. **End-to-End E2E Testing (`frontend/src/features/dashboard/ui/dashboard-saved-views-flow.test.tsx`):**
+    - Wrote a comprehensive integration test: automatic default view loading -> period filter change (30d -> 90d) -> sales overview request with the updated interval -> saving a new preset through the modal menu -> filter reset.
+    - Completed the full frontend validation cycle (Prettier format:check, ESLint, TypeScript check, 134 Vitest tests).
 
-### Что осталось в текущей фазе
+### Remaining Work in the Current Phase
 
-Все запланированные задачи фазы 9 успешно выполнены.
+All planned Phase 9 tasks have been completed successfully.
 
-### Блокеры
-- Отсутствуют.
+### Blockers
 
-### Следующий шаг
-- Фаза 9 завершена. Переход к Phase 10 (Data Ingestion) в соответствии с Roadmap.
+- None.
+
+### Next Step
+
+- Phase 9 is complete. Proceed to Phase 10 (Data Ingestion) according to the Roadmap.
 
 ---
 
-## Проверка завершения
+## Completion Verification
 
-- **Дата завершения:** 2026-09-23
-- **Статус:** Выполнено (все exit criteria подтверждены).
+- **Completion date:** 2026-09-23
+- **Status:** Complete (all exit criteria confirmed).
 
-### Подтверждение Exit Criteria
+### Exit Criteria Confirmation
 
-1. **Filtered view сохраняется/восстанавливается:**
-   - Подтверждено бэкенд-тестами: `DashboardSavedViewApiTest.php` (сохранение через POST, чтение списка через GET, восстановление по ID, обновление через PUT, удаление через DELETE);
-   - Подтверждено фронтенд-тестами: `dashboard-saved-views-flow.test.tsx` (сохранение пресета из активных фильтров через меню, восстановление дефолтного пресета при монтировании дашборда);
-   - Подтверждено интеграционным скриптом: `scripts/verify-integration.sh` (шаги 29–33).
+1. **Filtered views can be saved/restored:**
+   - Confirmed by backend tests: `DashboardSavedViewApiTest.php` (saving through POST, listing through GET, restoring by ID, updating through PUT, deleting through DELETE);
+   - Confirmed by frontend tests: `dashboard-saved-views-flow.test.tsx` (saving a preset from active filters through the menu, restoring the default preset when mounting the dashboard);
+   - Confirmed by the integration script: `scripts/verify-integration.sh` (steps 29–33).
 
-2. **Filter semantics едина:**
-   - Единый контракт `DashboardFilterValues` зафиксирован в OpenAPI 3.0.3 (`date_range`, `date_from`, `date_to`, `category_id`, `region_id`, `warehouse_id`, `stock_health`);
-   - Подтверждено бэкенд-тестами семантики: `DashboardFilterSemanticsTest.php` (строгая валидация периодов, проверка `date_from <= date_to`);
-   - Подтверждено фронтенд-тестами: `filter-resolver.test.ts` (вычисление дат по пресетам `30d`, `90d`, `180d`, `365d`, `all`, `custom`).
+2. **Filter semantics are consistent:**
+   - A single `DashboardFilterValues` contract is finalized in OpenAPI 3.0.3 (`date_range`, `date_from`, `date_to`, `category_id`, `region_id`, `warehouse_id`, `stock_health`);
+   - Confirmed by backend semantics tests: `DashboardFilterSemanticsTest.php` (strict period validation, `date_from <= date_to` check);
+   - Confirmed by frontend tests: `filter-resolver.test.ts` (date calculations for `30d`, `90d`, `180d`, `365d`, `all`, `custom` presets).
 
-3. **Ownership соблюдается:**
-   - Строгая изоляция по `workspace_id` и `user_id` реализована в `DashboardSavedViewController` и `WorkspaceAccessGuard`;
-   - Попытки доступа пользователя к чужим представлениям возвращают `403 Forbidden` (`SavedViewApplicationTest.php`, `DashboardSavedViewApiTest.php`, `scripts/verify-integration.sh` шаг 32).
+3. **Ownership is respected:**
+   - Strict `workspace_id` and `user_id` isolation implemented in `DashboardSavedViewController` and `WorkspaceAccessGuard`;
+   - Attempts to access another user's views return `403 Forbidden` (`SavedViewApplicationTest.php`, `DashboardSavedViewApiTest.php`, `scripts/verify-integration.sh` step 32).
 
-4. **Несовместимые combinations обрабатываются явно:**
-   - Реализована проекция параметров по наборам данных:
-     - Sales Dataset: отсекаются `warehouse_id` и `stock_health`;
-     - Inventory Dataset: отсекается `region_id`;
-   - Подтверждено domain-тестами бэкенда (`DashboardFilters::forSalesDataset()`, `DashboardFilters::forInventoryDataset()`);
-   - Подтверждено фронтенд-моделью (`filter-resolver.ts: sanitizeFiltersForDataset`).
+4. **Incompatible combinations are handled explicitly:**
+   - Implemented parameter projection by dataset:
+     - Sales Dataset: `warehouse_id` and `stock_health` are stripped;
+     - Inventory Dataset: `region_id` is stripped;
+   - Confirmed by backend domain tests (`DashboardFilters::forSalesDataset()`, `DashboardFilters::forInventoryDataset()`);
+   - Confirmed by the frontend model (`filter-resolver.ts: sanitizeFiltersForDataset`).
 
-### Выполненные проверки
+### Checks Performed
 
-- `npm run contracts:validate` — OpenAPI валиден (0 ошибок).
-- `npm run lint`, `format:check`, `typecheck` — Frontend статический анализ чист (0 ошибок).
-- `npm test` — 33 тестовых файла, 134 теста Vitest успешно пройдены.
-- `npm run build` — Production сборка Next.js 16 собрана без ошибок.
-- `composer validate --strict` — `composer.json` валиден.
-- `composer lint` — Pint и Larastan (максимальный уровень) без замечаний.
-- `composer test` — 134 теста PHPUnit (28141 assertions) успешно пройдены.
-- `scripts/verify-integration.sh` — Все 35 сквозных шагов интеграции пройдены успешно.
+- `npm run contracts:validate` — OpenAPI is valid (0 errors).
+- `npm run lint`, `format:check`, `typecheck` — Frontend static analysis is clean (0 errors).
+- `npm test` — 33 test files, 134 Vitest tests passed.
+- `npm run build` — Next.js 16 production build completed without errors.
+- `composer validate --strict` — `composer.json` is valid.
+- `composer lint` — Pint and Larastan (maximum level) without issues.
+- `composer test` — 134 PHPUnit tests (28141 assertions) passed.
+- `scripts/verify-integration.sh` — All 35 end-to-end integration steps passed.
