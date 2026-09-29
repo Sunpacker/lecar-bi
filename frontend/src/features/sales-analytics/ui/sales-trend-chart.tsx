@@ -3,8 +3,8 @@
 import React from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ChartCard } from '@/src/shared/ui'
 import {
-  ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
@@ -96,11 +96,11 @@ export function SalesTrendChart({
   }
 
   return (
-    <Card className="border-border bg-card shadow-xs" data-testid="sales-trend-chart">
-      <CardHeader className="flex flex-col gap-3 pb-2 sm:flex-row sm:items-center sm:justify-between">
-        <CardTitle className="text-base font-semibold text-foreground">
-          Динамика продаж во времени
-        </CardTitle>
+    <ChartCard
+      title="Динамика продаж во времени"
+      config={CHART_CONFIG}
+      data-testid="sales-trend-chart"
+      actions={
         <div className="flex flex-wrap items-center gap-2 sm:justify-end">
           <TrendPeriodSelector period={period} onPeriodChange={setPeriod} />
           {selectedDate && (
@@ -120,56 +120,49 @@ export function SalesTrendChart({
             Пик: {CURRENCY_FORMATTER.format(maxRevenue)}
           </span>
         </div>
-      </CardHeader>
-
-      <CardContent>
-        <ChartContainer
-          config={CHART_CONFIG}
-          className="h-[260px] w-full min-w-0 aspect-auto"
-        >
-          <LineChart
-            accessibilityLayer
-            data={visibleTrend}
-            margin={{ top: 12, right: 12, left: 8, bottom: 0 }}
-          >
-            <CartesianGrid vertical={false} strokeDasharray="3 3" />
-            <XAxis
-              dataKey="date"
-              axisLine={false}
-              tickLine={false}
-              tickMargin={10}
-              minTickGap={28}
-              tickFormatter={formatChartDate}
+      }
+    >
+      <LineChart
+        accessibilityLayer
+        data={visibleTrend}
+        margin={{ top: 12, right: 12, left: 8, bottom: 0 }}
+      >
+        <CartesianGrid vertical={false} strokeDasharray="3 3" />
+        <XAxis
+          dataKey="date"
+          axisLine={false}
+          tickLine={false}
+          tickMargin={10}
+          minTickGap={28}
+          tickFormatter={formatChartDate}
+        />
+        <YAxis
+          axisLine={false}
+          tickLine={false}
+          tickMargin={8}
+          width={82}
+          tickFormatter={formatCompactRevenue}
+        />
+        <ChartTooltip
+          cursor={{ stroke: 'var(--border)', strokeDasharray: '4 4' }}
+          content={
+            <ChartTooltipContent
+              indicator="line"
+              labelFormatter={formatTooltipDate}
+              formatter={formatTooltipValue}
             />
-            <YAxis
-              axisLine={false}
-              tickLine={false}
-              tickMargin={8}
-              width={82}
-              tickFormatter={formatCompactRevenue}
-            />
-            <ChartTooltip
-              cursor={{ stroke: 'var(--border)', strokeDasharray: '4 4' }}
-              content={
-                <ChartTooltipContent
-                  indicator="line"
-                  labelFormatter={formatTooltipDate}
-                  formatter={formatTooltipValue}
-                />
-              }
-            />
-            <Line
-              dataKey="revenue"
-              type="monotone"
-              stroke="var(--color-revenue)"
-              strokeWidth={2.5}
-              dot={renderDot}
-              activeDot={{ r: 6, fill: 'var(--color-revenue)', strokeWidth: 0 }}
-            />
-          </LineChart>
-        </ChartContainer>
-      </CardContent>
-    </Card>
+          }
+        />
+        <Line
+          dataKey="revenue"
+          type="monotone"
+          stroke="var(--color-revenue)"
+          strokeWidth={2.5}
+          dot={renderDot}
+          activeDot={{ r: 6, fill: 'var(--color-revenue)', strokeWidth: 0 }}
+        />
+      </LineChart>
+    </ChartCard>
   )
 }
 

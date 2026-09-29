@@ -2,15 +2,8 @@
 
 import React, { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { EmptyState, ErrorState, LoadingState } from '@/src/shared/ui'
 import {
   salesGateway,
   type SalesFilterOptions,
@@ -198,65 +191,45 @@ export function SalesDashboard({ userId, workspaceId }: SalesDashboardProps) {
       )}
 
       {loading && (
-        <div className="space-y-4 py-2" data-testid="sales-dashboard-loading">
-          <Skeleton className="h-5 w-44 rounded-md" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Skeleton className="h-28 rounded-xl" />
-            <Skeleton className="h-28 rounded-xl" />
-            <Skeleton className="h-28 rounded-xl" />
-            <Skeleton className="h-28 rounded-xl" />
-          </div>
-          <Skeleton className="h-56 rounded-xl w-full" />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Skeleton className="h-64 rounded-xl" />
-            <Skeleton className="h-64 rounded-xl" />
-          </div>
-        </div>
+        <LoadingState
+          description="Загрузка аналитики продаж"
+          data-testid="sales-dashboard-loading"
+          skeleton={
+            <>
+              <Skeleton className="h-5 w-44 rounded-md" />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {Array.from({ length: 4 }, (_, index) => (
+                  <Skeleton key={index} className="h-28 rounded-xl" />
+                ))}
+              </div>
+              <Skeleton className="h-56 w-full rounded-xl" />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Skeleton className="h-64 rounded-xl" />
+                <Skeleton className="h-64 rounded-xl" />
+              </div>
+            </>
+          }
+        />
       )}
 
       {error && !loading && (
-        <Card
-          className="border-destructive/40 bg-destructive/5 text-center p-8 shadow-xs"
+        <ErrorState
+          title="Ошибка загрузки данных"
+          description={error}
+          actionLabel="Повторить попытку"
+          onAction={loadData}
           data-testid="dashboard-error"
-        >
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base text-destructive font-semibold">
-              Ошибка загрузки данных
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-destructive/90">{error}</p>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="border-destructive/40 text-destructive hover:bg-destructive/10"
-              onClick={loadData}
-            >
-              Повторить попытку
-            </Button>
-          </CardContent>
-        </Card>
+        />
       )}
 
       {!loading && !error && overview && (
         <>
           {overview.summary.order_count === 0 ? (
-            <Card
-              className="border-dashed border-border bg-card/50 text-center p-12 shadow-xs"
+            <EmptyState
+              title="Нет данных о продажах за выбранный период"
+              description="Попробуйте изменить период или сбросить установленные фильтры."
               data-testid="dashboard-empty"
-            >
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg font-semibold text-foreground">
-                  Нет данных о продажах за выбранный период
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-sm text-muted-foreground">
-                  Попробуйте изменить период или сбросить установленные фильтры.
-                </CardDescription>
-              </CardContent>
-            </Card>
+            />
           ) : (
             <div className="space-y-6">
               <SalesKpiCards summary={overview.summary} />

@@ -1,13 +1,6 @@
 'use client'
 
-import React from 'react'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { MetricCard } from '@/src/shared/ui'
 import type { SalesSummary } from '../api/sales-gateway'
 
 interface SalesKpiCardsProps {
@@ -20,74 +13,40 @@ export function SalesKpiCards({ summary }: SalesKpiCardsProps) {
     currency: 'RUB',
     maximumFractionDigits: 0,
   })
-
   const numberFormatter = new Intl.NumberFormat('ru-RU')
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <Card data-testid="kpi-revenue" className="border-border bg-card shadow-xs">
-        <CardHeader className="pb-1">
-          <CardTitle className="text-xs uppercase text-muted-foreground font-medium tracking-wider">
-            Выручка
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-1">
-          <div className="text-2xl font-bold tracking-tight text-foreground">
-            {currencyFormatter.format(summary.total_revenue)}
-          </div>
-          <CardDescription className="text-xs text-emerald-400 font-medium">
-            Общий объём продаж
-          </CardDescription>
-        </CardContent>
-      </Card>
-
-      <Card data-testid="kpi-orders" className="border-border bg-card shadow-xs">
-        <CardHeader className="pb-1">
-          <CardTitle className="text-xs uppercase text-muted-foreground font-medium tracking-wider">
-            Заказы
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-1">
-          <div className="text-2xl font-bold tracking-tight text-foreground">
-            {numberFormatter.format(summary.order_count)}
-          </div>
-          <CardDescription className="text-xs text-muted-foreground">
-            Оформленных заказов
-          </CardDescription>
-        </CardContent>
-      </Card>
-
-      <Card data-testid="kpi-aov" className="border-border bg-card shadow-xs">
-        <CardHeader className="pb-1">
-          <CardTitle className="text-xs uppercase text-muted-foreground font-medium tracking-wider">
-            Средний чек
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-1">
-          <div className="text-2xl font-bold tracking-tight text-foreground">
-            {currencyFormatter.format(summary.average_order_value)}
-          </div>
-          <CardDescription className="text-xs text-muted-foreground">
-            Средняя сумма на заказ
-          </CardDescription>
-        </CardContent>
-      </Card>
-
-      <Card data-testid="kpi-margin" className="border-border bg-card shadow-xs">
-        <CardHeader className="pb-1">
-          <CardTitle className="text-xs uppercase text-muted-foreground font-medium tracking-wider">
-            Маржинальность
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-1">
-          <div className="text-2xl font-bold tracking-tight text-foreground">
-            {(summary.margin_rate * 100).toFixed(1)}%
-          </div>
-          <CardDescription className="text-xs text-emerald-400 font-medium">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <MetricCard
+        title="Выручка"
+        value={currencyFormatter.format(summary.total_revenue)}
+        description={
+          <span className="font-medium text-emerald-400">Общий объём продаж</span>
+        }
+        data-testid="kpi-revenue"
+      />
+      <MetricCard
+        title="Заказы"
+        value={numberFormatter.format(summary.order_count)}
+        description="Оформленных заказов"
+        data-testid="kpi-orders"
+      />
+      <MetricCard
+        title="Средний чек"
+        value={currencyFormatter.format(summary.average_order_value)}
+        description="Средняя сумма на заказ"
+        data-testid="kpi-aov"
+      />
+      <MetricCard
+        title="Маржинальность"
+        value={`${(summary.margin_rate * 100).toFixed(1)}%`}
+        description={
+          <span className="font-medium text-emerald-400">
             Прибыль: {currencyFormatter.format(summary.gross_profit)}
-          </CardDescription>
-        </CardContent>
-      </Card>
+          </span>
+        }
+        data-testid="kpi-margin"
+      />
     </div>
   )
 }

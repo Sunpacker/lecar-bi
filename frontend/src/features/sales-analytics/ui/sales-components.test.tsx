@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import React from 'react'
+import userEvent from '@testing-library/user-event'
 import { SalesKpiCards } from './sales-kpi-cards'
 import { SalesCategoryBreakdownView } from './sales-category-breakdown'
 import { SalesRegionalBreakdownView } from './sales-regional-breakdown'
@@ -69,7 +70,7 @@ describe('Sales Analytics UI Components', () => {
     expect(screen.getByText(/50\.0%/)).toBeDefined()
   })
 
-  it('triggers filter changes on user selection', () => {
+  it('triggers filter changes on user selection', async () => {
     const onFilterChange = vi.fn()
     render(
       <SalesFiltersBar
@@ -85,7 +86,8 @@ describe('Sales Analytics UI Components', () => {
     )
 
     const categorySelect = screen.getByLabelText('Категория')
-    fireEvent.change(categorySelect, { target: { value: 'cat-1' } })
+    await userEvent.click(categorySelect)
+    await userEvent.click(screen.getByRole('option', { name: 'Масла' }))
 
     expect(onFilterChange).toHaveBeenCalledWith(
       expect.objectContaining({ categoryId: 'cat-1' }),
