@@ -107,3 +107,7 @@ BFF не должен:
 - Скрытие или отключение управляющих элементов (кнопки создания/удаления дашбордов, создания/переключения алертов, загрузки импортов, меню пресетов) является исключительно UX-оптимизацией для чистоты интерфейса. Единственным авторитетным источником контроля доступа остаётся backend (HTTP `403 INSUFFICIENT_CAPABILITY`).
 - Страница `/settings/access` отображает список участников и форму смены ролей только при наличии `workspace.members.manage`.
 
+
+## UI Component Catalog
+
+Storybook with the Next.js Vite framework is the isolated catalog for the existing shadcn/Tailwind primitives and shared BI/form compositions. Stories import components directly, use fixed demo data, and require neither backend nor authentication. The theme toolbar applies the light/dark class to the preview document so portal content follows the selected theme. Shared compositions live in `frontend/src/shared/ui/` and receive formatted values, rows and callbacks; sales formatting and API pagination mapping remain inside the sales feature.

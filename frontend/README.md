@@ -23,4 +23,16 @@ npm test
 npm run build
 ```
 
-`api:generate` refreshes `src/shared/api/generated/schema.ts` from `contracts/openapi/analytics-v1.yaml`. Generated types are consumed through the typed client in `src/shared/api/analytics-client.ts`.
+`api:generate` refreshes `src/shared/api/generated/schema.ts` from `contracts/openapi/analytics-v2.yaml`. Generated types are consumed through the typed client in `src/shared/api/analytics-client.ts`.
+
+## Storybook
+
+Компоненты интерфейса и готовые композиции можно посмотреть без backend и авторизации:
+
+```bash
+npm run storybook             # http://localhost:6006
+npm run test:storybook        # Playwright Chromium
+npm run build-storybook       # storybook-static/
+```
+
+Для браузерных тестов один раз установите Chromium: `npx playwright install chromium`. В toolbar Storybook есть переключение светлой и тёмной тем. Исходники общих композиций и публичный импорт находятся в `src/shared/ui/`; истории базовых примитивов лежат рядом с ними в `components/ui/`.

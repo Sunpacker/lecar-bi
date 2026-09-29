@@ -101,3 +101,7 @@ Frontend должен включать:
 - обновлённой документации при изменении архитектуры;
 - миграций при изменении схемы данных;
 - проверок CI.
+
+## Storybook Browser Checks
+
+The frontend keeps its jsdom unit suite and has a separate Storybook Vitest browser configuration with Playwright Chromium. Vitest 4 is used because Storybook's Vitest addon does not yet support Vitest 5; the existing unit suite continues to run with the same command. Story play functions cover form validation, selection, Sheet focus, sorting, pagination, filter reset and retry. The accessibility addon enforces axe checks on stories. Frontend CI installs Chromium, runs `test:storybook`, and builds the static Storybook catalog after unit checks. Storybook is not published by this workflow.
