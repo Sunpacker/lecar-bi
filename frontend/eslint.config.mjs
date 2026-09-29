@@ -5,7 +5,15 @@ import prettier from 'eslint-config-prettier/flat'
 const eslintConfig = defineConfig([
   ...nextConfig,
   prettier,
-  globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts']),
+  globalIgnores([
+    '.next/**',
+    'out/**',
+    'build/**',
+    'next-env.d.ts',
+    'storybook-static/**',
+    'test-results/**',
+    'playwright-report/**',
+  ]),
 ])
 
 export default eslintConfig

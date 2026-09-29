@@ -14,3 +14,6 @@ src/assets/tokens/generated.css
 
 # Next.js auto-generated types
 next-env.d.ts
+storybook-static
+test-results
+playwright-report

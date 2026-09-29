@@ -18,3 +18,8 @@ storage/logs/*
 node_modules
 .next
 *.tsbuildinfo
+
+# Storybook and browser tests
+frontend/storybook-static
+frontend/test-results
+frontend/playwright-report

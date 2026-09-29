@@ -10,11 +10,6 @@ export default defineConfig({
       '@': path.resolve(__dirname, './'),
     },
   },
-  oxc: {
-    jsx: {
-      runtime: 'automatic',
-    },
-  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
