@@ -29,7 +29,11 @@ async function loadNextHeaders(): Promise<NextHeadersModule | null> {
   }
   try {
     const dynamicImport = new Function('specifier', 'return import(specifier)')
-    return (await dynamicImport('next/headers')) as NextHeadersModule
+    try {
+      return (await dynamicImport('next/headers.js')) as NextHeadersModule
+    } catch {
+      return (await dynamicImport('next/headers')) as NextHeadersModule
+    }
   } catch {
     return null
   }

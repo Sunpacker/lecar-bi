@@ -67,6 +67,28 @@ get_required_json_value() {
     printf '%s' "$value"
 }
 
+get_token_for_user() {
+    target_user_id="$1"
+    target_email="$2"
+    target_password="${3:-password123}"
+
+    if command -v docker >/dev/null 2>&1; then
+        token="$(docker compose --env-file "$INFRA_ENV_FILE" -f infra/docker-compose.yml exec -T backend php -r '
+            require "vendor/autoload.php";
+            $app = require "bootstrap/app.php";
+            $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+            echo $app->make(\App\Modules\Workspace\Application\Contracts\AuthTokenServiceInterface::class)->createToken("'"$target_user_id"'");
+        ' 2>/dev/null | tr -d '\r\n' || true)"
+        if [ -n "$token" ]; then
+            printf '%s' "$token"
+            return 0
+        fi
+    fi
+
+    resp="$(curl --fail --silent --show-error -H "Content-Type: application/json" -d "{\"email\":\"$target_email\",\"password\":\"$target_password\"}" "$BACKEND_URL/api/v1/auth/login")"
+    get_required_json_value "$resp" '.token' "Login $target_email"
+}
+
 if ! command -v jq >/dev/null 2>&1; then
     echo "jq is required to verify JSON API responses" >&2
     exit 1
@@ -114,20 +136,33 @@ if [ "$unauth_status" != "401" ]; then
     exit 1
 fi
 
-# 3. Access boundary: user-1 can only list accessible workspaces
-user1_workspaces="$(curl --fail --silent --show-error -H "X-User-Id: user-1" "$BACKEND_URL/api/v1/workspaces")"
+# 2b. Access boundary: request with legacy X-User-Id header alone is rejected with 401
+legacy_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" "$BACKEND_URL/api/v1/workspaces")"
+if [ "$legacy_status" != "401" ]; then
+    echo "Expected 401 for legacy X-User-Id request to /workspaces, got $legacy_status" >&2
+    exit 1
+fi
+
+# 3. Backend auth login endpoint verification (Sanctum Bearer token)
+login_response="$(curl --fail --silent --show-error -H "Content-Type: application/json" -d '{"email":"elena@autobi.internal","password":"password123"}' "$BACKEND_URL/api/v1/auth/login")"
+assert_response_contains "$login_response" '"id":"user-1"' "Backend login"
+USER1_TOKEN="$(get_required_json_value "$login_response" '.token' "Backend login user-1")"
+
+# Provision tokens for other test users across roles (user-2: owner ws-2, user-3: member ws-1, user-4: viewer ws-1)
+USER2_TOKEN="$(get_token_for_user "user-2" "dmitry@autobi.internal")"
+USER3_TOKEN="$(get_token_for_user "user-3" "alexey@autobi.internal")"
+USER4_TOKEN="$(get_token_for_user "user-4" "olga@autobi.internal")"
+
+# 4. Access boundary: user-1 can only list accessible workspaces
+user1_workspaces="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" "$BACKEND_URL/api/v1/workspaces")"
 assert_response_contains "$user1_workspaces" '"id":"ws-1"' "Accessible workspaces"
 
-# 4. Cross-workspace isolation: user-1 attempting to access user-2's workspace returns 403 Forbidden
-cross_access_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" "$BACKEND_URL/api/v1/workspaces/ws-2")"
+# 4b. Cross-workspace isolation: user-1 attempting to access user-2's workspace returns 403 Forbidden
+cross_access_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $USER1_TOKEN" "$BACKEND_URL/api/v1/workspaces/ws-2")"
 if [ "$cross_access_status" != "403" ]; then
     echo "Expected 403 for cross-workspace access to /workspaces/ws-2, got $cross_access_status" >&2
     exit 1
 fi
-
-# 4b. Backend auth login endpoint verification
-login_response="$(curl --fail --silent --show-error -H "Content-Type: application/json" -d '{"email":"elena@autobi.internal","password":"password123"}' "$BACKEND_URL/api/v1/auth/login")"
-assert_response_contains "$login_response" '"id":"user-1"' "Backend login"
 
 # 5. Frontend Auth & UI: unauthenticated request redirects to /login
 COOKIE_JAR="$(mktemp)"
@@ -178,12 +213,12 @@ if command -v docker >/dev/null 2>&1; then
 fi
 
 # 7. Sales filters endpoint
-sales_filters="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/filters")"
+sales_filters="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/filters")"
 assert_response_contains "$sales_filters" '"categories":[' "Sales filters"
 assert_response_contains "$sales_filters" '"regions":[' "Sales filters"
 
 # 8. Sales overview endpoint returns aggregated summary from PostgreSQL
-sales_overview="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/overview")"
+sales_overview="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/overview")"
 assert_response_contains "$sales_overview" '"total_revenue":' "Sales overview"
 assert_response_contains "$sales_overview" '"order_count":' "Sales overview"
 assert_response_contains "$sales_overview" '"trend":[' "Sales overview"
@@ -191,20 +226,20 @@ assert_response_contains "$sales_overview" '"categories":[' "Sales overview"
 assert_response_contains "$sales_overview" '"regions":[' "Sales overview"
 
 # 9. Cross-workspace sales analytics isolation: user-1 accessing ws-2 returns 403
-sales_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/analytics/sales/overview")"
+sales_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/analytics/sales/overview")"
 if [ "$sales_cross_status" != "403" ]; then
     echo "Expected 403 for cross-workspace sales analytics access, got $sales_cross_status" >&2
     exit 1
 fi
 
 # 10. Sales detail records endpoint returns paginated items from PostgreSQL
-sales_records="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/records?page=1&per_page=10&sort_by=total_price&sort_direction=desc")"
+sales_records="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/records?page=1&per_page=10&sort_by=total_price&sort_direction=desc")"
 assert_response_contains "$sales_records" '"items":[' "Sales records"
 assert_response_contains "$sales_records" '"pagination":{' "Sales records"
 assert_response_contains "$sales_records" '"total":' "Sales records"
 
 # 11. Cross-workspace sales records isolation: user-1 accessing ws-2 records returns 403
-sales_records_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/analytics/sales/records")"
+sales_records_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/analytics/sales/records")"
 if [ "$sales_records_cross_status" != "403" ]; then
     echo "Expected 403 for cross-workspace sales records access, got $sales_records_cross_status" >&2
     exit 1
@@ -215,24 +250,24 @@ frontend_dashboard="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONT
 assert_response_contains "$frontend_dashboard" 'Аналитика продаж' "Sales dashboard page"
 
 # 13. Inventory filters endpoint
-inventory_filters="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/filters")"
+inventory_filters="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/filters")"
 assert_response_contains "$inventory_filters" '"warehouses":[' "Inventory filters"
 assert_response_contains "$inventory_filters" '"statuses":[' "Inventory filters"
 
 # 14. Inventory summary endpoint returns aggregated metrics
-inventory_summary="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/summary")"
+inventory_summary="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/summary")"
 assert_response_contains "$inventory_summary" '"total_items":' "Inventory summary"
 assert_response_contains "$inventory_summary" '"health_breakdown":[' "Inventory summary"
 assert_response_contains "$inventory_summary" '"warehouses":[' "Inventory summary"
 
 # 15. Inventory items endpoint returns paginated items with health status
-inventory_items="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/items?page=1&per_page=10")"
+inventory_items="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/items?page=1&per_page=10")"
 assert_response_contains "$inventory_items" '"items":[' "Inventory items"
 assert_response_contains "$inventory_items" '"pagination":{' "Inventory items"
 assert_response_contains "$inventory_items" '"stock_health":' "Inventory items"
 
 # 16. Cross-workspace inventory isolation: user-1 accessing ws-2 returns 403
-inventory_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/analytics/inventory/summary")"
+inventory_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/analytics/inventory/summary")"
 if [ "$inventory_cross_status" != "403" ]; then
     echo "Expected 403 for cross-workspace inventory summary access, got $inventory_cross_status" >&2
     exit 1
@@ -243,20 +278,20 @@ inventory_page="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_
 assert_response_contains "$inventory_page" 'Управление запасами' "Inventory page"
 
 # 18. Inventory ABC/XYZ summary endpoint returns 3x3 matrix and distributions
-abc_xyz_summary="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/abc-xyz/summary?period_days=90")"
+abc_xyz_summary="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/abc-xyz/summary?period_days=90")"
 assert_response_contains "$abc_xyz_summary" '"matrix":[' "ABC/XYZ summary"
 assert_response_contains "$abc_xyz_summary" '"abc_distribution":[' "ABC/XYZ summary"
 assert_response_contains "$abc_xyz_summary" '"xyz_distribution":[' "ABC/XYZ summary"
 
 # 19. Inventory ABC/XYZ items endpoint returns classified catalog
-abc_xyz_items="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/abc-xyz/items?period_days=90&page=1&per_page=10")"
+abc_xyz_items="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/abc-xyz/items?period_days=90&page=1&per_page=10")"
 assert_response_contains "$abc_xyz_items" '"items":[' "ABC/XYZ items"
 assert_response_contains "$abc_xyz_items" '"abc_class":' "ABC/XYZ items"
 assert_response_contains "$abc_xyz_items" '"xyz_class":' "ABC/XYZ items"
 assert_response_contains "$abc_xyz_items" '"abc_xyz_group":' "ABC/XYZ items"
 
 # 20. Cross-workspace ABC/XYZ isolation: user-1 accessing ws-2 returns 403
-abc_xyz_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/analytics/inventory/abc-xyz/summary")"
+abc_xyz_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/analytics/inventory/abc-xyz/summary")"
 if [ "$abc_xyz_cross_status" != "403" ]; then
     echo "Expected 403 for cross-workspace ABC/XYZ summary access, got $abc_xyz_cross_status" >&2
     exit 1
@@ -267,12 +302,12 @@ abc_xyz_page="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_UR
 assert_response_contains "$abc_xyz_page" 'ABC / XYZ Анализ' "ABC/XYZ page"
 
 # 22. Dashboards endpoint returns list for workspace
-dashboards_list="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards")"
+dashboards_list="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards")"
 assert_response_contains "$dashboards_list" '"items":[' "Dashboards list"
 assert_response_contains "$dashboards_list" '"id":"d0000001-0000-4000-8000-000000000001"' "Dashboards list"
 
 # 23. Cross-workspace dashboard isolation: user-1 accessing ws-2 dashboard returns 403
-dashboard_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/dashboards/d0000002-0000-4000-8000-000000000001")"
+dashboard_cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/dashboards/d0000002-0000-4000-8000-000000000001")"
 if [ "$dashboard_cross_status" != "403" ]; then
     echo "Expected 403 for cross-workspace dashboard access, got $dashboard_cross_status" >&2
     exit 1
@@ -280,20 +315,20 @@ fi
 
 # 24. Dashboard Builder Full Lifecycle: Create custom dashboard via POST
 created_dash_json="$(curl --fail --silent --show-error -H "Content-Type: application/json" \
-    -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
+    -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" \
     -d '{"title":"Интеграционный дашборд","description":"Создан для проверки жизненного цикла"}' \
     "$BACKEND_URL/api/v1/dashboards")"
 assert_json_value_equals "$created_dash_json" '.dashboard.title' 'Интеграционный дашборд' "Dashboard creation"
 CUSTOM_DASH_ID="$(get_required_json_value "$created_dash_json" '.dashboard.id' "Dashboard creation")"
 
 # 25. Dashboard Builder: Restore dashboard via GET
-restored_dash_json="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID")"
+restored_dash_json="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID")"
 assert_json_value_equals "$restored_dash_json" '.dashboard.id' "$CUSTOM_DASH_ID" "Dashboard restore"
 assert_json_value_equals "$restored_dash_json" '.dashboard.title' 'Интеграционный дашборд' "Dashboard restore title"
 
 # 26. Dashboard Builder: Update dashboard via PUT (reposition & add widget)
 updated_dash_json="$(curl --fail --silent --show-error -X PUT -H "Content-Type: application/json" \
-    -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
+    -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" \
     -d '{
       "title": "Обновленный дашборд",
       "description": "Описание обновлено",
@@ -313,7 +348,7 @@ assert_json_value_equals "$updated_dash_json" '.dashboard.title' 'Обновле
 assert_json_value_equals "$updated_dash_json" '.dashboard.widgets[0].position.x' '4' "Widget reposition"
 
 # 27. Cross-tenant isolation on custom dashboard
-cross_custom_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-2" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID")"
+cross_custom_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $USER2_TOKEN" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID")"
 if [ "$cross_custom_status" != "403" ]; then
     echo "Expected 403 for cross-workspace access to custom dashboard, got $cross_custom_status" >&2
     exit 1
@@ -328,7 +363,7 @@ assert_response_contains "$frontend_dash_view" 'Обновленный дашб�
 
 # 29. Dashboard Saved Views: Create saved view / filter preset via POST
 created_view_json="$(curl --fail --silent --show-error -H "Content-Type: application/json" \
-    -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
+    -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" \
     -d '{"name":"Интеграционный пресет","filters":{"date_range":"30d","region_id":"reg-1"},"is_default":true}' \
     "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID/views")"
 assert_json_value_equals "$created_view_json" '.view.name' 'Интеграционный пресет' "Saved view creation"
@@ -336,41 +371,41 @@ assert_json_value_equals "$created_view_json" '.view.is_default' 'true' "Saved v
 CUSTOM_VIEW_ID="$(get_required_json_value "$created_view_json" '.view.id' "Saved view creation")"
 
 # 30. Dashboard Saved Views: List and read saved view
-views_list_json="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID/views")"
+views_list_json="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID/views")"
 assert_json_value_equals "$views_list_json" '.items | length' '1' "Saved views list"
 assert_json_value_equals "$views_list_json" '.items[0].name' 'Интеграционный пресет' "Saved view list content"
 
 # 31. Dashboard Saved Views: Update saved view via PUT
 updated_view_json="$(curl --fail --silent --show-error -X PUT -H "Content-Type: application/json" \
-    -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
+    -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" \
     -d '{"name":"Обновленный пресет","filters":{"date_range":"90d"},"is_default":false}' \
     "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID/views/$CUSTOM_VIEW_ID")"
 assert_json_value_equals "$updated_view_json" '.view.name' 'Обновленный пресет' "Saved view update"
 assert_json_value_equals "$updated_view_json" '.view.filters.date_range' '90d' "Saved view filter update"
 
 # 32. Cross-tenant isolation on saved views: user-2 accessing ws-1 views returns 403
-cross_view_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-2" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID/views")"
+cross_view_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $USER2_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID/views")"
 if [ "$cross_view_status" != "403" ]; then
     echo "Expected 403 for cross-workspace access to saved views, got $cross_view_status" >&2
     exit 1
 fi
 
 # 33. Dashboard Saved Views: Delete saved view via DELETE
-del_view_status="$(curl --silent -o /dev/null -w "%{http_code}" -X DELETE -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID/views/$CUSTOM_VIEW_ID")"
+del_view_status="$(curl --silent -o /dev/null -w "%{http_code}" -X DELETE -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID/views/$CUSTOM_VIEW_ID")"
 if [ "$del_view_status" != "204" ]; then
     echo "Expected 204 for DELETE saved view, got $del_view_status" >&2
     exit 1
 fi
 
 # 34. Dashboard Builder: Delete custom dashboard via DELETE
-delete_status="$(curl --silent -o /dev/null -w "%{http_code}" -X DELETE -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID")"
+delete_status="$(curl --silent -o /dev/null -w "%{http_code}" -X DELETE -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID")"
 if [ "$delete_status" != "204" ]; then
     echo "Expected 204 for DELETE dashboard, got $delete_status" >&2
     exit 1
 fi
 
 # 35. Verify 404 after deletion
-deleted_get_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID")"
+deleted_get_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards/$CUSTOM_DASH_ID")"
 if [ "$deleted_get_status" != "404" ]; then
     echo "Expected 404 for deleted dashboard, got $deleted_get_status" >&2
     exit 1
@@ -378,7 +413,7 @@ fi
 
 # 36. Alert Rules: Create alert rule via POST
 created_rule_json="$(curl --fail --silent --show-error -H "Content-Type: application/json" \
-    -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
+    -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" \
     -d '{"name":"Интеграционное правило","rule_type":"critical_stock","severity":"critical","metric":"days_of_stock","comparator":"lt","threshold_value":5,"is_enabled":true}' \
     "$BACKEND_URL/api/v1/alert-rules")"
 assert_json_value_equals "$created_rule_json" '.rule.name' 'Интеграционное правило' "Alert rule creation"
@@ -386,40 +421,40 @@ assert_json_value_equals "$created_rule_json" '.rule.severity' 'critical' "Alert
 CUSTOM_RULE_ID="$(get_required_json_value "$created_rule_json" '.rule.id' "Alert rule creation")"
 
 # 37. Alert Rules: Toggle rule status
-toggled_rule_json="$(curl --fail --silent --show-error -X POST -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alert-rules/$CUSTOM_RULE_ID/toggle")"
+toggled_rule_json="$(curl --fail --silent --show-error -X POST -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alert-rules/$CUSTOM_RULE_ID/toggle")"
 assert_json_value_equals "$toggled_rule_json" '.rule.is_enabled' 'false' "Alert rule toggle"
 
 # 38. Alert Rules: Evaluate rules endpoint
-eval_result_json="$(curl --fail --silent --show-error -X POST -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alert-rules/evaluate")"
+eval_result_json="$(curl --fail --silent --show-error -X POST -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alert-rules/evaluate")"
 assert_response_contains "$eval_result_json" '"rules_evaluated"' "Alert rules evaluation"
 
 # 39. Alerts: Summary and list
-alerts_summary_json="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alerts/summary")"
+alerts_summary_json="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alerts/summary")"
 assert_response_contains "$alerts_summary_json" '"total_active"' "Alerts summary total_active"
 
-alerts_list_json="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alerts?status=active")"
+alerts_list_json="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alerts?status=active")"
 assert_response_contains "$alerts_list_json" '"items"' "Alerts list items"
 TEST_ALERT_ID="$(get_required_json_value "$alerts_list_json" '.items[0].id' "Alerts list first item")"
 
 # 40. Alerts: Acknowledge & Resolve lifecycle
-ack_alert_json="$(curl --fail --silent --show-error -X POST -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alerts/$TEST_ALERT_ID/acknowledge")"
+ack_alert_json="$(curl --fail --silent --show-error -X POST -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alerts/$TEST_ALERT_ID/acknowledge")"
 assert_json_value_equals "$ack_alert_json" '.alert.status' 'acknowledged' "Alert acknowledge"
 
 resolve_alert_json="$(curl --fail --silent --show-error -X POST -H "Content-Type: application/json" \
-    -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
+    -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" \
     -d '{"resolution_note":"Интеграционная проверка решения"}' \
     "$BACKEND_URL/api/v1/alerts/$TEST_ALERT_ID/resolve")"
 assert_json_value_equals "$resolve_alert_json" '.alert.status' 'resolved' "Alert resolve"
 
 # 41. Cross-tenant isolation on alerts: user-2 accessing ws-1 alerts returns 403
-cross_alert_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-2" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alerts")"
+cross_alert_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $USER2_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alerts")"
 if [ "$cross_alert_status" != "403" ]; then
     echo "Expected 403 for cross-workspace access to alerts, got $cross_alert_status" >&2
     exit 1
 fi
 
 # 42. Delete test alert rule
-del_rule_status="$(curl --silent -o /dev/null -w "%{http_code}" -X DELETE -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alert-rules/$CUSTOM_RULE_ID")"
+del_rule_status="$(curl --silent -o /dev/null -w "%{http_code}" -X DELETE -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alert-rules/$CUSTOM_RULE_ID")"
 if [ "$del_rule_status" != "204" ]; then
     echo "Expected 204 for DELETE alert rule, got $del_rule_status" >&2
     exit 1
@@ -470,18 +505,18 @@ if command -v docker >/dev/null 2>&1; then
 fi
 
 # 47. Workspace RBAC: verify current workspace capabilities for owner, member, and viewer
-user1_curr_ws="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/current")"
+user1_curr_ws="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/current")"
 assert_response_contains "$user1_curr_ws" '"workspace.members.manage"' "Owner capabilities"
 assert_response_contains "$user1_curr_ws" '"dashboards.manage"' "Owner capabilities"
 
-user3_curr_ws="$(curl --fail --silent --show-error -H "X-User-Id: user-3" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/current")"
+user3_curr_ws="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER3_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/current")"
 assert_response_contains "$user3_curr_ws" '"dashboards.manage"' "Member capabilities"
 if printf '%s' "$user3_curr_ws" | grep -q '"workspace.members.manage"'; then
     echo "Member unexpectedly has workspace.members.manage capability" >&2
     exit 1
 fi
 
-user4_curr_ws="$(curl --fail --silent --show-error -H "X-User-Id: user-4" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/current")"
+user4_curr_ws="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER4_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/current")"
 assert_response_contains "$user4_curr_ws" '"dashboards.view"' "Viewer capabilities"
 assert_response_contains "$user4_curr_ws" '"analytics.view"' "Viewer capabilities"
 if printf '%s' "$user4_curr_ws" | grep -q '"dashboards.manage"'; then
@@ -490,21 +525,21 @@ if printf '%s' "$user4_curr_ws" | grep -q '"dashboards.manage"'; then
 fi
 
 # 48. Workspace RBAC: read permissions across all roles
-curl --fail --silent --show-error -H "X-User-Id: user-4" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards" >/dev/null
-curl --fail --silent --show-error -H "X-User-Id: user-4" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/overview" >/dev/null
-curl --fail --silent --show-error -H "X-User-Id: user-4" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alerts" >/dev/null
+curl --fail --silent --show-error -H "Authorization: Bearer $USER4_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards" >/dev/null
+curl --fail --silent --show-error -H "Authorization: Bearer $USER4_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/overview" >/dev/null
+curl --fail --silent --show-error -H "Authorization: Bearer $USER4_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/alerts" >/dev/null
 
 # 49. Workspace RBAC: member management access boundary
-members_list="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/ws-1/members")"
+members_list="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/ws-1/members")"
 assert_json_value_equals "$members_list" '.items | map(select(.user.id == "user-1" and .role == "owner")) | length' '1' "Workspace owner membership"
 
-user3_members_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-3" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/ws-1/members")"
+user3_members_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $USER3_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/ws-1/members")"
 if [ "$user3_members_status" != "403" ]; then
     echo "Expected 403 for member accessing workspace members list, got $user3_members_status" >&2
     exit 1
 fi
 
-user4_members_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: user-4" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/ws-1/members")"
+user4_members_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $USER4_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/ws-1/members")"
 if [ "$user4_members_status" != "403" ]; then
     echo "Expected 403 for viewer accessing workspace members list, got $user4_members_status" >&2
     exit 1
@@ -512,7 +547,7 @@ fi
 
 # 50. Workspace RBAC: viewer mutations forbidden with 403 INSUFFICIENT_CAPABILITY
 viewer_create_dash_status="$(curl --silent -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: application/json" \
-    -H "X-User-Id: user-4" -H "X-Workspace-Id: ws-1" \
+    -H "Authorization: Bearer $USER4_TOKEN" -H "X-Workspace-Id: ws-1" \
     -d '{"title":"Viewer Forbidden Dashboard"}' \
     "$BACKEND_URL/api/v1/dashboards")"
 if [ "$viewer_create_dash_status" != "403" ]; then
@@ -521,7 +556,7 @@ if [ "$viewer_create_dash_status" != "403" ]; then
 fi
 
 viewer_create_rule_status="$(curl --silent -o /dev/null -w "%{http_code}" -X POST -H "Content-Type: application/json" \
-    -H "X-User-Id: user-4" -H "X-Workspace-Id: ws-1" \
+    -H "Authorization: Bearer $USER4_TOKEN" -H "X-Workspace-Id: ws-1" \
     -d '{"name":"Viewer Forbidden Rule","rule_type":"critical_stock","severity":"critical","metric":"days_of_stock","comparator":"lt","threshold_value":5,"is_enabled":true}' \
     "$BACKEND_URL/api/v1/alert-rules")"
 if [ "$viewer_create_rule_status" != "403" ]; then
@@ -531,7 +566,7 @@ fi
 
 # 51. Workspace RBAC: sole owner demotion invariant returns 409 LAST_WORKSPACE_OWNER
 sole_demote_status="$(curl --silent -o /dev/null -w "%{http_code}" -X PATCH -H "Content-Type: application/json" \
-    -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
+    -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" \
     -d '{"role":"viewer"}' \
     "$BACKEND_URL/api/v1/workspaces/ws-1/members/user-1/role")"
 if [ "$sole_demote_status" != "409" ]; then
@@ -541,22 +576,22 @@ fi
 
 # 52. Workspace RBAC: role promotion and demotion lifecycle
 promote_member="$(curl --fail --silent --show-error -X PATCH -H "Content-Type: application/json" \
-    -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
+    -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" \
     -d '{"role":"owner"}' \
     "$BACKEND_URL/api/v1/workspaces/ws-1/members/user-3/role")"
 assert_json_value_equals "$promote_member" '.member.role' 'owner' "Promote member to owner"
 
 demote_member="$(curl --fail --silent --show-error -X PATCH -H "Content-Type: application/json" \
-    -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" \
+    -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" \
     -d '{"role":"member"}' \
     "$BACKEND_URL/api/v1/workspaces/ws-1/members/user-3/role")"
 assert_json_value_equals "$demote_member" '.member.role' 'member' "Demote back to member"
 
 # 53. Workspace RBAC: cross-workspace isolation across all roles
-for uid in user-1 user-3 user-4; do
-    cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "X-User-Id: $uid" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/dashboards")"
+for token in "$USER1_TOKEN" "$USER3_TOKEN" "$USER4_TOKEN"; do
+    cross_status="$(curl --silent -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $token" -H "X-Workspace-Id: ws-2" "$BACKEND_URL/api/v1/dashboards")"
     if [ "$cross_status" != "403" ]; then
-        echo "Expected 403 for cross-workspace access to ws-2 by $uid, got $cross_status" >&2
+        echo "Expected 403 for cross-workspace access to ws-2 by token, got $cross_status" >&2
         exit 1
     fi
 done
@@ -566,8 +601,8 @@ frontend_access_page="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRO
 assert_response_contains "$frontend_access_page" 'Управление доступом' "Frontend access settings page"
 
 # 55. Analytics Performance & Selective Caching: repeated calls return identical payload (warm cache hit)
-cached_overview_1="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/overview")"
-cached_overview_2="$(curl --fail --silent --show-error -H "X-User-Id: user-1" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/overview")"
+cached_overview_1="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/overview")"
+cached_overview_2="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/overview")"
 if [ "$cached_overview_1" != "$cached_overview_2" ]; then
     echo "Analytics cache parity failure: consecutive responses for /sales/overview do not match" >&2
     exit 1
