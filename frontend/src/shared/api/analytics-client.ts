@@ -48,12 +48,14 @@ async function loadNextHeaders(): Promise<NextHeadersModule | null> {
       }
     } catch {}
     try {
-      const cookiesMod = (await dynamicImport(
-        'next/dist/server/request/cookies.js',
-      )) as { cookies?: () => any; default?: { cookies?: () => any } }
-      const headersMod = (await dynamicImport(
-        'next/dist/server/request/headers.js',
-      )) as { headers?: () => any; default?: { headers?: () => any } }
+      const cookiesMod = (await dynamicImport('next/dist/server/request/cookies.js')) as {
+        cookies?: () => any
+        default?: { cookies?: () => any }
+      }
+      const headersMod = (await dynamicImport('next/dist/server/request/headers.js')) as {
+        headers?: () => any
+        default?: { headers?: () => any }
+      }
       const cookiesFn = cookiesMod?.cookies ?? cookiesMod?.default?.cookies
       const headersFn = headersMod?.headers ?? headersMod?.default?.headers
       if (cookiesFn || headersFn) {
