@@ -30,10 +30,40 @@ async function loadNextHeaders(): Promise<NextHeadersModule | null> {
   try {
     const dynamicImport = new Function('specifier', 'return import(specifier)')
     try {
-      return (await dynamicImport('next/headers.js')) as NextHeadersModule
-    } catch {
-      return (await dynamicImport('next/headers')) as NextHeadersModule
-    }
+      const mod = (await dynamicImport('next/headers.js')) as NextHeadersModule
+      if (mod?.cookies || mod?.headers) {
+        return {
+          cookies: mod.cookies ?? (mod as any).default?.cookies,
+          headers: mod.headers ?? (mod as any).default?.headers,
+        }
+      }
+    } catch {}
+    try {
+      const mod = (await dynamicImport('next/headers')) as NextHeadersModule
+      if (mod?.cookies || mod?.headers) {
+        return {
+          cookies: mod.cookies ?? (mod as any).default?.cookies,
+          headers: mod.headers ?? (mod as any).default?.headers,
+        }
+      }
+    } catch {}
+    try {
+      const cookiesMod = (await dynamicImport(
+        'next/dist/server/request/cookies.js',
+      )) as { cookies?: () => any; default?: { cookies?: () => any } }
+      const headersMod = (await dynamicImport(
+        'next/dist/server/request/headers.js',
+      )) as { headers?: () => any; default?: { headers?: () => any } }
+      const cookiesFn = cookiesMod?.cookies ?? cookiesMod?.default?.cookies
+      const headersFn = headersMod?.headers ?? headersMod?.default?.headers
+      if (cookiesFn || headersFn) {
+        return {
+          cookies: cookiesFn,
+          headers: headersFn,
+        }
+      }
+    } catch {}
+    return null
   } catch {
     return null
   }

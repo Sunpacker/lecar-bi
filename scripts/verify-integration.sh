@@ -212,6 +212,7 @@ if command -v docker >/dev/null 2>&1; then
     echo "Demo dataset verified: ws-1 ($ws1_orders_count orders), ws-2 ($ws2_orders_count orders), stockouts ($stockout_count days) present in PostgreSQL."
 fi
 
+echo "Verifying sales analytics..."
 # 7. Sales filters endpoint
 sales_filters="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/filters")"
 assert_response_contains "$sales_filters" '"categories":[' "Sales filters"
@@ -249,6 +250,7 @@ fi
 frontend_dashboard="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/")"
 assert_response_contains "$frontend_dashboard" 'Аналитика продаж' "Sales dashboard page"
 
+echo "Verifying inventory intelligence & ABC/XYZ analytics..."
 # 13. Inventory filters endpoint
 inventory_filters="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/inventory/filters")"
 assert_response_contains "$inventory_filters" '"warehouses":[' "Inventory filters"
@@ -301,6 +303,7 @@ fi
 abc_xyz_page="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/inventory?tab=abc-xyz")"
 assert_response_contains "$abc_xyz_page" 'ABC / XYZ Анализ' "ABC/XYZ page"
 
+echo "Verifying dashboards & builder lifecycle..."
 # 22. Dashboards endpoint returns list for workspace
 dashboards_list="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/dashboards")"
 assert_response_contains "$dashboards_list" '"items":[' "Dashboards list"
@@ -411,6 +414,7 @@ if [ "$deleted_get_status" != "404" ]; then
     exit 1
 fi
 
+echo "Verifying alerting & incident management lifecycle..."
 # 36. Alert Rules: Create alert rule via POST
 created_rule_json="$(curl --fail --silent --show-error -H "Content-Type: application/json" \
     -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" \
@@ -504,6 +508,7 @@ if command -v docker >/dev/null 2>&1; then
     echo "Notification service recovered successfully."
 fi
 
+echo "Verifying workspace RBAC capability matrix..."
 # 47. Workspace RBAC: verify current workspace capabilities for owner, member, and viewer
 user1_curr_ws="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/workspaces/current")"
 assert_response_contains "$user1_curr_ws" '"workspace.members.manage"' "Owner capabilities"
@@ -600,6 +605,7 @@ done
 frontend_access_page="$(curl --fail --silent --show-error -b "$COOKIE_JAR" "$FRONTEND_URL/settings/access")"
 assert_response_contains "$frontend_access_page" 'Управление доступом' "Frontend access settings page"
 
+echo "Verifying caching, security headers & rate limiting..."
 # 55. Analytics Performance & Selective Caching: repeated calls return identical payload (warm cache hit)
 cached_overview_1="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/overview")"
 cached_overview_2="$(curl --fail --silent --show-error -H "Authorization: Bearer $USER1_TOKEN" -H "X-Workspace-Id: ws-1" "$BACKEND_URL/api/v1/analytics/sales/overview")"
