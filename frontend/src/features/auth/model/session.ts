@@ -10,6 +10,13 @@ import {
 
 export * from './session-token'
 
+export function isSecureCookie(): boolean {
+  if (process.env.SESSION_SECURE_COOKIE !== undefined) {
+    return process.env.SESSION_SECURE_COOKIE === 'true'
+  }
+  return (process.env.NEXT_PUBLIC_APP_URL ?? '').startsWith('https://')
+}
+
 export async function createSession(user: {
   id: string
   email: string
@@ -21,7 +28,7 @@ export async function createSession(user: {
 
   cookieStore.set(SESSION_COOKIE_NAME, encoded, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecureCookie(),
     sameSite: 'lax',
     path: '/',
     maxAge: SESSION_DURATION_SECONDS,
@@ -43,7 +50,7 @@ export async function setWorkspaceCookie(workspaceId: string): Promise<void> {
   const cookieStore = await cookies()
   cookieStore.set(WORKSPACE_COOKIE_NAME, workspaceId, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isSecureCookie(),
     sameSite: 'lax',
     path: '/',
     maxAge: SESSION_DURATION_SECONDS,

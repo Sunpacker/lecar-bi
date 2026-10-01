@@ -1,6 +1,30 @@
 name: ${COMPOSE_PROJECT_NAME:-lecar-bi}
 
 services:
+  frontend:
+    image: ${FRONTEND_IMAGE:-autobi/frontend:latest}
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      ANALYTICS_INTERNAL_URL: ${ANALYTICS_INTERNAL_URL:-http://backend:8080/api/v1}
+      NOTIFICATION_INTERNAL_URL: ${NOTIFICATION_INTERNAL_URL:-http://notification:8081/api/v1}
+      NOTIFICATION_SHARED_SECRET: ${NOTIFICATION_SHARED_SECRET:-test-notification-secret-key-12345}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - internal
+      - frontend-host
+
   backend:
     image: ${BACKEND_IMAGE:?BACKEND_IMAGE must be set to an immutable GHCR image}
 
@@ -294,6 +318,8 @@ networks:
     driver: bridge
     internal: true
   grafana-host:
+    driver: bridge
+  frontend-host:
     driver: bridge
   proxy:
     external: true

@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { parseSessionValue, serializeSession, type SessionUser } from './session'
+import { describe, expect, it, beforeEach, afterEach } from 'vitest'
+import { isSecureCookie, parseSessionValue, serializeSession, type SessionUser } from './session'
 
 describe('session serialization and security', () => {
   it('serializes and parses valid signed session', () => {
@@ -81,5 +81,41 @@ describe('session serialization and security', () => {
     expect(parseSessionValue('')).toBeNull()
     expect(parseSessionValue('not-a-valid-session')).toBeNull()
     expect(parseSessionValue('malformed.payload.with.too.many.dots')).toBeNull()
+  })
+
+  describe('isSecureCookie', () => {
+    const originalEnv = process.env
+
+    beforeEach(() => {
+      process.env = { ...originalEnv }
+    })
+
+    afterEach(() => {
+      process.env = originalEnv
+    })
+
+    it('returns true when SESSION_SECURE_COOKIE is explicitly true', () => {
+      process.env.SESSION_SECURE_COOKIE = 'true'
+      process.env.NEXT_PUBLIC_APP_URL = 'http://localhost:3000'
+      expect(isSecureCookie()).toBe(true)
+    })
+
+    it('returns false when SESSION_SECURE_COOKIE is explicitly false even on https', () => {
+      process.env.SESSION_SECURE_COOKIE = 'false'
+      process.env.NEXT_PUBLIC_APP_URL = 'https://example.com'
+      expect(isSecureCookie()).toBe(false)
+    })
+
+    it('infers secure=true when NEXT_PUBLIC_APP_URL starts with https://', () => {
+      delete process.env.SESSION_SECURE_COOKIE
+      process.env.NEXT_PUBLIC_APP_URL = 'https://bi.veloza.ru'
+      expect(isSecureCookie()).toBe(true)
+    })
+
+    it('infers secure=false when NEXT_PUBLIC_APP_URL is http://', () => {
+      delete process.env.SESSION_SECURE_COOKIE
+      process.env.NEXT_PUBLIC_APP_URL = 'http://94.249.203.175:3000'
+      expect(isSecureCookie()).toBe(false)
+    })
   })
 })

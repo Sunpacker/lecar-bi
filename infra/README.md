@@ -42,7 +42,7 @@ handle_path /lecar-bi/* {
 
 `handle_path` удаляет префикс пути, поэтому Laravel получает исходные маршруты `/api/v1/*`. Действующий маршрут `/autobi/*` сохранён для существующих клиентов; новый публичный health check использует `/lecar-bi/*`.
 
-VPS Compose принимает готовые `BACKEND_IMAGE` и `NOTIFICATION_IMAGE` из GHCR. Сборки на сервере и команды `make vps-up` больше нет. Frontend не входит в этот Compose и обновляется отдельно.
+VPS Compose принимает готовые `BACKEND_IMAGE` и `NOTIFICATION_IMAGE` из GHCR, а также включает `frontend` (образ `${FRONTEND_IMAGE:-autobi/frontend:latest}`, порт `${FRONTEND_PORT:-3000}:3000`). Frontend подключен к сети `internal` для прямого взаимодействия с backend/notification и к `frontend-host` для публикации порта на хосте.
 
 Grafana доступна только на `127.0.0.1:3001` VPS. Её отдельная Docker-сеть `grafana-host` обеспечивает локальную публикацию порта; метрики и базы данных остаются в изолированной сети `internal`.
 
