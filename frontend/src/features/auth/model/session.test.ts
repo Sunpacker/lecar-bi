@@ -1,5 +1,10 @@
 import { describe, expect, it, beforeEach, afterEach } from 'vitest'
-import { isSecureCookie, parseSessionValue, serializeSession, type SessionUser } from './session'
+import {
+  isSecureCookie,
+  parseSessionValue,
+  serializeSession,
+  type SessionUser,
+} from './session'
 
 describe('session serialization and security', () => {
   it('serializes and parses valid signed session', () => {
