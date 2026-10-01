@@ -28,18 +28,9 @@ abstract class TestCase extends BaseTestCase
         return $user;
     }
 
-    /**
-     * Intercept test calls to route legacy /api/v1/ tests to /api/v2/ and attach Bearer tokens.
-     */
+    /** Attach Bearer tokens to legacy tests that still provide X-User-Id. */
     public function call($method, $uri, $parameters = [], $cookies = [], $files = [], $server = [], $content = null)
     {
-        $isHealthOrMetrics = str_starts_with($uri, '/api/v1/health') || str_starts_with($uri, '/api/v1/metrics');
-        $isExplicitV1Test = isset($server['HTTP_X_EXPLICIT_V1']) || str_contains($this->name(), 'v1');
-
-        if (str_starts_with($uri, '/api/v1/') && ! $isHealthOrMetrics && ! $isExplicitV1Test) {
-            $uri = '/api/v2/'.substr($uri, strlen('/api/v1/'));
-        }
-
         $userId = $server['HTTP_X_USER_ID'] ?? null;
         if ($userId && ! isset($server['HTTP_AUTHORIZATION']) && ! isset($server['HTTP_X_DO_NOT_CONVERT_AUTH'])) {
             $tokenService = app(AuthTokenServiceInterface::class);

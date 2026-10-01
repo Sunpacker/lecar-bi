@@ -26,13 +26,6 @@ Route::prefix('v1')->group(function () {
     Route::get('/health/ready', [HealthController::class, 'ready']);
     Route::get('/health/outbox', [HealthController::class, 'outbox']);
     Route::get('/metrics', MetricsController::class);
-
-    Route::any('/{any}', function () {
-        return response()->json(['message' => 'Gone'], 410);
-    })->where('any', '.*');
-});
-
-Route::prefix('v2')->group(function () {
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::get('/invitations/{token}', [InvitationController::class, 'showPublic'])->middleware('throttle:api-read');
     Route::post('/invitations/{token}/accept', [InvitationController::class, 'accept'])->middleware('throttle:api-write');

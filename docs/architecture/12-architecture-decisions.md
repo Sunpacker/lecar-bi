@@ -170,7 +170,7 @@ Main constraints:
 Consequences: pgvector is required in dev/test/deploy, along with separate queues/worker capacity, a dispatcher for persisted
 generation tasks, and verification of streaming through the proxy/BFF. No new services, broker, or vector DB are required.
 Capability and API extensions follow a contract-first approach during implementation, together with the generated client and tests.
-The existing API v2 and Sanctum/BFF from ADR-021 are used; Qdrant remains an example technology,
+The existing API v1 and Sanctum/BFF from ADR-021 are used; Qdrant remains an example technology,
 not a new dependency. When connecting private sources, ACL mapping,
 synchronization intervals, access revocation, and permission caching are checked separately.
 
@@ -203,7 +203,7 @@ Decision: after CI, publish backend and notification to GHCR with full commit SH
 
 ## ADR-021 — API Authentication through Laravel Sanctum and Next.js BFF
 
-Decision: replace direct trust in the `X-User-Id` header with Laravel Sanctum Bearer tokens valid for 7 days. Browser calls pass through the Next.js BFF proxy (`/api/backend/*`), which injects the Bearer token from a protected HttpOnly session cookie and `X-Workspace-Id`. Protected v1 endpoints now return 410 Gone, and an API v2 contract has been published. Changing a password revokes all of the user's server-side tokens, requiring a new sign-in.
+Decision: replace direct trust in the `X-User-Id` header with Laravel Sanctum Bearer tokens valid for 7 days. Browser calls pass through the Next.js BFF proxy (`/api/backend/*`), which injects the Bearer token from a protected HttpOnly session cookie and `X-Workspace-Id`. Analytics exposes one `/api/v1` contract with Bearer authentication. Changing a password revokes all of the user's server-side tokens, requiring a new sign-in.
 
 ## ADR-022 — Extended Settings, Email Invitations, and Personal Notifications
 

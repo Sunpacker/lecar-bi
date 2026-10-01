@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/src/features/auth/model/session'
 
 const ANALYTICS_INTERNAL_URL =
-  process.env.ANALYTICS_INTERNAL_URL || 'http://localhost:8080/api/v2'
+  process.env.ANALYTICS_INTERNAL_URL || 'http://localhost:8080/api/v1'
 
 // Список мутационных методов для CSRF
 const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])

@@ -35,7 +35,7 @@ final class SanctumAuthenticationTest extends TestCase
         $response = $this->withHeaders([
             'X-User-Id' => 'user-1',
             'X-Do-Not-Convert-Auth' => '1',
-        ])->getJson('/api/v2/workspaces');
+        ])->getJson('/api/v1/workspaces');
 
         $response->assertStatus(401)
             ->assertJson([
@@ -46,7 +46,7 @@ final class SanctumAuthenticationTest extends TestCase
 
     public function test_request_without_token_returns_401(): void
     {
-        $response = $this->getJson('/api/v2/workspaces');
+        $response = $this->getJson('/api/v1/workspaces');
 
         $response->assertStatus(401)
             ->assertJson([
@@ -57,7 +57,7 @@ final class SanctumAuthenticationTest extends TestCase
 
     public function test_login_returns_token_and_user(): void
     {
-        $response = $this->postJson('/api/v2/auth/login', [
+        $response = $this->postJson('/api/v1/auth/login', [
             'email' => 'elena@autobi.internal',
             'password' => 'password123',
         ]);
@@ -74,7 +74,7 @@ final class SanctumAuthenticationTest extends TestCase
 
         // Can access protected route with Bearer token
         $protectedResponse = $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson('/api/v2/workspaces');
+            ->getJson('/api/v1/workspaces');
 
         $protectedResponse->assertStatus(200);
     }
@@ -82,7 +82,7 @@ final class SanctumAuthenticationTest extends TestCase
     public function test_request_with_invalid_token_returns_401(): void
     {
         $response = $this->withHeader('Authorization', 'Bearer invalid-token-12345')
-            ->getJson('/api/v2/workspaces');
+            ->getJson('/api/v1/workspaces');
 
         $response->assertStatus(401)
             ->assertJson([
@@ -94,7 +94,7 @@ final class SanctumAuthenticationTest extends TestCase
     public function test_logout_revokes_token_and_invalidates_session(): void
     {
         // 1. Login to get token
-        $loginResponse = $this->postJson('/api/v2/auth/login', [
+        $loginResponse = $this->postJson('/api/v1/auth/login', [
             'email' => 'elena@autobi.internal',
             'password' => 'password123',
         ]);
@@ -102,17 +102,17 @@ final class SanctumAuthenticationTest extends TestCase
 
         // 2. Token works
         $accessResponse = $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson('/api/v2/workspaces');
+            ->getJson('/api/v1/workspaces');
         $accessResponse->assertStatus(200);
 
         // 3. Logout with token
         $logoutResponse = $this->withHeader('Authorization', "Bearer {$token}")
-            ->postJson('/api/v2/auth/logout');
+            ->postJson('/api/v1/auth/logout');
         $logoutResponse->assertStatus(204);
 
         // 4. Token is now revoked and rejected
         $postLogoutResponse = $this->withHeader('Authorization', "Bearer {$token}")
-            ->getJson('/api/v2/workspaces');
+            ->getJson('/api/v1/workspaces');
         $postLogoutResponse->assertStatus(401)
             ->assertJson([
                 'message' => 'Unauthenticated',
@@ -120,15 +120,26 @@ final class SanctumAuthenticationTest extends TestCase
             ]);
     }
 
-    public function test_v1_protected_routes_return_410(): void
+    public function test_v1_routes_support_sanctum_authentication(): void
     {
-        $response = $this->withHeader('X-Explicit-V1', '1')
+        $response = $this->withHeader('X-Do-Not-Convert-Auth', '1')
             ->getJson('/api/v1/workspaces');
-        $response->assertStatus(410);
+        $response->assertStatus(401);
 
-        $loginResponse = $this->withHeader('X-Explicit-V1', '1')
-            ->postJson('/api/v1/auth/login');
-        $loginResponse->assertStatus(410);
+        $loginResponse = $this->withHeader('X-Do-Not-Convert-Auth', '1')
+            ->postJson('/api/v1/auth/login', [
+                'email' => 'elena@autobi.internal',
+                'password' => 'password123',
+            ]);
+        $loginResponse->assertOk()->assertJsonPath('user.id', 'user-1');
+    }
+
+    public function test_v2_routes_are_not_registered(): void
+    {
+        $this->postJson('/api/v2/auth/login', [
+            'email' => 'elena@autobi.internal',
+            'password' => 'password123',
+        ])->assertNotFound();
     }
 
     public function test_v1_health_routes_remain_functional(): void

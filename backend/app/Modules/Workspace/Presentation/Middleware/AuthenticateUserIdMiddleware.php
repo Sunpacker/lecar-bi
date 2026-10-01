@@ -8,7 +8,6 @@ use App\Modules\Workspace\Application\Contracts\AuthTokenServiceInterface;
 use App\Modules\Workspace\Infrastructure\Persistence\Eloquent\Models\UserModel;
 use Closure;
 use Illuminate\Http\Request;
-use Laravel\Sanctum\Sanctum;
 use Symfony\Component\HttpFoundation\Response;
 
 final class AuthenticateUserIdMiddleware
@@ -30,7 +29,8 @@ final class AuthenticateUserIdMiddleware
                     'name' => "User {$userId}",
                 ]);
                 $userModel->exists = true;
-                Sanctum::actingAs($userModel);
+                auth('sanctum')->setUser($userModel);
+                app('auth')->shouldUse('sanctum');
 
                 $request->attributes->set('authenticated_user_id', $userId);
 

@@ -74,7 +74,7 @@ HTTP подходит для сценариев, где:
 
 При развитии API и event contracts соблюдается строгая политика совместимости:
 
-- **OpenAPI HTTP API:** версионируется в URL (`/api/v2/...` для Analytics, `/api/v1/...` для Notification). Защищённые эндпоинты v1 Analytics возвращают `410 Gone`, требуя Bearer-авторизации Sanctum через v2.
+- **OpenAPI HTTP API:** версионируется в URL (`/api/v1/...` для Analytics и Notification). Защищённые эндпоинты Analytics требуют Bearer-авторизации Sanctum.
 - **Event Contracts:** схема `alert.triggered.v1` (`contracts/events/alert-triggered.v1.schema.json`) после публикации неизменна (`immutable`).
 - Любое изменение семантики или добавление обязательных полей требует новой версии события (например, `alert.triggered.v2`) с отдельным декодером и обработчиком. Неподдерживаемые версии событий отправляются в dead-letter stream и не приводят к сбою consumer group.
 
@@ -82,7 +82,7 @@ HTTP подходит для сценариев, где:
 
 Разграничение доступа к ресурсам аналитического сервиса осуществляется на уровне возможностей (capabilities):
 
-1. **Контракт OpenAPI (`contracts/openapi/analytics-v2.yaml`):**
+1. **Контракт OpenAPI (`contracts/openapi/analytics-v1.yaml`):**
    - Все защищённые endpoints аннотированы расширением `x-required-capability`, фиксирующим обязательное атомарное право для выполнения операции:
      - `analytics.view`: аналитические отчёты и сводки (продажи, склад, ABC/XYZ, поставщики);
      - `dashboards.view`: чтение списка и конфигураций дашбордов и сохранённых представлений;

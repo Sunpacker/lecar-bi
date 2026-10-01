@@ -357,7 +357,7 @@ SQL выполняет фильтрацию и ранжирование; вес�
 
 ## API и жизненный цикл генерации
 
-До backend-реализации расширить `contracts/openapi/analytics-v2.yaml`: JSON DTO, security,
+До backend-реализации расширить `contracts/openapi/analytics-v1.yaml`: JSON DTO, security,
 `x-required-capability`, пагинацию, ошибки, `text/event-stream` и схемы событий с примерами.
 Зафиксировать различие `403`/`404`, `503 AUTHORIZATION_UNAVAILABLE` и `completed/no_context`;
 ошибка авторизации не возвращает текст источников или частичный ответ. Временный сбой допускает
@@ -365,7 +365,7 @@ SQL выполняет фильтрацию и ранжирование; вес�
 Порядок: контракт → проверка совместимости → backend → генерация frontend-клиента → contract tests.
 SSE-parser может быть отдельным transport helper; payload-типы берутся из контракта.
 
-Все пути имеют префикс `/api/v2/support` и существующую Bearer-авторизацию через BFF (ADR-021):
+Все пути имеют префикс `/api/v1/support` и существующую Bearer-авторизацию через BFF (ADR-021):
 
 | Метод и путь                        | Поведение                                                                    |
 | ----------------------------------- | ---------------------------------------------------------------------------- |
@@ -585,7 +585,7 @@ prompt version и результаты; оценки LLM-as-judge не заме�
 
 1. Включить RAG-этап в roadmap с зависимостями, scope и checkpoint; подготовить разрешённый corpus,
    матрицу источников/доступов, calibration/holdout и provider configuration с бюджетами.
-2. Зафиксировать OpenAPI v2, SSE schemas, расширение capabilities и публичный retrieval contract
+2. Зафиксировать OpenAPI v1, SSE schemas, расширение capabilities и публичный retrieval contract
    с проверенным контекстом доступа и отдельной ошибкой недоступности авторизации.
 3. Реализовать `Support`/`KnowledgeBase` Domain/Application с fakes, fail closed и тестами изоляции/состояний.
 4. Подготовить pgvector в dev/test/deploy, schema/migrations, persistence и версионирование profile.

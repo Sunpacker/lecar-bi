@@ -75,7 +75,7 @@ In Notification Service:
 
 API and event contract evolution follows a strict compatibility policy:
 
-- **OpenAPI HTTP API:** versioned in the URL (`/api/v2/...` for Analytics, `/api/v1/...` for Notification). Protected Analytics v1 endpoints return `410 Gone`, requiring Sanctum Bearer authentication through v2.
+- **OpenAPI HTTP API:** versioned in the URL (`/api/v1/...` for both Analytics and Notification). Protected Analytics endpoints require Sanctum Bearer authentication.
 - **Event Contracts:** the `alert.triggered.v1` schema (`contracts/events/alert-triggered.v1.schema.json`) is immutable after publication (`immutable`).
 - Any semantic change or addition of required fields requires a new event version (for example, `alert.triggered.v2`) with a separate decoder and handler. Unsupported event versions are sent to the dead-letter stream and do not crash the consumer group.
 
@@ -83,7 +83,7 @@ API and event contract evolution follows a strict compatibility policy:
 
 Access to analytics service resources is controlled at the capability level:
 
-1. **OpenAPI contract (`contracts/openapi/analytics-v2.yaml`):**
+1. **OpenAPI contract (`contracts/openapi/analytics-v1.yaml`):**
    - All protected endpoints are annotated with the `x-required-capability` extension, specifying the atomic permission required for the operation:
      - `analytics.view`: analytical reports and summaries (sales, inventory, ABC/XYZ, suppliers);
      - `dashboards.view`: reading dashboard and saved view lists and configurations;

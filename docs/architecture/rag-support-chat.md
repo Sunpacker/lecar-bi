@@ -357,7 +357,7 @@ are introduced together with conversation-aware retrieval and dedicated tests.
 
 ## API and Generation Lifecycle
 
-Before backend implementation, extend `contracts/openapi/analytics-v2.yaml`: JSON DTOs, security,
+Before backend implementation, extend `contracts/openapi/analytics-v1.yaml`: JSON DTOs, security,
 `x-required-capability`, pagination, errors, `text/event-stream`, and event schemas with examples.
 Define the distinction between `403`/`404`, `503 AUTHORIZATION_UNAVAILABLE`, and `completed/no_context`;
 an authorization error returns neither source text nor a partial answer. A transient failure allows
@@ -365,7 +365,7 @@ an explicit retry once permission checks recover, with fresh access and budget c
 Order: contract → compatibility check → backend → frontend client generation → contract tests.
 The SSE parser may be a separate transport helper; payload types come from the contract.
 
-All paths use the `/api/v2/support` prefix and existing Bearer authorization through the BFF (ADR-021):
+All paths use the `/api/v1/support` prefix and existing Bearer authorization through the BFF (ADR-021):
 
 | Method and path                     | Behavior                                                                     |
 | ----------------------------------- | ---------------------------------------------------------------------------- |
@@ -585,7 +585,7 @@ Repeat evaluation after changing the chat/embedding model, prompt, chunking, or 
 
 1. Add a RAG phase to the roadmap with dependencies, scope, and checkpoint; prepare an authorized corpus,
    source/access matrix, calibration/holdout sets, and provider configuration with budgets.
-2. Finalize OpenAPI v2, SSE schemas, capability extensions, and the public retrieval contract
+2. Finalize OpenAPI v1, SSE schemas, capability extensions, and the public retrieval contract
    with verified access context and a separate authorization-unavailable error.
 3. Implement `Support`/`KnowledgeBase` Domain/Application with fakes, fail-closed behavior, and isolation/state tests.
 4. Prepare pgvector in dev/test/deploy, schema/migrations, persistence, and profile versioning.

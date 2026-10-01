@@ -23,9 +23,8 @@ Use **Laravel Sanctum** (API tokens) for authentication:
 
 ### Migration Path
 
-- API v2 with Bearer authentication coexists in parallel.
-- Protected v1 routes return `410 Gone`, requiring a new sign-in.
-- V1 health endpoints are retained for monitoring backward compatibility.
+- All Analytics API endpoints, including health checks, use `/api/v1`.
+- Protected routes require Sanctum Bearer authentication; the previous `X-User-Id` trust model is removed.
 - The frontend routes all API requests through the BFF proxy (`/api/backend/[...path]`), which adds the Bearer token from the cookie.
 
 ### Tokens

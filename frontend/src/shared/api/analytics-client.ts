@@ -12,7 +12,7 @@ const DEFAULT_HTTP_TIMEOUT_MS = 15000
 function getBaseUrl(): string {
   if (typeof window === 'undefined') {
     // Server-side: go directly to backend
-    return process.env.ANALYTICS_INTERNAL_URL || 'http://localhost:8080/api/v2'
+    return process.env.ANALYTICS_INTERNAL_URL || 'http://localhost:8080/api/v1'
   }
   // Client-side: go through BFF proxy
   return '/api/backend'

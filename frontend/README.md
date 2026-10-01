@@ -23,7 +23,7 @@ npm test
 npm run build
 ```
 
-`api:generate` refreshes `src/shared/api/generated/schema.ts` from `contracts/openapi/analytics-v2.yaml`. Generated types are consumed through the typed client in `src/shared/api/analytics-client.ts`.
+`api:generate` refreshes `src/shared/api/generated/schema.ts` from `contracts/openapi/analytics-v1.yaml`. Generated types are consumed through the typed client in `src/shared/api/analytics-client.ts`.
 
 ## Storybook
 

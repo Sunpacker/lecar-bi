@@ -59,6 +59,7 @@ final class ApiContractTest extends TestCase
             'alerts.view',
             'alerts.manage',
             'workspace.members.manage',
+            'workspace.settings.manage',
         ];
         self::assertEqualsCanonicalizing($expectedCapabilities, $schemas['WorkspaceCapability']['enum']);
 

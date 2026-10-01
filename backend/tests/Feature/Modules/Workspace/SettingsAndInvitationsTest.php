@@ -67,7 +67,7 @@ final class SettingsAndInvitationsTest extends TestCase
     public function test_user_can_update_profile_name(): void
     {
         $response = $this->withHeader('X-User-Id', 'user-1')
-            ->patchJson('/api/v2/me', [
+            ->patchJson('/api/v1/me', [
                 'name' => 'Elena Super-Admin',
             ]);
 
@@ -83,7 +83,7 @@ final class SettingsAndInvitationsTest extends TestCase
     public function test_user_can_change_password_and_login_with_new_password(): void
     {
         $response = $this->withHeader('X-User-Id', 'user-1')
-            ->postJson('/api/v2/me/password', [
+            ->postJson('/api/v1/me/password', [
                 'current_password' => 'password123',
                 'new_password' => 'new-secure-password',
                 'new_password_confirmation' => 'new-secure-password',
@@ -92,14 +92,14 @@ final class SettingsAndInvitationsTest extends TestCase
         $response->assertStatus(204);
 
         // Old password fails
-        $failedLogin = $this->postJson('/api/v2/auth/login', [
+        $failedLogin = $this->postJson('/api/v1/auth/login', [
             'email' => 'elena@autobi.internal',
             'password' => 'password123',
         ]);
         $failedLogin->assertStatus(401);
 
         // New password works
-        $loginResponse = $this->postJson('/api/v2/auth/login', [
+        $loginResponse = $this->postJson('/api/v1/auth/login', [
             'email' => 'elena@autobi.internal',
             'password' => 'new-secure-password',
         ]);
@@ -110,7 +110,7 @@ final class SettingsAndInvitationsTest extends TestCase
     public function test_change_password_with_incorrect_current_password_returns_401(): void
     {
         $response = $this->withHeader('X-User-Id', 'user-1')
-            ->postJson('/api/v2/me/password', [
+            ->postJson('/api/v1/me/password', [
                 'current_password' => 'wrong-current-pass',
                 'new_password' => 'new-password-12345',
                 'new_password_confirmation' => 'new-password-12345',
@@ -125,7 +125,7 @@ final class SettingsAndInvitationsTest extends TestCase
         $response = $this->withHeaders([
             'X-User-Id' => 'user-1',
             'X-Workspace-Id' => 'ws-1',
-        ])->patchJson('/api/v2/workspaces/ws-1', [
+        ])->patchJson('/api/v1/workspaces/ws-1', [
             'name' => 'AutoParts Global Holding',
         ]);
 
@@ -142,7 +142,7 @@ final class SettingsAndInvitationsTest extends TestCase
         $response = $this->withHeaders([
             'X-User-Id' => 'user-2',
             'X-Workspace-Id' => 'ws-1',
-        ])->patchJson('/api/v2/workspaces/ws-1', [
+        ])->patchJson('/api/v1/workspaces/ws-1', [
             'name' => 'Hacked Workspace Name',
         ]);
 
@@ -154,7 +154,7 @@ final class SettingsAndInvitationsTest extends TestCase
         $response = $this->withHeaders([
             'X-User-Id' => 'user-1',
             'X-Workspace-Id' => 'ws-1',
-        ])->postJson('/api/v2/workspaces/ws-1/invitations', [
+        ])->postJson('/api/v1/workspaces/ws-1/invitations', [
             'email' => 'newuser@example.com',
             'role' => 'member',
         ]);
@@ -170,7 +170,7 @@ final class SettingsAndInvitationsTest extends TestCase
         $listResponse = $this->withHeaders([
             'X-User-Id' => 'user-1',
             'X-Workspace-Id' => 'ws-1',
-        ])->getJson('/api/v2/workspaces/ws-1/invitations');
+        ])->getJson('/api/v1/workspaces/ws-1/invitations');
 
         $listResponse->assertStatus(200)
             ->assertJsonCount(1, 'items')
@@ -180,7 +180,7 @@ final class SettingsAndInvitationsTest extends TestCase
         $resendResponse = $this->withHeaders([
             'X-User-Id' => 'user-1',
             'X-Workspace-Id' => 'ws-1',
-        ])->postJson("/api/v2/workspaces/ws-1/invitations/{$invitationId}/resend");
+        ])->postJson("/api/v1/workspaces/ws-1/invitations/{$invitationId}/resend");
 
         $resendResponse->assertStatus(200)
             ->assertJsonPath('id', $invitationId);
@@ -189,7 +189,7 @@ final class SettingsAndInvitationsTest extends TestCase
         $deleteResponse = $this->withHeaders([
             'X-User-Id' => 'user-1',
             'X-Workspace-Id' => 'ws-1',
-        ])->deleteJson("/api/v2/workspaces/ws-1/invitations/{$invitationId}");
+        ])->deleteJson("/api/v1/workspaces/ws-1/invitations/{$invitationId}");
 
         $deleteResponse->assertStatus(204);
     }
@@ -223,7 +223,7 @@ final class SettingsAndInvitationsTest extends TestCase
         $this->invRepo->save($knownInv);
 
         // 2. View public details without authentication
-        $detailsResponse = $this->getJson("/api/v2/invitations/{$rawToken}");
+        $detailsResponse = $this->getJson("/api/v1/invitations/{$rawToken}");
         $detailsResponse->assertStatus(200)
             ->assertJsonPath('email', 'newbie@example.com')
             ->assertJsonPath('workspace_name', 'AutoParts Retail')
@@ -232,7 +232,7 @@ final class SettingsAndInvitationsTest extends TestCase
             ->assertJsonPath('is_existing_user', false);
 
         // 3. Accept invitation
-        $acceptResponse = $this->postJson("/api/v2/invitations/{$rawToken}/accept", [
+        $acceptResponse = $this->postJson("/api/v1/invitations/{$rawToken}/accept", [
             'name' => 'Newbie User',
             'password' => 'secret-password-123',
         ]);
@@ -250,7 +250,7 @@ final class SettingsAndInvitationsTest extends TestCase
         $this->assertTrue($ws->hasMember(new UserId($newUserId)));
 
         // 5. Trying to accept again fails
-        $secondAccept = $this->postJson("/api/v2/invitations/{$rawToken}/accept");
+        $secondAccept = $this->postJson("/api/v1/invitations/{$rawToken}/accept");
         $secondAccept->assertStatus(400);
     }
 }

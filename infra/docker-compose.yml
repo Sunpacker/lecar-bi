@@ -12,7 +12,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-production}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
-      ANALYTICS_INTERNAL_URL: ${ANALYTICS_INTERNAL_URL:-http://backend:8080/api/v2}
+      ANALYTICS_INTERNAL_URL: ${ANALYTICS_INTERNAL_URL:-http://backend:8080/api/v1}
       NOTIFICATION_INTERNAL_URL: ${NOTIFICATION_INTERNAL_URL:-http://notification:8081/api/v1}
       NOTIFICATION_SHARED_SECRET: ${NOTIFICATION_SHARED_SECRET:-test-notification-secret-key-12345}
     ports:

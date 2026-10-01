@@ -17,6 +17,8 @@ install-notification:
 
 dev:
 	$(DEV_COMPOSE) up --build -d
+	$(DEV_COMPOSE) exec -T backend php artisan migrate --force --no-interaction
+	$(DEV_COMPOSE) exec -T notification php artisan migrate --force --no-interaction
 
 dev-down:
 	$(DEV_COMPOSE) down
@@ -26,6 +28,8 @@ dev-frontend:
 
 infra-up:
 	$(COMPOSE) up --build -d
+	$(COMPOSE) exec -T backend php artisan migrate --force --no-interaction
+	$(COMPOSE) exec -T notification php artisan migrate --force --no-interaction
 
 infra-down:
 	$(COMPOSE) down
