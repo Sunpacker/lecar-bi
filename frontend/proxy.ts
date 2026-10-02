@@ -30,6 +30,7 @@ export function proxy(request: NextRequest) {
   if (
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/api/health') ||
+    pathname.startsWith('/api/diagnostic') ||
     pathname.startsWith('/api/backend') ||
     pathname.startsWith('/api/notifications') ||
     pathname.startsWith('/invite') ||
