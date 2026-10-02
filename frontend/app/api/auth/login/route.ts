@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { authGateway } from '@/src/features/auth/api/auth-gateway'
-import { createSession } from '@/src/features/auth/model/session'
+import { createSession, setWorkspaceCookie } from '@/src/features/auth/model/session'
 import { getBackendApiUrl } from '@/src/shared/config/backend-url'
 
 export async function POST(request: Request) {
@@ -26,6 +26,24 @@ export async function POST(request: Request) {
     })
 
     await createSession({ ...user, token })
+
+    try {
+      const wsRes = await fetch(`${getBackendApiUrl()}/workspaces/current`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+        signal: AbortSignal.timeout(5000),
+      })
+      if (wsRes.ok) {
+        const wsData = await wsRes.json()
+        if (wsData?.workspace?.id) {
+          await setWorkspaceCookie(wsData.workspace.id)
+        }
+      }
+    } catch {
+      // Non-blocking: workspace can also be resolved dynamically by routes
+    }
 
     return NextResponse.json({ user })
   } catch (error: unknown) {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession } from '@/src/features/auth/model/session'
+import { getSession, getWorkspaceCookie } from '@/src/features/auth/model/session'
 import { getBackendApiUrl } from '@/src/shared/config/backend-url'
 
 // Список мутационных методов для CSRF
@@ -38,7 +38,8 @@ async function proxyHandler(
   }
 
   // Forward workspace header
-  const workspaceId = request.headers.get('x-workspace-id')
+  const workspaceId =
+    request.headers.get('x-workspace-id') || (await getWorkspaceCookie())
   if (workspaceId) {
     headers.set('X-Workspace-Id', workspaceId)
   }

@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getSession, getWorkspaceCookie } from '@/src/features/auth/model/session'
+import {
+  getSession,
+  getWorkspaceCookie,
+  setWorkspaceCookie,
+} from '@/src/features/auth/model/session'
+import { getBackendApiUrl } from '@/src/shared/config/backend-url'
 
 const NOTIFICATION_INTERNAL_URL =
   process.env.NOTIFICATION_INTERNAL_URL ||
@@ -24,18 +29,67 @@ async function notificationProxyHandler(
     )
   }
 
-  const workspaceId =
-    request.headers.get('x-workspace-id') || (await getWorkspaceCookie())
+  const { path } = await params
+  let targetPath = path.join('/')
+  if (targetPath === 'unread-count') {
+    targetPath = 'notifications/unread-count'
+  }
+
+  let workspaceId = request.headers.get('x-workspace-id') || (await getWorkspaceCookie())
+
+  if (!workspaceId && session.token) {
+    try {
+      const backendRes = await fetch(`${getBackendApiUrl()}/workspaces/current`, {
+        headers: {
+          Authorization: `Bearer ${session.token}`,
+          Accept: 'application/json',
+        },
+        signal: AbortSignal.timeout(5000),
+      })
+
+      if (backendRes.ok) {
+        const data = await backendRes.json()
+        const resolvedId = data?.workspace?.id
+        if (typeof resolvedId === 'string' && resolvedId.length > 0) {
+          workspaceId = resolvedId
+          try {
+            await setWorkspaceCookie(resolvedId)
+          } catch {
+            // Non-blocking in case cookieStore cannot be modified
+          }
+        }
+      }
+    } catch {
+      // Backend request timed out or failed
+    }
+  }
 
   if (!workspaceId) {
+    // Graceful fallback for read-only GET requests if workspace cannot be determined
+    if (request.method === 'GET') {
+      if (targetPath === 'notifications/unread-count') {
+        return NextResponse.json({ unread_count: 0 }, { status: 200 })
+      }
+      if (targetPath === 'notifications') {
+        return NextResponse.json(
+          { items: [], total: 0, page: 1, per_page: 20, unread_count: 0 },
+          { status: 200 },
+        )
+      }
+      if (targetPath === 'notification-preferences') {
+        return NextResponse.json(
+          { preferences: { info: true, warning: true, critical: true } },
+          { status: 200 },
+        )
+      }
+    }
+
     return NextResponse.json(
       { message: 'Рабочее пространство не выбрано', code: 'MISSING_WORKSPACE' },
       { status: 400 },
     )
   }
 
-  const { path } = await params
-  const targetPath = path.join('/')
   const url = new URL(`${NOTIFICATION_INTERNAL_URL}/${targetPath}`)
 
   request.nextUrl.searchParams.forEach((value, key) => {

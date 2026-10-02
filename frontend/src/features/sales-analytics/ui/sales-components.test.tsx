@@ -87,7 +87,7 @@ describe('Sales Analytics UI Components', () => {
 
     const categorySelect = screen.getByLabelText('Категория')
     await userEvent.click(categorySelect)
-    await userEvent.click(screen.getByRole('option', { name: 'Масла' }))
+    await userEvent.click(await screen.findByRole('option', { name: 'Масла' }))
 
     expect(onFilterChange).toHaveBeenCalledWith(
       expect.objectContaining({ categoryId: 'cat-1' }),

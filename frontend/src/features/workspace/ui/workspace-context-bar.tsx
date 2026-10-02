@@ -21,6 +21,20 @@ export function WorkspaceContextBar({
   const [currentId, setCurrentId] = useState(context.workspace.id)
   const [loggingOut, setLoggingOut] = useState(false)
 
+  const handleSelectWorkspace = async (workspaceId: string) => {
+    setCurrentId(workspaceId)
+    try {
+      await fetch('/api/workspace/select', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workspaceId }),
+      })
+      router.refresh()
+    } catch {
+      // Non-blocking
+    }
+  }
+
   const handleLogout = async () => {
     setLoggingOut(true)
     try {
@@ -41,7 +55,7 @@ export function WorkspaceContextBar({
         <WorkspaceSwitcher
           currentWorkspaceId={currentId}
           workspaces={accessibleWorkspaces}
-          onSelectWorkspace={setCurrentId}
+          onSelectWorkspace={handleSelectWorkspace}
         />
       </div>
 
