@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/src/features/auth/model/session'
-
-function getAnalyticsInternalUrl(): string {
-  return (
-    process.env.ANALYTICS_INTERNAL_URL ||
-    process.env.NEXT_PUBLIC_ANALYTICS_API_URL ||
-    (process.env.VERCEL
-      ? 'https://api.veloza.ru/lecar-bi/api/v1'
-      : 'http://localhost:8080/api/v1')
-  )
-}
+import { getBackendApiUrl } from '@/src/shared/config/backend-url'
 
 // Список мутационных методов для CSRF
 const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
@@ -29,7 +20,7 @@ async function proxyHandler(
 
   const { path } = await params
   const targetPath = path.join('/')
-  const url = new URL(`${getAnalyticsInternalUrl()}/${targetPath}`)
+  const url = new URL(`${getBackendApiUrl()}/${targetPath}`)
 
   // Forward query params
   request.nextUrl.searchParams.forEach((value, key) => {
@@ -87,14 +78,26 @@ async function proxyHandler(
       },
     })
   } catch (error) {
+    console.error(`[api/backend proxy] Failed to proxy to ${url}:`, error)
     if (error instanceof Error && error.name === 'TimeoutError') {
       return NextResponse.json(
-        { message: 'Сервис недоступен', code: 'BACKEND_TIMEOUT' },
+        { message: 'Сервис недоступен', code: 'BACKEND_TIMEOUT', debugUrl: url.toString() },
         { status: 504 },
       )
     }
     return NextResponse.json(
-      { message: 'Сервис недоступен', code: 'BACKEND_UNAVAILABLE' },
+      {
+        message: 'Сервис недоступен',
+        code: 'BACKEND_UNAVAILABLE',
+        debug: {
+          url: url.toString(),
+          detail: error instanceof Error ? error.message : String(error),
+          cause:
+            error instanceof Error && (error as any).cause
+              ? String((error as any).cause)
+              : undefined,
+        },
+      },
       { status: 502 },
     )
   }

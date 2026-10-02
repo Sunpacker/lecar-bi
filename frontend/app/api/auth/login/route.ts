@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { authGateway } from '@/src/features/auth/api/auth-gateway'
 import { createSession } from '@/src/features/auth/model/session'
+import { getBackendApiUrl } from '@/src/shared/config/backend-url'
 
 export async function POST(request: Request) {
   try {
@@ -28,6 +29,16 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ user })
   } catch (error: unknown) {
+    const targetUrl = getBackendApiUrl()
+    console.error('[auth/login] Login failed:', {
+      targetUrl,
+      error: error instanceof Error ? error.message : error,
+      cause:
+        error instanceof Error && (error as any).cause
+          ? String((error as any).cause)
+          : undefined,
+    })
+
     let message = error instanceof Error ? error.message : 'Ошибка аутентификации'
     let status =
       typeof error === 'object' && error !== null && 'status' in error
@@ -48,6 +59,20 @@ export async function POST(request: Request) {
       status = 503
     }
 
-    return NextResponse.json({ message, code }, { status: status || 401 })
+    return NextResponse.json(
+      {
+        message,
+        code,
+        debug: {
+          targetUrl,
+          detail: error instanceof Error ? error.message : String(error),
+          cause:
+            error instanceof Error && (error as any).cause
+              ? String((error as any).cause)
+              : undefined,
+        },
+      },
+      { status: status || 401 },
+    )
   }
 }

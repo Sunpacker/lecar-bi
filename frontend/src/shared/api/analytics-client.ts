@@ -7,18 +7,14 @@ import {
   parseSessionValue,
 } from '../../features/auth/model/session-token'
 
+import { getBackendApiUrl, isLocalhost } from '../config/backend-url'
+
 const DEFAULT_HTTP_TIMEOUT_MS = 15000
 
 function getBaseUrl(): string {
   if (typeof window === 'undefined') {
     // Server-side: go directly to backend
-    return (
-      process.env.ANALYTICS_INTERNAL_URL ||
-      process.env.NEXT_PUBLIC_ANALYTICS_API_URL ||
-      (process.env.VERCEL
-        ? 'https://api.veloza.ru/lecar-bi/api/v1'
-        : 'http://localhost:8080/api/v1')
-    )
+    return getBackendApiUrl()
   }
   // Client-side: go through BFF proxy
   return '/api/backend'
@@ -122,14 +118,29 @@ const authMiddleware: Middleware = {
 export const analyticsClient = createClient<paths>({
   baseUrl: getBaseUrl(),
   fetch: (request: Request) => {
+    let finalReq = request
+    if (typeof window === 'undefined') {
+      const isCloudOrProd = Boolean(process.env.VERCEL) || process.env.NODE_ENV === 'production'
+      if (isCloudOrProd && isLocalhost(request.url)) {
+        const correctBase = getBackendApiUrl()
+        try {
+          const parsed = new URL(request.url)
+          const targetUrl = new URL(parsed.pathname + parsed.search, correctBase).toString()
+          finalReq = new Request(targetUrl, request)
+        } catch {
+          // ignore parsing error, proceed with original request
+        }
+      }
+    }
+
     if (
-      !request.signal &&
+      !finalReq.signal &&
       typeof AbortSignal !== 'undefined' &&
       'timeout' in AbortSignal
     ) {
-      return fetch(request, { signal: AbortSignal.timeout(DEFAULT_HTTP_TIMEOUT_MS) })
+      return fetch(finalReq, { signal: AbortSignal.timeout(DEFAULT_HTTP_TIMEOUT_MS) })
     }
-    return fetch(request)
+    return fetch(finalReq)
   },
 })
 
