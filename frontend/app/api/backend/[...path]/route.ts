@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/src/features/auth/model/session'
 
-const ANALYTICS_INTERNAL_URL =
-  process.env.ANALYTICS_INTERNAL_URL || 'http://localhost:8080/api/v1'
+function getAnalyticsInternalUrl(): string {
+  return (
+    process.env.ANALYTICS_INTERNAL_URL ||
+    process.env.NEXT_PUBLIC_ANALYTICS_API_URL ||
+    (process.env.VERCEL
+      ? 'https://api.veloza.ru/lecar-bi/api/v1'
+      : 'http://localhost:8080/api/v1')
+  )
+}
 
 // Список мутационных методов для CSRF
 const MUTATION_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
@@ -22,7 +29,7 @@ async function proxyHandler(
 
   const { path } = await params
   const targetPath = path.join('/')
-  const url = new URL(`${ANALYTICS_INTERNAL_URL}/${targetPath}`)
+  const url = new URL(`${getAnalyticsInternalUrl()}/${targetPath}`)
 
   // Forward query params
   request.nextUrl.searchParams.forEach((value, key) => {

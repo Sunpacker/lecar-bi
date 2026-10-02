@@ -14,6 +14,9 @@ export function isSecureCookie(): boolean {
   if (process.env.SESSION_SECURE_COOKIE !== undefined) {
     return process.env.SESSION_SECURE_COOKIE === 'true'
   }
+  if (process.env.VERCEL) {
+    return true
+  }
   return (process.env.NEXT_PUBLIC_APP_URL ?? '').startsWith('https://')
 }
 

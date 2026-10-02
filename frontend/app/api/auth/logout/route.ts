@@ -6,7 +6,11 @@ import {
 } from '@/src/features/auth/model/session'
 
 const ANALYTICS_INTERNAL_URL =
-  process.env.ANALYTICS_INTERNAL_URL || 'http://localhost:8080/api/v1'
+  process.env.ANALYTICS_INTERNAL_URL ||
+  process.env.NEXT_PUBLIC_ANALYTICS_API_URL ||
+  (process.env.VERCEL
+    ? 'https://api.veloza.ru/lecar-bi/api/v1'
+    : 'http://localhost:8080/api/v1')
 
 export async function POST() {
   try {
