@@ -120,12 +120,16 @@ export const analyticsClient = createClient<paths>({
   fetch: (request: Request) => {
     let finalReq = request
     if (typeof window === 'undefined') {
-      const isCloudOrProd = Boolean(process.env.VERCEL) || process.env.NODE_ENV === 'production'
+      const isCloudOrProd =
+        Boolean(process.env.VERCEL) || process.env.NODE_ENV === 'production'
       if (isCloudOrProd && isLocalhost(request.url)) {
         const correctBase = getBackendApiUrl()
         try {
           const parsed = new URL(request.url)
-          const targetUrl = new URL(parsed.pathname + parsed.search, correctBase).toString()
+          const targetUrl = new URL(
+            parsed.pathname + parsed.search,
+            correctBase,
+          ).toString()
           finalReq = new Request(targetUrl, request)
         } catch {
           // ignore parsing error, proceed with original request

@@ -81,7 +81,11 @@ async function proxyHandler(
     console.error(`[api/backend proxy] Failed to proxy to ${url}:`, error)
     if (error instanceof Error && error.name === 'TimeoutError') {
       return NextResponse.json(
-        { message: 'Сервис недоступен', code: 'BACKEND_TIMEOUT', debugUrl: url.toString() },
+        {
+          message: 'Сервис недоступен',
+          code: 'BACKEND_TIMEOUT',
+          debugUrl: url.toString(),
+        },
         { status: 504 },
       )
     }

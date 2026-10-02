@@ -16,13 +16,27 @@ describe('backend-url resolution', () => {
   })
 
   it('normalizes various URL formats correctly', () => {
-    expect(normalizeBackendUrl('https://api.veloza.ru')).toBe('https://api.veloza.ru/lecar-bi/api/v1')
-    expect(normalizeBackendUrl('https://api.veloza.ru/')).toBe('https://api.veloza.ru/lecar-bi/api/v1')
-    expect(normalizeBackendUrl('https://api.veloza.ru/lecar-bi')).toBe('https://api.veloza.ru/lecar-bi/api/v1')
-    expect(normalizeBackendUrl('https://api.veloza.ru/lecar-bi/')).toBe('https://api.veloza.ru/lecar-bi/api/v1')
-    expect(normalizeBackendUrl('https://api.veloza.ru/lecar-bi/api/v1')).toBe('https://api.veloza.ru/lecar-bi/api/v1')
-    expect(normalizeBackendUrl('https://api.veloza.ru/lecar-bi/api/v1/')).toBe('https://api.veloza.ru/lecar-bi/api/v1')
-    expect(normalizeBackendUrl('https://api.veloza.ru/api/v1')).toBe('https://api.veloza.ru/api/v1')
+    expect(normalizeBackendUrl('https://api.veloza.ru')).toBe(
+      'https://api.veloza.ru/lecar-bi/api/v1',
+    )
+    expect(normalizeBackendUrl('https://api.veloza.ru/')).toBe(
+      'https://api.veloza.ru/lecar-bi/api/v1',
+    )
+    expect(normalizeBackendUrl('https://api.veloza.ru/lecar-bi')).toBe(
+      'https://api.veloza.ru/lecar-bi/api/v1',
+    )
+    expect(normalizeBackendUrl('https://api.veloza.ru/lecar-bi/')).toBe(
+      'https://api.veloza.ru/lecar-bi/api/v1',
+    )
+    expect(normalizeBackendUrl('https://api.veloza.ru/lecar-bi/api/v1')).toBe(
+      'https://api.veloza.ru/lecar-bi/api/v1',
+    )
+    expect(normalizeBackendUrl('https://api.veloza.ru/lecar-bi/api/v1/')).toBe(
+      'https://api.veloza.ru/lecar-bi/api/v1',
+    )
+    expect(normalizeBackendUrl('https://api.veloza.ru/api/v1')).toBe(
+      'https://api.veloza.ru/api/v1',
+    )
   })
 
   it('detects localhost URLs', () => {
