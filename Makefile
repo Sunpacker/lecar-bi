@@ -1,6 +1,7 @@
 INFRA_ENV_FILE ?= $(if $(wildcard infra/.env),infra/.env,infra/.env.example)
-COMPOSE = docker compose --env-file $(INFRA_ENV_FILE) -f infra/docker-compose.yml
-DEV_COMPOSE = $(COMPOSE) -f infra/docker-compose.dev.yml
+COMPOSE_FILE ?= $(if $(filter production,$(shell grep -s '^APP_ENV=' $(INFRA_ENV_FILE) 2>/dev/null | cut -d= -f2)),infra/docker-compose.vps.yml,infra/docker-compose.yml)
+COMPOSE = docker compose --env-file $(INFRA_ENV_FILE) -f $(COMPOSE_FILE)
+DEV_COMPOSE = docker compose --env-file $(INFRA_ENV_FILE) -f infra/docker-compose.yml -f infra/docker-compose.dev.yml
 export COMPOSER_HOME ?= $(CURDIR)/.composer
 
 .PHONY: install install-frontend install-backend install-notification dev dev-down dev-frontend infra-up infra-down build build-backend build-notification check check-frontend check-backend check-notification check-contracts test integration migrate migrate-seed migrate-fresh seed artisan notification-migrate notification-artisan performance-seed performance-benchmark
@@ -76,22 +77,22 @@ integration:
 	scripts/verify-integration.sh
 
 migrate:
-	$(COMPOSE) exec backend php artisan migrate
+	$(COMPOSE) exec backend php artisan migrate --force
 
 migrate-seed:
-	$(COMPOSE) exec backend php artisan migrate --seed
+	$(COMPOSE) exec backend php artisan migrate --seed --force
 
 migrate-fresh:
-	$(COMPOSE) exec backend php artisan migrate:fresh --seed
+	$(COMPOSE) exec backend php artisan migrate:fresh --seed --force
 
 seed:
-	$(COMPOSE) exec backend php artisan db:seed
+	$(COMPOSE) exec backend php artisan db:seed --force
 
 artisan:
 	$(COMPOSE) exec backend php artisan $(cmd)
 
 notification-migrate:
-	$(COMPOSE) exec notification php artisan migrate
+	$(COMPOSE) exec notification php artisan migrate --force
 
 notification-artisan:
 	$(COMPOSE) exec notification php artisan $(cmd)

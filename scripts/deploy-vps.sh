@@ -210,6 +210,9 @@ compose exec -T redis redis-cli -n "$REDIS_DB" DEL autobi:worker:notification-wo
 compose run --rm --no-deps backend php artisan migrate --force
 compose run --rm --no-deps notification php artisan migrate --force
 compose up -d --no-deps --force-recreate backend notification notification-worker
+if [[ -n $(container_id frontend 2>/dev/null) ]]; then
+    compose restart frontend || true
+fi
 verify_release
 save_release
 trap - ERR

@@ -28,16 +28,25 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ user })
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Ошибка аутентификации'
-    const status =
+    let message = error instanceof Error ? error.message : 'Ошибка аутентификации'
+    let status =
       typeof error === 'object' && error !== null && 'status' in error
         ? Number((error as { status: number }).status)
         : 401
 
-    const code =
+    let code =
       typeof error === 'object' && error !== null && 'code' in error
         ? String((error as { code: string }).code)
         : 'INVALID_CREDENTIALS'
+
+    if (
+      (error instanceof TypeError && error.message.includes('fetch failed')) ||
+      message.includes('fetch failed')
+    ) {
+      message = 'Сервис аналитики временно недоступен. Проверьте подключение к бэкенду.'
+      code = 'BACKEND_UNAVAILABLE'
+      status = 503
+    }
 
     return NextResponse.json({ message, code }, { status: status || 401 })
   }
