@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSession, getWorkspaceCookie } from '@/src/features/auth/model/session'
 
 const NOTIFICATION_INTERNAL_URL =
-  process.env.NOTIFICATION_INTERNAL_URL || 'http://localhost:8081/api/v1'
+  process.env.NOTIFICATION_INTERNAL_URL ||
+  (process.env.VERCEL
+    ? 'https://api.veloza.ru/notification/api/v1'
+    : 'http://localhost:8081/api/v1')
 const NOTIFICATION_SHARED_SECRET =
   process.env.NOTIFICATION_SHARED_SECRET || 'test-notification-secret-key-12345'
 
